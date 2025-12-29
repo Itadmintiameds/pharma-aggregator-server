@@ -10,6 +10,7 @@
 
 From the project root:
 
+
 ```bash
 docker build -t pharma-aggregator-server -f dockerfile .
 ```
