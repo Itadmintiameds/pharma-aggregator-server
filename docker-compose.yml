@@ -1,0 +1,99 @@
+version: "3.9"
+
+services:
+  app-dev:
+    build:
+      context: .
+      dockerfile: dockerfile
+    container_name: pharma-aggregator-dev
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+
+  postgres-dev:
+    image: postgres:16-alpine
+    container_name: postgres-dev
+    environment:
+      POSTGRES_DB: pharma-aggregator
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app-test:
+    build:
+      context: .
+      dockerfile: dockerfile
+    container_name: pharma-aggregator-test
+    environment:
+      SPRING_PROFILES_ACTIVE: test
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    ports:
+      - "8081:8080"
+
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: postgres-test
+    environment:
+      POSTGRES_DB: pharma-aggregator_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-test-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app-prod:
+    build:
+      context: .
+      dockerfile: dockerfile
+    container_name: pharma-aggregator-prod
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    depends_on:
+      postgres-prod:
+        condition: service_healthy
+    ports:
+      - "8082:8080"
+
+  postgres-prod:
+    image: postgres:16-alpine
+    container_name: postgres-prod
+    environment:
+      POSTGRES_DB: pharma-aggregator_prod
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-prod-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-dev-data:
+  postgres-test-data:
+  postgres-prod-data:
+
+
