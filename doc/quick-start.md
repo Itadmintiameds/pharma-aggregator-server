@@ -63,6 +63,7 @@ These scripts will:
   docker-compose up app-test
   ```
 
+
   - App: `http://localhost:8081`
 
 - **Production-like environment (Spring profile `prod`)**:
