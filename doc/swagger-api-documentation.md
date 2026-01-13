@@ -6,13 +6,13 @@ This project uses **SpringDoc OpenAPI 3** (Swagger) for API documentation.
 
 Once the application is running, you can access the Swagger UI at:
 
-- **Development**: `http://localhost:8080/swagger-ui.html`
-- **Test**: `http://localhost:8081/swagger-ui.html`
+- **Development**: `http://localhost:8080/swagger-ui/index.html` or `http://localhost:8080/swagger-ui/`
+- **Test**: `http://localhost:8081/swagger-ui/index.html` or `http://localhost:8081/swagger-ui/`
 - **Production**: Swagger UI is **disabled** for security reasons
 
 ### API Documentation Endpoints
 
-- **Swagger UI**: `/swagger-ui.html`
+- **Swagger UI**: `/swagger-ui/index.html` or `/swagger-ui/`
 - **OpenAPI JSON**: `/api-docs` or `/v3/api-docs`
 - **OpenAPI YAML**: `/v3/api-docs.yaml`
 
@@ -21,12 +21,12 @@ Once the application is running, you can access the Swagger UI at:
 #### Development (`dev` profile)
 - Swagger UI: **Enabled**
 - Try it out: **Enabled**
-- Access: `http://localhost:8080/swagger-ui.html`
+- Access: `http://localhost:8080/swagger-ui/index.html`
 
 #### Test (`test` profile)
 - Swagger UI: **Enabled**
 - Try it out: **Enabled**
-- Access: `http://localhost:8081/swagger-ui.html`
+- Access: `http://localhost:8081/swagger-ui/index.html`
 
 #### Production (`prod` profile)
 - Swagger UI: **Disabled** (for security)
@@ -45,12 +45,14 @@ Swagger configuration is managed in:
 
 Swagger endpoints are configured to be accessible without authentication in the `SecurityConfig` class. The following paths are permitted:
 
-- `/swagger-ui.html`
 - `/swagger-ui/**`
+- `/swagger-ui.html`
 - `/v3/api-docs/**`
 - `/api-docs/**`
 - `/swagger-resources/**`
 - `/webjars/**`
+- `/` (root endpoint)
+- `/error` (error handling)
 
 ### Customizing API Documentation
 

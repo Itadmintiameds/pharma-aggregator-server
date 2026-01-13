@@ -16,19 +16,24 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         // Allow Swagger UI and API docs
                         .requestMatchers(
-                                "/swagger-ui.html",
                                 "/swagger-ui/**",
+                                "/swagger-ui.html",
                                 "/v3/api-docs/**",
                                 "/api-docs/**",
                                 "/swagger-resources/**",
-                                "/webjars/**"
+                                "/webjars/**",
+                                "/",
+                                "/error"
                         ).permitAll()
                         // Allow all other requests (you can restrict this later)
                         .anyRequest().permitAll()
                 )
-                .csrf(csrf -> csrf.disable()); // Disable CSRF for API (enable if needed)
+                .csrf(csrf -> csrf.disable()) // Disable CSRF for API
+                .httpBasic(httpBasic -> httpBasic.disable()) // Disable HTTP Basic Auth
+                .formLogin(formLogin -> formLogin.disable()); // Disable form login
 
         return http.build();
     }
 }
+
 

@@ -17,13 +17,45 @@ docker build -t pharma-aggregator-server -f dockerfile .
 
 ### 2. Run the app + PostgreSQL with Docker Compose
 
+#### Option A: Always rebuild (recommended for development)
+
+**Windows (PowerShell):**
+```powershell
+.\start-dev.ps1
+```
+
+**Windows (Command Prompt):**
+```cmd
+start-dev.bat
+```
+
+**Linux/Mac:**
+```bash
+chmod +x start-dev.sh
+./start-dev.sh
+```
+
+These scripts will:
+- Stop existing containers
+- Rebuild the Docker image without cache (includes all new files)
+- Start the application
+
+#### Option B: Standard Docker Compose
+
 - **Development environment (Spring profile `dev`)**:
 
   ```bash
-  docker-compose up app-dev           or        docker-compose up -d app-dev
+  docker-compose up --build app-dev
+  ```
+
+  Or in detached mode:
+  ```bash
+  docker-compose up --build -d app-dev
   ```
 
   - App: `http://localhost:8080`
+
+**Note:** Use `--build` flag to ensure latest code changes are included.
 
 - **Test environment (Spring profile `test`)**:
 
@@ -49,7 +81,7 @@ To start the application with Docker Compose, use the `docker-compose up` comman
 
 **Development environment:**
 ```bash
-docker-compose up app-dev
+docker-compose up app-dev     or    docker-compose up --build app-dev
 ```
 
 **Test environment:**
@@ -92,20 +124,31 @@ docker-compose down -v
 
 #### Automatic image rebuilding
 
-When you update the source code, Docker Compose will **automatically rebuild** the Docker image when you run `docker-compose up`. You do **not** need to manually build the image first.
+**Important:** Docker Compose does **NOT** automatically detect source code changes. You must rebuild the image to include new files.
 
-**How it works:**
-- Docker Compose detects changes in your source code
-- It automatically rebuilds the image before starting the containers
-- This ensures you're always running the latest code
+**To always rebuild with latest code:**
 
-**Force a rebuild:**
-If you want to force a rebuild even if nothing changed, use the `--build` flag:
-```bash
-docker-compose up --build app-dev
-```
+1. **Use the helper scripts** (recommended):
+   - Windows: `start-dev.bat` or `.\start-dev.ps1`
+   - Linux/Mac: `./start-dev.sh`
+   - These scripts always rebuild without cache
 
-**Note:** The first time you run `docker-compose up`, it will build the image. Subsequent runs will reuse the existing image unless source code changes are detected.
+2. **Use `--build` flag:**
+   ```bash
+   docker-compose up --build app-dev
+   ```
+
+3. **Force rebuild without cache:**
+   ```bash
+   docker-compose build --no-cache app-dev
+   docker-compose up app-dev
+   ```
+
+**Why rebuild is needed:**
+- Docker images are built from your source code at build time
+- Changes to `.java` files require rebuilding the image
+- The container runs the compiled JAR, not your source files
+- Always use `--build` or the helper scripts to ensure latest code is included
 
 ### 4. Run the app container directly (optional)
 

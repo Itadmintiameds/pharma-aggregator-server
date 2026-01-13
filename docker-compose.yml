@@ -5,6 +5,8 @@ services:
     build:
       context: .
       dockerfile: dockerfile
+      # Note: To always rebuild with latest code, use: docker-compose up --build app-dev
+      # Or use the helper scripts: start-dev.bat (Windows) or start-dev.sh (Linux/Mac)
     container_name: pharma-aggregator-dev
     environment:
       SPRING_PROFILES_ACTIVE: dev
