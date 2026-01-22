@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:postgresql://postgres-dev:5432/pharma-aggregator?charSet=UTF8
+    url: jdbc:postgresql://host.docker.internal:5432/pharma-aggregator?charSet=UTF8
     username: postgres
     password: root
     driver-class-name: org.postgresql.Driver

@@ -85,6 +85,11 @@ To start the application with Docker Compose, use the `docker-compose up` comman
 docker-compose up app-dev     or    docker-compose up --build app-dev
 ```
 
+To stop the application and remove containers, use:
+```bash
+docker-compose down
+```
+
 **Test environment:**
 ```bash
 docker-compose up app-test
