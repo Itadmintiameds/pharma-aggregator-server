@@ -16,6 +16,7 @@ public class DistrictMapper {
         districtDto.setId(district.getId());
         districtDto.setDistrictCode(district.getDistrictCode());
         districtDto.setDistrictName(district.getDistrictName());
+        districtDto.setIsActive(district.getIsActive());
         districtDto.setState(stateMapper.toDto(district.getState()));
         return districtDto;
     }
