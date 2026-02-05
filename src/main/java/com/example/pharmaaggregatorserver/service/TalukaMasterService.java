@@ -15,11 +15,19 @@ public class TalukaMasterService {
 
     // Get all talukas
     public List<TalukaMaster> getAllTalukas() {
-        return talukaMasterRepository.findAll();
+        List<TalukaMaster> talukas = talukaMasterRepository.findAll();
+        if (talukas.isEmpty()) {
+            return List.of();
+        }
+        return talukas;
     }
 
     // Get talukas by district ID
     public List<TalukaMaster> getTalukasByDistrictId(Integer districtId) {
-        return talukaMasterRepository.findByDistrictId(districtId);
+        List<TalukaMaster> talukas = talukaMasterRepository.findByDistrictId(districtId);
+        if (talukas.isEmpty()) {
+            return List.of();
+        }
+        return talukas;
     }
 }

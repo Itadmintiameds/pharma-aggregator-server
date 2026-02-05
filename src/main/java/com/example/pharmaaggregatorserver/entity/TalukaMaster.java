@@ -2,6 +2,8 @@ package com.example.pharmaaggregatorserver.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -9,7 +11,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "tbl_taluka_master")
-@Data
+@Getter
+@Setter
 public class TalukaMaster {
 
     @Id
@@ -17,11 +20,13 @@ public class TalukaMaster {
     @Column(name = "taluka_id")
     private Integer talukaId;
 
-    @Column(name = "state_id", nullable = false)
-    private Integer stateId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "state_id", nullable = false, insertable = false, updatable = false)
+    private StateMaster state;
 
-    @Column(name = "district_id", nullable = false)
-    private Integer districtId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "district_id", nullable = false, insertable = false, updatable = false)
+    private DistrictMaster district;
 
     @Column(name = "taluka_code", unique = true, nullable = false, length = 15)
     private String talukaCode;

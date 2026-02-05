@@ -1,14 +1,14 @@
 package com.example.pharmaaggregatorserver.controller;
 
 import com.example.pharmaaggregatorserver.entity.DistrictMaster;
+import com.example.pharmaaggregatorserver.response.ApiResponse;
 import com.example.pharmaaggregatorserver.service.DistrictMasterService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/districts")
@@ -24,25 +24,35 @@ public class DistrictMasterController {
      */
     @GetMapping
     public ResponseEntity<?> getAllDistricts() {
-        try {
-            List<DistrictMaster> districts = districtMasterService.getAllDistricts();
 
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", districts.isEmpty() ? "No districts found" : "Districts retrieved successfully");
-            response.put("data", districts);
-            response.put("count", districts.size());
+        /* TODO: Remove below comments later */
+//        try {
+//            List<DistrictMaster> districts = districtMasterService.getAllDistricts();
+//
+//            Map<String, Object> response = new HashMap<>();
+//            response.put("success", true);
+//            response.put("message", districts.isEmpty() ? "No districts found" : "Districts retrieved successfully");
+//            response.put("data", districts);
+//            response.put("count", districts.size());
+//
+//            return ResponseEntity.ok(response);
+//
+//        } catch (Exception e) {
+//            Map<String, Object> errorResponse = new HashMap<>();
+//            errorResponse.put("success", false);
+//            errorResponse.put("message", "Error retrieving districts: " + e.getMessage());
+//            errorResponse.put("data", null);
+//
+//            return ResponseEntity.internalServerError().body(errorResponse);
+//        }
 
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("success", false);
-            errorResponse.put("message", "Error retrieving districts: " + e.getMessage());
-            errorResponse.put("data", null);
-
-            return ResponseEntity.internalServerError().body(errorResponse);
-        }
+        List<DistrictMaster> districts = districtMasterService.getAllDistricts();
+        return ResponseEntity.ok(new ApiResponse<>(
+                HttpStatus.OK.toString(),
+                "Districts Fetched Successfully",
+                districts,
+                (long) districts.size())
+        );
     }
 
     /**
@@ -51,24 +61,33 @@ public class DistrictMasterController {
      */
     @GetMapping("/state/{stateId}")
     public ResponseEntity<?> getDistrictsByStateId(@PathVariable Integer stateId) {
-        try {
-            List<DistrictMaster> districts = districtMasterService.getDistrictsByStateId(stateId);
+        /* TODO: Remove below comments later */
 
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", districts.isEmpty() ? "No districts found for this state" : "Districts retrieved successfully");
-            response.put("data", districts);
-            response.put("count", districts.size());
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("success", false);
-            errorResponse.put("message", "Error retrieving districts: " + e.getMessage());
-            errorResponse.put("data", null);
-
-            return ResponseEntity.internalServerError().body(errorResponse);
-        }
+//        try {
+//            List<DistrictMaster> districts = districtMasterService.getDistrictsByStateId(stateId);
+//
+//            Map<String, Object> response = new HashMap<>();
+//            response.put("success", true);
+//            response.put("message", districts.isEmpty() ? "No districts found for this state" : "Districts retrieved successfully");
+//            response.put("data", districts);
+//            response.put("count", districts.size());
+//
+//            return ResponseEntity.ok(response);
+//
+//        } catch (Exception e) {
+//            Map<String, Object> errorResponse = new HashMap<>();
+//            errorResponse.put("success", false);
+//            errorResponse.put("message", "Error retrieving districts: " + e.getMessage());
+//            errorResponse.put("data", null);
+//
+//            return ResponseEntity.internalServerError().body(errorResponse);
+//        }
+        List<DistrictMaster> districts = districtMasterService.getDistrictsByStateId(stateId);
+        return ResponseEntity.ok().body(new ApiResponse<>(
+                HttpStatus.OK.toString(),
+                "Districts Fetched Successfully",
+                districts,
+                (long) districts.size())
+        );
     }
 }

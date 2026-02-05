@@ -17,16 +17,28 @@ public class DistrictMasterService {
 
     // Get all districts
     public List<DistrictMaster> getAllDistricts() {
-        return districtMasterRepository.findAll();
+        List<DistrictMaster> districts = districtMasterRepository.findAll();
+        if (districts.isEmpty()) {
+            return List.of();
+        }
+        return districts;
     }
 
     // Get districts by state ID
     public List<DistrictMaster> getDistrictsByStateId(Integer stateId) {
-        return districtMasterRepository.findByStateId(stateId);
+        List<DistrictMaster> districts = districtMasterRepository.findByStateId(stateId);
+        if (districts.isEmpty()) {
+            return List.of();
+        }
+        return districts;
     }
 
     // Get active districts by state ID
     public List<DistrictMaster> getActiveDistrictsByStateId(Integer stateId) {
-        return districtMasterRepository.findByStateIdAndIsActiveTrue(stateId);
+        List<DistrictMaster> districts = districtMasterRepository.findByStateIdAndIsActiveTrue(stateId);
+        if (districts.isEmpty()) {
+            return List.of();
+        }
+        return districts;
     }
 }

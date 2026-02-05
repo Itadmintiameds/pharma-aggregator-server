@@ -1,5 +1,13 @@
 package com.example.pharmaaggregatorserver.response;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+@JsonPropertyOrder({
+        "status",
+        "message",
+        "count",
+        "data"
+})
 public class ApiResponse<T> {
 
     private String status;

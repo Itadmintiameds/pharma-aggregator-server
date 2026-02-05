@@ -1,8 +1,10 @@
 package com.example.pharmaaggregatorserver.controller;
 
 import com.example.pharmaaggregatorserver.entity.TalukaMaster;
+import com.example.pharmaaggregatorserver.response.ApiResponse;
 import com.example.pharmaaggregatorserver.service.TalukaMasterService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,9 +23,13 @@ public class TalukaMasterController {
      * Get all talukas
      */
     @GetMapping
-    public ResponseEntity<List<TalukaMaster>> getAllTalukas() {
+    public ResponseEntity<?> getAllTalukas() {
         List<TalukaMaster> talukas = talukaMasterService.getAllTalukas();
-        return ResponseEntity.ok(talukas);
+        return ResponseEntity.ok(new ApiResponse<>(
+                HttpStatus.OK.toString(),
+                "Talukas Fetched Successfully",
+                talukas,
+                (long) talukas.size()));
     }
 
     /**
@@ -31,8 +37,12 @@ public class TalukaMasterController {
      * Get talukas by district ID
      */
     @GetMapping("/district/{districtId}")
-    public ResponseEntity<List<TalukaMaster>> getTalukasByDistrictId(@PathVariable Integer districtId) {
+    public ResponseEntity<?> getTalukasByDistrictId(@PathVariable Integer districtId) {
         List<TalukaMaster> talukas = talukaMasterService.getTalukasByDistrictId(districtId);
-        return ResponseEntity.ok(talukas);
+        return ResponseEntity.ok(new ApiResponse<>(
+                HttpStatus.OK.toString(),
+                "Talukas Fetched Successfully",
+                talukas,
+                (long) talukas.size()));
     }
 }

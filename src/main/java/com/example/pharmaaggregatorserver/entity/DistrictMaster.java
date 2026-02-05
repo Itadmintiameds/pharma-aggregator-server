@@ -1,7 +1,8 @@
 package com.example.pharmaaggregatorserver.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -9,7 +10,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "tbl_district_master")
-@Data
+@Getter
+@Setter
 public class DistrictMaster {
 
     @Id
@@ -23,8 +25,9 @@ public class DistrictMaster {
     private StateMaster state;
 
     // Keep this column for direct access
-    @Column(name = "state_id", nullable = false)
-    private Integer stateId;
+    /* Commented the direct ID store */
+//    @Column(name = "state_id", nullable = false)
+//    private Integer stateId;
 
     @Column(name = "district_code", unique = true, nullable = false, length = 10)
     private String districtCode;
