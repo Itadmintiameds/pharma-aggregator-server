@@ -23,7 +23,7 @@ public class HomeController {
     @GetMapping("/health")
     public ResponseEntity<Map<String, String>> health() {
         Map<String, String> response = new HashMap<>();
-        response.put("status", "UP");
+        response.put("status", "Hi Bassu");
         return ResponseEntity.ok(response);
     }
 
