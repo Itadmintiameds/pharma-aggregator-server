@@ -17,7 +17,7 @@ public class CompanyTypeMaster {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "company_type_id")
-    private Integer companyTypeId;
+    private Long companyTypeId;
 
     @Column(name = "company_type_name", nullable = false, unique = true, length = 100)
     private String companyTypeName;

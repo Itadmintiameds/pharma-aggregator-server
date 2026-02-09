@@ -17,7 +17,7 @@ public class StateMaster {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "state_id")
-    private Integer stateId;
+    private Long stateId;
 
     @Column(name = "state_code", unique = true, nullable = false, length = 10)
     private String stateCode;

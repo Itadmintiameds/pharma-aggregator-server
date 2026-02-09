@@ -20,11 +20,11 @@ public class TempSellerAddress {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "temp_seller_address_id")
+    @Column(name = "seller_address_id")
     private Long tempSellerAddressId;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "temp_seller_id", unique = true, nullable = false)
+    @JoinColumn(name = "seller_id", unique = true, nullable = false)
     @JsonIgnore
     private TempSeller seller;
 
@@ -69,4 +69,7 @@ public class TempSellerAddress {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "is_active")
+    private Boolean isActive = true;
 }
