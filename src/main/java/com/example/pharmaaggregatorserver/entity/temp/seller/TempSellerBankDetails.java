@@ -17,11 +17,11 @@ public class TempSellerBankDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "temp_seller_bank_details_id")
+    @Column(name = "seller_bank_id")
     private Long tempSellerBankDetailsId;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "temp_seller_id", unique = true, nullable = false)
+    @JoinColumn(name = "seller_id", unique = true, nullable = false)
     @JsonIgnore
     private TempSeller seller;
 
@@ -53,4 +53,7 @@ public class TempSellerBankDetails {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "is_active")
+    private Boolean isActive = true;
 }

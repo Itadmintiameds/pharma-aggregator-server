@@ -17,11 +17,11 @@ public class TempSellerCoordinator {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "temp_seller_coordinator_id")
+    @Column(name = "coordinator_id")
     private Long tempSellerCoordinatorId;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "temp_seller_id", unique = true, nullable = false)
+    @JoinColumn(name = "seller_id", unique = true, nullable = false)
     @JsonIgnore
     private TempSeller seller;
 
@@ -34,8 +34,14 @@ public class TempSellerCoordinator {
     @Column(name = "email", nullable = false, length = 100)
     private String email;
 
+    @Column(name = "isEmailVerified", nullable = false)
+    private boolean isEmailVerified;
+
     @Column(name = "mobile", nullable = false, length = 100)
     private String mobile;
+
+    @Column(name = "isPhoneVerified", nullable = false)
+    private boolean isPhoneVerified;
 
     @Column(name = "created_by", length = 100)
     private String createdBy;
@@ -50,4 +56,7 @@ public class TempSellerCoordinator {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "is_active")
+    private Boolean isActive = true;
 }
