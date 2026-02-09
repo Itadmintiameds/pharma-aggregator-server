@@ -1,4 +1,5 @@
 package com.example.pharmaaggregatorserver.dto.seller;
+
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,7 +18,7 @@ public class TempSellerRequestDTO {
 //    private String sellerRequestId;
 
     @NotNull(message = "Product type is required")
-    private Long productTypeId;
+    private List<Long> productTypeId;
 
     @NotNull(message = "Company type is required")
     private Long companyTypeId;

@@ -24,7 +24,7 @@ public class GlobalExceptionHandler {
 
         ErrorResponse response = new ErrorResponse(
                 500,
-                "Internal server error"
+                "Internal server error: " + ex.getMessage()
         );
 
         return ResponseEntity.status(500).body(response);

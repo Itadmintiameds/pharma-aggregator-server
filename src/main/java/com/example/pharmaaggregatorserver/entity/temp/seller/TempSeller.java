@@ -47,18 +47,18 @@ public class TempSeller {
 
     // ---------------- N:N ----------------
 
-//    @ManyToMany(fetch = FetchType.LAZY)
-//    @JoinTable(
-//            name = "tbl_temp_seller_product_types",
-//            joinColumns = @JoinColumn(name = "temp_seller_id"),
-//            inverseJoinColumns = @JoinColumn(name = "product_type_id"),
-//            uniqueConstraints = @UniqueConstraint(columnNames = {"temp_seller_id", "product_type_id"})
-//    )
-//    private List<ProductTypeMaster> productTypes = new ArrayList<>();
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "tbl_temp_seller_product_types",
+            joinColumns = @JoinColumn(name = "temp_seller_id"),
+            inverseJoinColumns = @JoinColumn(name = "product_type_id"),
+            uniqueConstraints = @UniqueConstraint(columnNames = {"temp_seller_id", "product_type_id"})
+    )
+    private List<ProductTypeMaster> productTypes = new ArrayList<>();
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_type_id", nullable = false)
-    private ProductTypeMaster productTypes;
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "product_type_id", nullable = false)
+//    private ProductTypeMaster productTypes;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_type_id", nullable = false)

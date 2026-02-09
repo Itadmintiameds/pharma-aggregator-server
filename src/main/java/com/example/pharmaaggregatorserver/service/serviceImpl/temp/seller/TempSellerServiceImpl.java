@@ -1,6 +1,6 @@
 package com.example.pharmaaggregatorserver.service.serviceImpl.temp.seller;
-import com.example.pharmaaggregatorserver.dto.seller.*;
 
+import com.example.pharmaaggregatorserver.dto.seller.*;
 import com.example.pharmaaggregatorserver.entity.master.*;
 import com.example.pharmaaggregatorserver.entity.temp.seller.*;
 import com.example.pharmaaggregatorserver.repository.master.*;
@@ -11,7 +11,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -39,8 +39,7 @@ public class TempSellerServiceImpl implements TempSellerService {
         }
 
         // Fetch master entities
-        ProductTypeMaster productType = productTypeMasterRepository.findById(requestDTO.getProductTypeId())
-                .orElseThrow(() -> new RuntimeException("Product type not found"));
+        List<ProductTypeMaster> productType = productTypeMasterRepository.findAllById(requestDTO.getProductTypeId());
 
         CompanyTypeMaster companyType = companyTypeMasterRepository.findById(requestDTO.getCompanyTypeId())
                 .orElseThrow(() -> new RuntimeException("Company type not found"));
