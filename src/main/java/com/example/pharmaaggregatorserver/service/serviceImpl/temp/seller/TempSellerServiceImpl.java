@@ -1,8 +1,10 @@
 package com.example.pharmaaggregatorserver.service.serviceImpl.temp.seller;
 
+import com.example.pharmaaggregatorserver.dto.admin.TempSellerAdminResponseDTO;
 import com.example.pharmaaggregatorserver.dto.seller.*;
 import com.example.pharmaaggregatorserver.entity.master.*;
 import com.example.pharmaaggregatorserver.entity.temp.seller.*;
+import com.example.pharmaaggregatorserver.exception.NotFoundException;
 import com.example.pharmaaggregatorserver.repository.master.*;
 import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerRepository;
 import com.example.pharmaaggregatorserver.service.temp.seller.RequestIdGeneratorService;
@@ -11,6 +13,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -179,5 +182,34 @@ public class TempSellerServiceImpl implements TempSellerService {
         // Map other fields as needed
 
         return responseDTO;
+    }
+
+    /* Get All Temporary Sellers */
+    @Override
+    public List<TempSellerAdminResponseDTO> getALLTempSellers() {
+        List<TempSeller> tempSellers = tempSellerRepository.findAll();
+
+        if (tempSellers.isEmpty()) {
+            return List.of();
+        }
+        List<TempSellerAdminResponseDTO> dtos = new ArrayList<>();
+        tempSellers.forEach(tempSeller -> {
+            TempSellerAdminResponseDTO dto = new TempSellerAdminResponseDTO();
+            dto.setTempSellerId(tempSeller.getTempSellerId());
+            dto.setTempSellerRequestId(tempSeller.getTempSellerRequestId());
+            dto.setTempSellerName(tempSeller.getSellerName());
+            dto.setTempSellerEmail(tempSeller.getEmail());
+            dto.setCreatedAt(tempSeller.getCreatedAt());
+            dto.setStatus(tempSeller.getStatus());
+            dtos.add(dto);
+        });
+        return dtos;
+    }
+
+    /* Get Temporary Seller By Id */
+    @Override
+    public TempSeller findById(Long id) {
+        return tempSellerRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("TempSeller not found for id: " + id));
     }
 }
