@@ -16,6 +16,7 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
+    // 🔹 Simple text mail
     public void sendMail(String to, String subject, String body) {
 
         SimpleMailMessage message = new SimpleMailMessage();
@@ -25,29 +26,46 @@ public class EmailService {
         mailSender.send(message);
     }
 
-    public void sendApprovalMail(String to, String username, String resetLink, String pdfPath) {
+    // 🔹 Approval mail with PDF attachment
+    public void sendApprovalMail(String to,
+                                 String username,
+                                 String password,
+                                 String resetLink,
+                                 String pdfPath) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             helper.setTo(to);
             helper.setSubject("Seller Account Approved 🎉");
+
             helper.setText("""
-                    Your seller account is approved.
+                    Dear Seller,
+                    
+                    Your seller account has been approved.
                     
                     Username: %s
-                    Set Password: %s
+                    Password: %s
+                    Set your password here: %s
                     
-                    Agreement attached.
-                    """.formatted(username, resetLink));
+                    Please find your agreement attached.
+                    
+                    Regards,
+                    Pharma Aggregator Team
+                    """.formatted(username, password, resetLink), false); // false = plain text
 
             FileSystemResource file = new FileSystemResource(new File(pdfPath));
-            helper.addAttachment("Seller_Agreement.pdf", file);
+
+            if (file.exists()) {
+                helper.addAttachment("Seller_Agreement.pdf", file);
+            } else {
+                throw new RuntimeException("PDF file not found at " + pdfPath);
+            }
 
             mailSender.send(message);
 
         } catch (Exception e) {
-            throw new RuntimeException("Email sending failed", e);
+            throw new RuntimeException("Approval email sending failed", e);
         }
     }
 }

@@ -8,7 +8,6 @@ import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerRepos
 import com.example.pharmaaggregatorserver.service.EmailService;
 import com.example.pharmaaggregatorserver.service.PdfService;
 import com.example.pharmaaggregatorserver.service.admin.SellerApprovalService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,6 +35,8 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
 
             case "REJECT" -> handleRejection(tempSeller, request.getComments());
 
+            case "ACCEPT" -> handleApprovalForTempSeller(tempSeller);
+
 //            case "ACCEPT" -> handleApproval(tempSeller);
 
             default -> throw new ApplicationException("Invalid Status");
@@ -49,11 +50,27 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
 
         String correctionUrl = "https://testdomain.com/seller/correction/" + seller.getTempSellerId();
 
+        String body = """
+                Dear %s,
+                
+                Your seller application requires some corrections before approval.
+                
+                🔎 Reviewer Comments:
+                %s
+                
+                Please update your details using the link below:
+                %s
+                
+                After updating, your application will be reviewed again.
+                
+                Regards,
+                Pharma Aggregator Team
+                """.formatted(seller.getSellerName(), comments, correctionUrl);
+
         emailService.sendMail(
                 seller.getEmail(),
-                "Correction Required",
-                "Please correct your application.\nComments: " + comments +
-                        "\nUpdate here: " + correctionUrl
+                "Action Required: Seller Application Correction",
+                body
         );
     }
 
@@ -62,11 +79,53 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
         seller.setStatus("REJECTED");
         tempSellerRepo.save(seller);
 
+        String body = """
+                Dear %s,
+                
+                Thank you for registering with Pharma Aggregator.
+                
+                We regret to inform you that your seller application has been rejected.
+                
+                📌 Reason:
+                %s
+                
+                You may reapply after resolving the above issue.
+                
+                Regards,
+                Pharma Aggregator Team
+                """.formatted(seller.getSellerName(), comments);
+
         emailService.sendMail(
                 seller.getEmail(),
-                "Application Rejected",
-                "Your seller registration was rejected.\nReason: " + comments
+                "Seller Application Status: Rejected",
+                body
         );
+    }
+
+    private void handleApprovalForTempSeller(TempSeller tempSeller) {
+
+        // 2️⃣ Generate PDF
+        String pdfPath = pdfService.generateTempSellerAgreementPdf(tempSeller);
+
+        // 3️⃣ Create Login Credentials
+        String username = "test";
+        String password = "test@123";
+
+        // 4️⃣ Send Reset Password Link
+        String resetLink = "https://testdomain.com/seller/reset/" + tempSeller.getTempSellerRequestId();
+
+        // 5️⃣ Email
+        emailService.sendApprovalMail(
+                tempSeller.getEmail(),
+                username,
+                password,
+                resetLink,
+                pdfPath
+        );
+
+        // 6️⃣ Mark Temp Seller as Completed
+        tempSeller.setStatus("APPROVED");
+        tempSellerRepo.save(tempSeller);
     }
 
 //    private void handleApproval(TempSeller tempSeller) {
