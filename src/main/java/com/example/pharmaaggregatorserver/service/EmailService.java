@@ -68,4 +68,20 @@ public class EmailService {
             throw new RuntimeException("Approval email sending failed", e);
         }
     }
+
+    public void sendHtmlMail(String to, String subject, String htmlBody) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(htmlBody, true); // TRUE = HTML
+
+            mailSender.send(message);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to send HTML email", e);
+        }
+    }
+
 }
