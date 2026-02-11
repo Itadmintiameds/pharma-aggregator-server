@@ -55,6 +55,7 @@ public class TempSellerServiceImpl implements TempSellerService {
         seller.setSellerName(requestDTO.getSellerName());
         seller.setTempSellerRequestId(generatedRequestId);
         seller.setProductTypes(productType);
+
         seller.setCompanyType(companyType);
         seller.setSellerType(sellerType);
         seller.setPhone(requestDTO.getPhone());

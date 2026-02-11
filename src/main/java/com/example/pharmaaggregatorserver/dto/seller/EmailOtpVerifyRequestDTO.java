@@ -6,7 +6,14 @@ import lombok.Setter;
 @Getter
 @Setter
 public class EmailOtpVerifyRequestDTO {
-
-    private Long coordinatorId;
+    private String email;
     private String otp;
+
+    public String getEmail() {
+        return email;
+    }
+
+    public String getOtp() {
+        return otp;
+    }
 }
