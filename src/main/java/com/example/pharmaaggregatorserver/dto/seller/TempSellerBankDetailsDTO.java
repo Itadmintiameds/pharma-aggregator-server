@@ -26,4 +26,7 @@ public class TempSellerBankDetailsDTO {
     @NotBlank(message = "Account holder name is required")
     @Size(max = 100, message = "Account holder name cannot exceed 100 characters")
     private String accountHolderName;
+
+    @NotBlank(message = "Bank Document File URL is required")
+    private String bankDocumentFileUrl;
 }

@@ -63,6 +63,7 @@ public class TempSellerServiceImpl implements TempSellerService {
         seller.setStatus("open"); // Initial status
         seller.setPhoneVerified(false);
         seller.setEmailVerified(false);
+        seller.setTermsAccepted(requestDTO.isTermsAccepted());
         seller.setCreatedBy("SYSTEM"); // You can get from SecurityContext
         seller.setUpdatedBy("SYSTEM");
 
@@ -147,6 +148,7 @@ public class TempSellerServiceImpl implements TempSellerService {
         bankDetails.setIfscCode(bankDetailsDTO.getIfscCode());
         bankDetails.setAccountNumber(bankDetailsDTO.getAccountNumber());
         bankDetails.setAccountHolderName(bankDetailsDTO.getAccountHolderName());
+        bankDetails.setBankDocumentFileUrl(bankDetailsDTO.getBankDocumentFileUrl());
         bankDetails.setCreatedBy("SYSTEM");
         bankDetails.setUpdatedBy("SYSTEM");
 

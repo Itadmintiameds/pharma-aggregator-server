@@ -88,6 +88,9 @@ public class TempSeller {
     @Column(name = "status", nullable = false, length = 100)
     private String status; // open, In Progress, Closed
 
+    @Column(name = "terms_accepted", nullable = false, columnDefinition = "boolean default false")
+    private boolean termsAccepted = false;
+
     @Column(name = "created_by", length = 100)
     private String createdBy;
 
@@ -106,7 +109,6 @@ public class TempSeller {
     private Boolean isActive = true;
 
     // -------- Helper Methods --------
-
 
 
     public void addDocument(TempSellerDocument doc) {

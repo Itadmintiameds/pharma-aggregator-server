@@ -35,6 +35,9 @@ public class TempSellerRequestDTO {
     @Size(max = 100, message = "Email cannot exceed 100 characters")
     private String email;
 
+    @AssertTrue(message = "Terms Acceptance is required")
+    private boolean termsAccepted;
+
     private String website;
 
     private TempSellerAddressDTO address;

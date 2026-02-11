@@ -40,6 +40,9 @@ public class TempSellerBankDetails {
     @Column(name = "account_holder_name", nullable = false, length = 100)
     private String accountHolderName;
 
+    @Column(name = "bank_document_file_url", nullable = false)
+    private String bankDocumentFileUrl;
+
     @Column(name = "created_by", length = 100)
     private String createdBy;
 
