@@ -19,24 +19,21 @@ import java.util.Random;
 public class TempSellerEmailOtpService {
 
     private final TempSellerEmailOtpRepository otpRepository;
-    private final TempSellerCoordinatorRepository coordinatorRepository;
     private final EmailService emailService;
 
     // ================== SEND OTP ==================
     public OtpResponseDTO sendOtp(EmailOtpSendRequestDTO request) {
 
-        TempSellerCoordinator coordinator =
-                coordinatorRepository.findById(request.getCoordinatorId())
-                        .orElseThrow(() ->
-                                new RuntimeException("Coordinator not found"));
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new RuntimeException("Email is required");
+        }
 
         String otp = String.valueOf(
                 100000 + new Random().nextInt(900000)
         );
 
         TempSellerEmailOtp emailOtp = TempSellerEmailOtp.builder()
-                .coordinatorId(coordinator.getTempSellerCoordinatorId())
-                .email(coordinator.getEmail())
+                .email(request.getEmail())
                 .otp(otp)
                 .expiryTime(LocalDateTime.now().plusMinutes(5))
                 .verified(false)
@@ -44,11 +41,11 @@ public class TempSellerEmailOtpService {
 
         otpRepository.save(emailOtp);
 
-        emailService.sendCoordinatorOtp(coordinator.getEmail(), otp);
+        emailService.sendCoordinatorOtp(request.getEmail(), otp);
 
         return OtpResponseDTO.builder()
                 .status("SUCCESS")
-                .message("OTP sent to email successfully")
+                .message("OTP sent successfully")
                 .build();
     }
 
@@ -56,8 +53,7 @@ public class TempSellerEmailOtpService {
     public OtpResponseDTO verifyOtp(EmailOtpVerifyRequestDTO request) {
 
         TempSellerEmailOtp otp = otpRepository
-                .findTopByCoordinatorIdOrderByExpiryTimeDesc(
-                        request.getCoordinatorId())
+                .findTopByEmailOrderByExpiryTimeDesc(request.getEmail())
                 .orElseThrow(() ->
                         new RuntimeException("OTP not found"));
 
@@ -76,19 +72,9 @@ public class TempSellerEmailOtpService {
         otp.setVerified(true);
         otpRepository.save(otp);
 
-        // ✅ UPDATE COORDINATOR EMAIL VERIFIED
-        TempSellerCoordinator coordinator =
-                coordinatorRepository.findById(request.getCoordinatorId())
-                        .orElseThrow(() ->
-                                new RuntimeException("Coordinator not found"));
-
-        coordinator.setEmailVerified(true);
-        coordinatorRepository.save(coordinator);
-
         return OtpResponseDTO.builder()
                 .status("SUCCESS")
                 .message("Email verified successfully")
                 .build();
     }
 }
-

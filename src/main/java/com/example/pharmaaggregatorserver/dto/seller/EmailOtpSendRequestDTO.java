@@ -6,6 +6,9 @@ import lombok.Setter;
 @Getter
 @Setter
 public class EmailOtpSendRequestDTO {
+    private String email;
 
-    private Long coordinatorId;
+    public String getEmail() {
+        return email;
+    }
 }

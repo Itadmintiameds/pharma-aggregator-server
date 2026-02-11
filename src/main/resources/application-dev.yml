@@ -26,6 +26,13 @@ spring:
             enable: true
             required: true
 
+  # Twilio sms
+twilio:
+  account-sid: ${ACCOUNT_SID}
+  auth-token: ${AUTH_TOKEN}
+  verify:
+    service-sid: ${SERVICE_SID}
+
 springdoc:
   swagger-ui:
     enabled: true

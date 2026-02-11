@@ -13,6 +13,7 @@ public class TempSellerRequestDTO {
     @Size(max = 100, message = "Seller name cannot exceed 100 characters")
     private String sellerName;
 
+
 //    @NotBlank(message = "Seller request ID is required")
 //    @Size(max = 100, message = "Seller request ID cannot exceed 100 characters")
 //    private String sellerRequestId;
