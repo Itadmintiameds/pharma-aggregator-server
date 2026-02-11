@@ -293,10 +293,12 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
         );
 
         // Send HTML Email
-        emailService.sendHtmlMail(
+        emailService.sendHtmlMailWithAttachment(
                 tempSeller.getEmail(),
                 "Seller Application Approved – Welcome to TiaMeds Marketplace",
-                body
+                body,
+                pdfPath,
+                "TiaMeds_Seller_Agreement.pdf"
         );
 
         // Mark Temp Seller as Approved
