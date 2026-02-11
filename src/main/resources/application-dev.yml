@@ -2,7 +2,7 @@ spring:
   datasource:
     url: jdbc:postgresql://host.docker.internal:5432/pharma-aggregator?charSet=UTF8
     username: postgres
-    password: root
+    password: Tiamed!!
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:

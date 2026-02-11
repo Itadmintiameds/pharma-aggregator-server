@@ -84,4 +84,20 @@ public class EmailService {
         }
     }
 
+    public void sendCoordinatorOtp(String to, String otp) {
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject("Pharma Aggregator - Email Verification OTP");
+        message.setText(
+                "Dear Coordinator,\n\n" +
+                        "Your email verification OTP is: " + otp + "\n\n" +
+                        "This OTP is valid for 5 minutes.\n" +
+                        "Please do not share this code with anyone.\n\n" +
+                        "Regards,\nPharma Aggregator Team"
+        );
+
+        mailSender.send(message);
+    }
+
 }
