@@ -1,5 +1,6 @@
 package com.example.pharmaaggregatorserver.service;
 
+import com.example.pharmaaggregatorserver.exception.ApplicationException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.FileSystemResource;
@@ -27,45 +28,34 @@ public class EmailService {
     }
 
     // 🔹 Approval mail with PDF attachment
-    public void sendApprovalMail(String to,
-                                 String username,
-                                 String password,
-                                 String resetLink,
-                                 String pdfPath) {
+    public void sendHtmlMailWithAttachment(String to,
+                                           String subject,
+                                           String htmlBody,
+                                           String filePath,
+                                           String attachmentName) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
+
+            // TRUE = multipart email (required for attachments)
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             helper.setTo(to);
-            helper.setSubject("Seller Account Approved 🎉");
+            helper.setSubject(subject);
+            helper.setText(htmlBody, true); // HTML
 
-            helper.setText("""
-                    Dear Seller,
-                    
-                    Your seller account has been approved.
-                    
-                    Username: %s
-                    Password: %s
-                    Set your password here: %s
-                    
-                    Please find your agreement attached.
-                    
-                    Regards,
-                    Pharma Aggregator Team
-                    """.formatted(username, password, resetLink), false); // false = plain text
-
-            FileSystemResource file = new FileSystemResource(new File(pdfPath));
+            FileSystemResource file = new FileSystemResource(new File(filePath));
 
             if (file.exists()) {
-                helper.addAttachment("Seller_Agreement.pdf", file);
+                helper.addAttachment(attachmentName, file);
             } else {
-                throw new RuntimeException("PDF file not found at " + pdfPath);
+                throw new ApplicationException("Attachment file not found at " + filePath);
             }
 
             mailSender.send(message);
 
         } catch (Exception e) {
-            throw new RuntimeException("Approval email sending failed", e);
+            e.printStackTrace();
+            throw new ApplicationException("Failed to send HTML email with attachment");
         }
     }
 
