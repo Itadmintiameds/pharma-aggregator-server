@@ -1,5 +1,6 @@
 package com.example.pharmaaggregatorserver.dto.seller;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,7 +12,9 @@ public class SellerApprovalRequestDTO {
     @NotNull(message = "Seller ID is required")
     private Long id;
 
-    @NotNull(message = "Status is mandatory")
+    @NotBlank(message = "Status cannot be empty")
     private String status;     // ACCEPT, REJECT, CORRECTION
+
+    @NotBlank(message = "Comment cannot be empty")
     private String comments;
 }

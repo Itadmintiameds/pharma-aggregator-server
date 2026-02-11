@@ -46,7 +46,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
 
             case "REJECT" -> handleRejection(tempSeller, request.getComments());
 
-            case "ACCEPT" -> handleApprovalForTempSeller(tempSeller);
+            case "ACCEPT" -> handleApprovalForTempSeller(tempSeller, request.getComments());
 
 //            case "ACCEPT" -> handleApproval(tempSeller);
 
@@ -212,7 +212,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
      * Handles approval process for temporary seller.
      * Generates agreement PDF, credentials, and sends approval email.
      */
-    private void handleApprovalForTempSeller(TempSeller tempSeller) {
+    private void handleApprovalForTempSeller(TempSeller tempSeller, String comments) {
 
         // 1️⃣ Generate Seller Agreement PDF (for record, optional to attach later)
         String pdfPath = pdfService.generateTempSellerAgreementPdf(tempSeller);
@@ -247,6 +247,12 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                     Platform Access Link: 
                     <a href="%s" style="color:#1a73e8; text-decoration:none;">Login to Platform</a>
                 </p>
+                
+                <p>
+                    <b>Admin Approval Comments:</b>
+                </p>
+                
+                <p>%s</p>
                 
                 <p><b>Temporary Login Credentials:</b><br>
                     Username: %s<br>
@@ -286,6 +292,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 tempSeller.getSellerName(),
                 tempSeller.getEmail(),
                 LOGIN_URL,
+                comments,
                 username,
                 password,
                 SUPPORT_TIAMEDS_COM,
