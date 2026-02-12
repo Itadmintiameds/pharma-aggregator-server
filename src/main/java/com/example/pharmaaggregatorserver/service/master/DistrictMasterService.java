@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface DistrictMasterService {
     List<DistrictResponseDTO> getAllDistricts();
+    List<DistrictResponseDTO> getDistrictsByStateId(Long stateId);
 }

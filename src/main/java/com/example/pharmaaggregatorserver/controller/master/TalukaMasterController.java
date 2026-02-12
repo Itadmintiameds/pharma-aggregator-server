@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
+import org.springframework.web.bind.annotation.PathVariable;
 import java.util.List;
 
 @RestController
@@ -21,5 +21,10 @@ public class TalukaMasterController {
     @GetMapping
     public ResponseEntity<List<TalukaResponseDTO>> getAllTalukas() {
         return ResponseEntity.ok(talukaMasterService.getAllTalukas());
+    }
+
+    @GetMapping("/district/{districtId}")
+    public ResponseEntity<List<TalukaResponseDTO>> getTalukasByDistrictId(@PathVariable Long districtId) {
+        return ResponseEntity.ok(talukaMasterService.getTalukasByDistrictId(districtId));
     }
 }

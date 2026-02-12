@@ -4,4 +4,5 @@ import java.util.List;
 
 public interface TalukaMasterService {
     List<TalukaResponseDTO> getAllTalukas();
+    List<TalukaResponseDTO> getTalukasByDistrictId(Long districtId);
 }

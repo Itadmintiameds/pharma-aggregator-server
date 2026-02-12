@@ -35,4 +35,12 @@ public class DistrictMasterServiceImpl implements DistrictMasterService {
                 .map(this::convertToResponseDTO)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public List<DistrictResponseDTO> getDistrictsByStateId(Long stateId) {
+        return districtMasterRepository.findByStateStateId(stateId)
+                .stream()
+                .map(this::convertToResponseDTO)
+                .collect(Collectors.toList());
+    }
 }

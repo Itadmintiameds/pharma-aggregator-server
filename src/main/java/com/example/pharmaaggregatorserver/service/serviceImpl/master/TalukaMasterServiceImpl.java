@@ -38,4 +38,12 @@ public class TalukaMasterServiceImpl implements TalukaMasterService {
                 .map(this::convertToResponseDTO)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public List<TalukaResponseDTO> getTalukasByDistrictId(Long districtId) {
+        return talukaMasterRepository.findByDistrictDistrictId(districtId)
+                .stream()
+                .map(this::convertToResponseDTO)
+                .collect(Collectors.toList());
+    }
 }
