@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/master/company-types")
+@RequestMapping("/api/v1/master/company-types")
 @RequiredArgsConstructor
 public class CompanyTypeMasterController {
 

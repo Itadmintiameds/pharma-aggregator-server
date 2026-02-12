@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/master/states")
+@RequestMapping("/api/v1/master/states")
 @RequiredArgsConstructor
 public class StateMasterController {
 

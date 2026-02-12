@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/temp-sellers")
+@RequestMapping("/api/v1/temp-sellers")
 @RequiredArgsConstructor
 public class TempSellerController {
 
