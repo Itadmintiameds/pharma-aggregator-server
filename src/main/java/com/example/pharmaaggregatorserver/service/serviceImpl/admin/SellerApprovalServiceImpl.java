@@ -1,16 +1,21 @@
 package com.example.pharmaaggregatorserver.service.serviceImpl.admin;
 
 import com.example.pharmaaggregatorserver.dto.seller.SellerApprovalRequestDTO;
+import com.example.pharmaaggregatorserver.entity.temp.seller.SellerTerms;
 import com.example.pharmaaggregatorserver.entity.temp.seller.TempSeller;
 import com.example.pharmaaggregatorserver.exception.ApplicationException;
 import com.example.pharmaaggregatorserver.exception.NotFoundException;
+import com.example.pharmaaggregatorserver.repository.temp.seller.SellerTermsRepository;
 import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerRepository;
 import com.example.pharmaaggregatorserver.service.EmailService;
 import com.example.pharmaaggregatorserver.service.PdfService;
 import com.example.pharmaaggregatorserver.service.admin.SellerApprovalService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Slf4j
 @Service
@@ -23,7 +28,8 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
     //    private final SellerRepository sellerRepo;
     private final EmailService emailService;
     private final PdfService pdfService;
-//    private final UserService userService;
+    //    private final UserService userService;
+    private final SellerTermsRepository sellerTermsRepository;
 
     /**
      * Processes admin review decision based on request status.
@@ -215,7 +221,11 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
     private void handleApprovalForTempSeller(TempSeller tempSeller, String comments) {
 
         // 1️⃣ Generate Seller Agreement PDF (for record, optional to attach later)
-        String pdfPath = pdfService.generateTempSellerAgreementPdf(tempSeller);
+//        String pdfPath = pdfService.generateTempSellerAgreementPdf(tempSeller);
+
+        List<SellerTerms> sellerTerms = sellerTermsRepository.findAll(Sort.by(Sort.Direction.ASC, "id"));
+
+        String pdfPath = pdfService.generateSellerAgreementPdf(sellerTerms);
 
         // 2️⃣ Create Login Credentials (replace with secure generator in prod)
         String username = "test";
@@ -249,10 +259,9 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 </p>
                 
                 <p>
-                    <b>Admin Approval Comments:</b>
+                    <b>Admin Approval Comments:</b><br>
+                    %s
                 </p>
-                
-                <p>%s</p>
                 
                 <p><b>Temporary Login Credentials:</b><br>
                     Username: %s<br>
