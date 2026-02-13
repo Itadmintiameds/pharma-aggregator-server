@@ -1,5 +1,7 @@
 package com.example.pharmaaggregatorserver.entity.temp.seller;
 
+import com.example.pharmaaggregatorserver.entity.master.ProductTypeMaster;
+import com.example.pharmaaggregatorserver.entity.master.SellerTypeMaster;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -17,16 +19,23 @@ public class TempSellerDocument {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "temp_seller_documents_id")
-    private Long tempSellerDocumentsId;
+    @Column(name = "documents_id")
+    private Long DocumentsId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "temp_seller_id", nullable = false)
+    @JoinColumn(name = "seller_id", nullable = false)
     @JsonIgnore
     private TempSeller seller;
 
-    @Column(name = "document_type", nullable = false, length = 100)
-    private String documentType;
+    @Column(name = "gst_number", nullable = false, length = 100)
+    private String GSTNumber;
+
+    @Column(name = "gst_document_file_url", nullable = false)
+    private String GSTFileUrl;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_type_id", nullable = false)
+    private ProductTypeMaster productTypes;
 
     @Column(name = "document_number", nullable = false, length = 100)
     private String documentNumber;
@@ -49,4 +58,7 @@ public class TempSellerDocument {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "is_active")
+    private Boolean isActive = true;
 }

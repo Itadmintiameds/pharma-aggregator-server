@@ -17,7 +17,7 @@ public class SellerTypeMaster {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "seller_type_id")
-    private Integer sellerTypeId;
+    private Long sellerTypeId;
 
     @Column(name = "seller_type_name", nullable = false, unique = true, length = 100)
     private String sellerTypeName;

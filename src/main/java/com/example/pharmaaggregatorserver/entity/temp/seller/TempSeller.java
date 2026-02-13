@@ -21,14 +21,17 @@ public class TempSeller {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "temp_seller_id")
+    @Column(name = "seller_id")
     private Long tempSellerId;
 
-    @Column(name = "temp_seller_request_id", nullable = false, length = 100)
+    @Column(name = "seller_request_id", nullable = false, length = 100)
     private String tempSellerRequestId;
 
     @Column(name = "seller_name", nullable = false, length = 100)
     private String sellerName;
+
+//    @Column(name = "terms_accepted", nullable = false)
+//    private boolean termsAccepted;
 
     // ---------------- 1:1 ----------------
 
@@ -42,10 +45,6 @@ public class TempSeller {
     private TempSellerBankDetails bankDetails;
 
     // ---------------- 1:N ----------------
-
-    @OneToMany(mappedBy = "seller", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<TempSellerLicence> licences = new ArrayList<>();
-
     @OneToMany(mappedBy = "seller", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TempSellerDocument> documents = new ArrayList<>();
 
@@ -59,6 +58,10 @@ public class TempSeller {
             uniqueConstraints = @UniqueConstraint(columnNames = {"temp_seller_id", "product_type_id"})
     )
     private List<ProductTypeMaster> productTypes = new ArrayList<>();
+
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "product_type_id", nullable = false)
+//    private ProductTypeMaster productTypes;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_type_id", nullable = false)
@@ -88,6 +91,9 @@ public class TempSeller {
     @Column(name = "status", nullable = false, length = 100)
     private String status; // open, In Progress, Closed
 
+    @Column(name = "terms_accepted", nullable = false, columnDefinition = "boolean default false")
+    private boolean termsAccepted = false;
+
     @Column(name = "created_by", length = 100)
     private String createdBy;
 
@@ -102,12 +108,11 @@ public class TempSeller {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "is_active")
+    private Boolean isActive = true;
+
     // -------- Helper Methods --------
 
-    public void addLicence(TempSellerLicence licence) {
-        licences.add(licence);
-        licence.setSeller(this);
-    }
 
     public void addDocument(TempSellerDocument doc) {
         documents.add(doc);
