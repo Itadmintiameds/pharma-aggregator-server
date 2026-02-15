@@ -38,6 +38,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+
       # Step 5: Log in to Amazon ECR
       - name: Log in to Amazon ECR
         id: ecr-login
@@ -55,28 +56,28 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
       
 
-      # Step to list files in the deploy directory
-      - name: List files in deploy directory
-        run: ls deploy/
-
-      # Step 7: Update ECS Task Definition
-      - name: Update ECS Task Definition
-        id: update-task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: deploy/tiameds-pharma-task-defination.json
-          container-name: tiamed-pharma-test
-          image: ${{ steps.ecr-login.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
-
-
-      # Step 8: Deploy to ECS
-      - name: Deploy to ECS
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-        with:
-          task-definition: ${{ steps.update-task-def.outputs.task-definition }}
-          service: ${{ secrets.ECS_SERVICE }}
-          cluster: ${{ secrets.ECS_CLUSTER }}
-          wait-for-service-stability: true
+#      # Step to list files in the deploy directory
+#      - name: List files in deploy directory
+#        run: ls deploy/
+#
+#      # Step 7: Update ECS Task Definition
+#      - name: Update ECS Task Definition
+#        id: update-task-def
+#        uses: aws-actions/amazon-ecs-render-task-definition@v1
+#        with:
+#          task-definition: deploy/tiameds-pharma-task-defination.json
+#          container-name: tiamed-pharma-test
+#          image: ${{ steps.ecr-login.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
+#
+#
+#      # Step 8: Deploy to ECS
+#      - name: Deploy to ECS
+#        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+#        with:
+#          task-definition: ${{ steps.update-task-def.outputs.task-definition }}
+#          service: ${{ secrets.ECS_SERVICE }}
+#          cluster: ${{ secrets.ECS_CLUSTER }}
+#          wait-for-service-stability: true
       #
       # Step 9: Post-deployment Health Check
 #      - name: Health Check
