@@ -27,26 +27,26 @@
       "secrets": [
         {
           "name": "DB_URL",
-          "valueFrom": "arn:aws:secretsmanager:ap-south-1:977098986605:secret:pharma_aggregator_test-IWah61:DB_URL::"
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:977098986605:secret:pharma_aggregator_test-IWah61:DB_URL"
         },
         {
           "name": "DB_NAME",
-          "valueFrom": "arn:aws:secretsmanager:ap-south-1:977098986605:secret:pharma_aggregator_test-IWah61:DB_NAME::"
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:977098986605:secret:pharma_aggregator_test-IWah61:DB_NAME"
         },
         {
           "name": "DB_USERNAME",
-          "valueFrom": "arn:aws:secretsmanager:ap-south-1:977098986605:secret:pharma_aggregator_test-IWah61:DB_USERNAME::"
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:977098986605:secret:pharma_aggregator_test-IWah61:DB_USERNAME"
         },
         {
           "name": "DB_PASSWORD",
-          "valueFrom": "arn:aws:secretsmanager:ap-south-1:977098986605:secret:pharma_aggregator_test-IWah61:DB_PASSWORD::"
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:977098986605:secret:pharma_aggregator_test-IWah61:DB_PASSWORD"
         },
         {
-          "name":"DB_PORT",
-          "valueFrom":"arn:aws:secretsmanager:ap-south-1:977098986605:secret:pharma_aggregator_test-IWah61:DB_PORT::"
+          "name": "DB_PORT",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:977098986605:secret:pharma_aggregator_test-IWah61:DB_PORT"
         }
-
       ],
+
       "readonlyRootFilesystem": false,
       "ulimits": [],
       "logConfiguration": {
