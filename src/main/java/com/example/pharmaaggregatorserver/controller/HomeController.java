@@ -40,4 +40,9 @@ public class HomeController {
         response.put("status", "UP");
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/api/v1/public/health-check")
+    public String publicHealthCheck() {
+        return "OK";
+    }
 }
