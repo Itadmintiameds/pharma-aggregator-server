@@ -17,9 +17,8 @@ import java.time.LocalDateTime;
 public class PackagingDetailsDrug {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "packaging_id")
-    private Long packagingId;
+    private String packagingId;
 
     @Column(name = "packaging_unit")
     private String packagingUnit;
@@ -48,11 +47,8 @@ public class PackagingDetailsDrug {
     @Column(name = "modified_date")
     private LocalDateTime modifiedDate;
 
-
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false, unique = true)
+    @OneToOne
+    @JoinColumn(name = "product_id")
     private ProductDetailsDrug product;
-
-
 
 }

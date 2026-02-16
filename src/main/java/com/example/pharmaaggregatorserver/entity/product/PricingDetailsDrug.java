@@ -17,8 +17,8 @@ import java.time.LocalDateTime;
 public class PricingDetailsDrug {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long pricingId;
+    @Column(name = "pricing_id")
+    private String pricingId;
 
     @Column(name = "batch_lot_number")
     private String batchLotNumber;

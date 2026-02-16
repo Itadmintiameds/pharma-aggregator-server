@@ -8,7 +8,7 @@ import java.util.Set;
 @Data
 public class ProductDetailsDrugDto {
 
-    private Long productId;
+    private String productId;
     private String productCategoryId;
     private String productName;
     private String therapeuticCategory;

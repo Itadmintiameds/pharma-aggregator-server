@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 @Data
 public class PackagingDetailsDrugDto {
 
-    private Long packagingId;
+    private String packagingId;
     private String packagingUnit;
     private Long numberOfUnits;
     private Long packSize;

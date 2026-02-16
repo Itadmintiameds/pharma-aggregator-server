@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 @Data
 public class PricingDetailsDrugDto {
 
-    private Long pricingId;
+    private String pricingId;
     private String batchLotNumber;
     private String manufacturerName;
     private LocalDateTime manufacturingDate;

@@ -2,7 +2,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/pharma-aggregator
     username: postgres
-    password: ${POSTGRES_PASSWORD}
+    password: root
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -26,12 +26,22 @@ spring:
             enable: true
             required: true
 
-  # Twilio sms
+
+
+#  # Twilio sms
+#twilio:
+#  account-sid: ${ACCOUNT_SID}
+#  auth-token: ${AUTH_TOKEN}
+#  verify:
+#    service-sid: ${SERVICE_SID}
+
 twilio:
-  account-sid: ${ACCOUNT_SID}
-  auth-token: ${AUTH_TOKEN}
+  account-sid: ${ACCOUNT_SID:dummy_sid}
+  auth-token: ${AUTH_TOKEN:dummy_token}
   verify:
-    service-sid: ${SERVICE_SID}
+    service-sid: ${SERVICE_SID:dummy_service}
+
+
 
 springdoc:
   swagger-ui:

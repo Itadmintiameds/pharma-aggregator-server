@@ -20,9 +20,8 @@ import java.util.Set;
 public class ProductDetailsDrug {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "product_id")
-    private Long productId;
+    private String productId;
 
     @Column(name = "product_category_id")
     private String productCategoryId;
@@ -85,7 +84,5 @@ public class ProductDetailsDrug {
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<PricingDetailsDrug> pricingDetails;
-
-
 
 }
