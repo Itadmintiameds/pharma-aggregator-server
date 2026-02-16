@@ -1,10 +1,12 @@
-package com.example.pharmaaggregatorserver.entity.temp.seller;
+package com.example.pharmaaggregatorserver.entity.seller;
 
 import com.example.pharmaaggregatorserver.entity.master.CompanyTypeMaster;
 import com.example.pharmaaggregatorserver.entity.master.ProductTypeMaster;
 import com.example.pharmaaggregatorserver.entity.master.SellerTypeMaster;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -14,63 +16,43 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "tbl_temp_seller")
 @Getter
 @Setter
-public class TempSeller {
+@AllArgsConstructor
+@NoArgsConstructor
+@Table(name = "tbl_seller")
+public class Seller {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "seller_id")
-    private Long tempSellerId;
+    private String sellerId;
 
-    @Column(name = "seller_request_id", nullable = false, length = 100)
-    private String tempSellerRequestId;
-
-    @Column(name = "seller_name", nullable = false, length = 100)
+    @Column(name = "seller_name")
     private String sellerName;
 
-//    @Column(name = "terms_accepted", nullable = false)
-//    private boolean termsAccepted;
+    @OneToOne(mappedBy = "seller", cascade = CascadeType.ALL, orphanRemoval = true)
+    private SellerAddress address;
 
-    // ---------------- 1:1 ----------------
+    @OneToOne(mappedBy = "seller", cascade = CascadeType.ALL, orphanRemoval = true)
+    private SellerCoordinator coordinator;
 
-    @OneToOne(mappedBy = "seller", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private TempSellerAddress address;
+    @OneToOne(mappedBy = "seller", cascade = CascadeType.ALL, orphanRemoval = true)
+    private SellerBankDetails bankDetails;
 
-    @OneToOne(mappedBy = "seller", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private TempSellerCoordinator coordinator;
+    @OneToOne(mappedBy = "seller", cascade = CascadeType.ALL, orphanRemoval = true)
+    private SellerGST sellerGST;
 
-    @OneToOne(mappedBy = "seller", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private TempSellerBankDetails bankDetails;
-
-    // ---------------- 1:N ----------------
     @OneToMany(mappedBy = "seller", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<TempSellerDocument> documents = new ArrayList<>();
-
-    @Column(name = "gst_number", nullable = false, length = 100)
-    private String gstNumber;
-
-    @Column(name = "gst_document_file_url", nullable = false)
-    private String gstFileUrl;
-
-    @Column(name = "is_gst_verified", columnDefinition = "boolean default false", nullable = false)
-    private boolean isGstVerified = false;
-
-    // ---------------- N:N ----------------
+    private List<SellerDocument> documents = new ArrayList<>();
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
-            name = "tbl_temp_seller_product_types",
-            joinColumns = @JoinColumn(name = "temp_seller_id"),
+            name = "tbl_seller_product_types",
+            joinColumns = @JoinColumn(name = "seller_id"),
             inverseJoinColumns = @JoinColumn(name = "product_type_id"),
-            uniqueConstraints = @UniqueConstraint(columnNames = {"temp_seller_id", "product_type_id"})
+            uniqueConstraints = @UniqueConstraint(columnNames = {"seller_id", "product_type_id"})
     )
     private List<ProductTypeMaster> productTypes = new ArrayList<>();
-
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "product_type_id", nullable = false)
-//    private ProductTypeMaster productTypes;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_type_id", nullable = false)
@@ -98,7 +80,7 @@ public class TempSeller {
     private String website;
 
     @Column(name = "status", nullable = false, length = 100)
-    private String status; // open, In Progress, Closed
+    private String status; // Approved, Correction_required, Rejected
 
     @Column(name = "terms_accepted", nullable = false, columnDefinition = "boolean default false")
     private boolean termsAccepted = false;
@@ -119,13 +101,5 @@ public class TempSeller {
 
     @Column(name = "is_active")
     private Boolean isActive = true;
-
-    // -------- Helper Methods --------
-
-
-    public void addDocument(TempSellerDocument doc) {
-        documents.add(doc);
-        doc.setSeller(this);
-    }
 
 }

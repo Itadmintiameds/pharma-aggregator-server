@@ -72,6 +72,8 @@ public class TempSellerServiceImpl implements TempSellerService {
         seller.setStatus("open");
         seller.setPhoneVerified(false);
         seller.setEmailVerified(false);
+        seller.setGstNumber(requestDTO.getGstNumber());
+        seller.setGstFileUrl(requestDTO.getGstFileUrl());
         seller.setTermsAccepted(requestDTO.isTermsAccepted());
         seller.setCreatedBy("SYSTEM");
         seller.setUpdatedBy("SYSTEM");
@@ -205,7 +207,7 @@ public class TempSellerServiceImpl implements TempSellerService {
             // ============================================================
             if (requestDTO.getDocuments() != null && !requestDTO.getDocuments().isEmpty()) {
                 TempSellerDocumentDTO firstDoc = requestDTO.getDocuments().get(0);
-                emailRequest.setGstNumber(firstDoc.getGstNumber());
+                emailRequest.setGstNumber(savedSeller.getGstNumber());
                 emailRequest.setDocumentNumber(firstDoc.getDocumentNumber());
 
                 log.info("📄 Document details mapped");
@@ -308,8 +310,6 @@ public class TempSellerServiceImpl implements TempSellerService {
 
         TempSellerDocument document = new TempSellerDocument();
         document.setSeller(seller);
-        document.setGSTNumber(docDTO.getGstNumber());
-        document.setGSTFileUrl(docDTO.getGstFileUrl());
         document.setProductTypes(productType);
         document.setDocumentNumber(docDTO.getDocumentNumber());
         document.setDocumentFileUrl(docDTO.getDocumentFileUrl());

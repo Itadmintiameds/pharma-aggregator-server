@@ -1,5 +1,6 @@
 package com.example.pharmaaggregatorserver.dto.seller;
 
+import jakarta.persistence.Column;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -41,8 +42,18 @@ public class TempSellerRequestDTO {
 
     private String website;
 
+    @NotBlank(message = "GST number is required")
+    @Size(max = 100, message = "GST number cannot exceed 100 characters")
+    private String gstNumber;
+
+    @NotBlank(message = "GST file URL is required")
+    private String gstFileUrl;
+
+    private boolean isGstVerified = false;
+
     private TempSellerAddressDTO address;
     private TempSellerCoordinatorDTO coordinator;
     private TempSellerBankDetailsDTO bankDetails;
     private List<TempSellerDocumentDTO> documents;
+
 }

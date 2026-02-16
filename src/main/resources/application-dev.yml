@@ -13,6 +13,14 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
 
+  sql:
+    init:
+      mode: always
+      separator: ";;;"
+      schema-locations:
+        - classpath:schema.sql
+        - classpath:triggers.sql
+
   mail:   # Email configuration
     host: smtp.gmail.com
     port: 587
