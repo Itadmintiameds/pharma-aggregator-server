@@ -1,5 +1,6 @@
 package com.example.pharmaaggregatorserver.entity.temp.seller;
 
+
 import com.example.pharmaaggregatorserver.entity.master.ProductTypeMaster;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
@@ -8,6 +9,7 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -39,6 +41,19 @@ public class TempSellerDocument {
     @Column(name = "is_document_verified", columnDefinition = "boolean default false")
     private boolean isDocumentVerified = false;
 
+    // New license fields
+    @Column(name = "license_issue_date")
+    private LocalDate licenseIssueDate;
+
+    @Column(name = "license_expiry_date")
+    private LocalDate licenseExpiryDate;
+
+    @Column(name = "license_issuing_authority", length = 255)
+    private String licenseIssuingAuthority;
+
+    @Column(name = "license_status", length = 20)
+    private String licenseStatus; // Active/Expired - This will be system generated
+
     @Column(name = "created_by", length = 100)
     private String createdBy;
 
@@ -55,4 +70,27 @@ public class TempSellerDocument {
 
     @Column(name = "is_active")
     private Boolean isActive = true;
+
+    /**
+     * Method to calculate and update license status based on issue and expiry dates
+     */
+    public void updateLicenseStatus() {
+        if (licenseIssueDate != null && licenseExpiryDate != null) {
+            LocalDate currentDate = LocalDate.now();
+            if (!currentDate.isBefore(licenseIssueDate) && !currentDate.isAfter(licenseExpiryDate)) {
+                this.licenseStatus = "Active";
+            } else {
+                this.licenseStatus = "Expired";
+            }
+        } else {
+            this.licenseStatus = "Expired"; // Default to Expired if dates are missing
+        }
+    }
+
+    @PrePersist
+    @PreUpdate
+    private void autoUpdateLicenseStatus() {
+        updateLicenseStatus();
+    }
+
 }

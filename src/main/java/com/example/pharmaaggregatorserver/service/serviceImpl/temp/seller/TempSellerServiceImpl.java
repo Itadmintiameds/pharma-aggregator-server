@@ -313,6 +313,9 @@ public class TempSellerServiceImpl implements TempSellerService {
         document.setProductTypes(productType);
         document.setDocumentNumber(docDTO.getDocumentNumber());
         document.setDocumentFileUrl(docDTO.getDocumentFileUrl());
+        document.setLicenseIssueDate(docDTO.getLicenseIssueDate());
+        document.setLicenseExpiryDate(docDTO.getLicenseExpiryDate());
+        document.setLicenseIssuingAuthority(docDTO.getLicenseIssuingAuthority());
         document.setCreatedBy("SYSTEM");
         document.setUpdatedBy("SYSTEM");
 

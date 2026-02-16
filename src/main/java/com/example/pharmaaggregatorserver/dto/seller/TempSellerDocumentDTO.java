@@ -6,6 +6,8 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDate;
+
 @Getter
 @Setter
 public class TempSellerDocumentDTO {
@@ -21,4 +23,13 @@ public class TempSellerDocumentDTO {
     private String documentFileUrl;
 
     private boolean isDocumentVerified;
+
+    // New license fields
+    private LocalDate licenseIssueDate;
+
+    private LocalDate licenseExpiryDate;
+
+    @Size(max = 255, message = "License issuing authority cannot exceed 255 characters")
+    private String licenseIssuingAuthority;
+
 }
