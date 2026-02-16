@@ -65,8 +65,8 @@ jobs:
         id: update-task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          task-definition: deploy/tiameds-pharma-task-defination.json
-          container-name: tiamed-pharma-test
+          task-definition: deploy/tiamed-aggregator-task-defination.json
+          container-name: pharma-aggregator-test
           image: ${{ steps.ecr-login.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
 
 

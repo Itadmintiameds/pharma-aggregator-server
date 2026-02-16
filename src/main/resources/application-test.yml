@@ -1,8 +1,12 @@
+server:
+  servlet:
+    context-path: /api/v1
+
 spring:
   datasource:
-    url: jdbc:postgresql://${HOST}:${PORT}/${DATABASE}?charSet=UTF8
-    username:  ${USERNAME}
-    password: ${PASSWORD}
+    url: jdbc:postgresql://${DB_URL}:${DB_PORT}/${DB_NAME}?charSet=UTF8
+    username:  ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:

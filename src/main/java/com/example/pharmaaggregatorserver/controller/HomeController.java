@@ -33,4 +33,11 @@ public class HomeController {
         response.put("status", "UP");
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/health-check")
+    public ResponseEntity<Map<String, String>> healthCheck() {
+        Map<String, String> response = new HashMap<>();
+        response.put("status", "UP");
+        return ResponseEntity.ok(response);
+    }
 }

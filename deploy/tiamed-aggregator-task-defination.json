@@ -8,8 +8,8 @@
       "portMappings": [
         {
           "name": "pharma-aggregator-test-port",
-          "containerPort": 80,
-          "hostPort": 80,
+          "containerPort": 8080,
+          "hostPort": 8080,
           "protocol": "tcp",
           "appProtocol": "http"
         }
@@ -61,11 +61,13 @@
       },
       "healthCheck": {
         "command": [
-          "/api/v1/health-check"
+          "CMD-SHELL",
+          "curl -f http://localhost:8080/api/v1/health-check || exit 1"
         ],
         "interval": 30,
         "timeout": 5,
-        "retries": 3
+        "retries": 3,
+        "startPeriod": 60
       },
       "systemControls": []
     }
