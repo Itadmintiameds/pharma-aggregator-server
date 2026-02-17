@@ -12,7 +12,7 @@ public interface SellerService {
 
     SellerDTO save(SellerDTO sellerDTO);
 
-    SellerDTO deleteBySellerId(String sellerId);
+    void deleteBySellerId(String sellerId);
 
-    SellerDTO updateBySellerId(String sellerId, SellerDTO sellerDTO);
+    SellerDTO updateSeller(String sellerId, SellerDTO sellerDTO);
 }
