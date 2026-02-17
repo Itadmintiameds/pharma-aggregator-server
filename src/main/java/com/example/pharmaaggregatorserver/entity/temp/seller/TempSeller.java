@@ -21,14 +21,17 @@ public class TempSeller {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "temp_seller_id")
+    @Column(name = "seller_id")
     private Long tempSellerId;
 
-    @Column(name = "temp_seller_request_id", nullable = false, length = 100)
+    @Column(name = "seller_request_id", nullable = false, length = 100)
     private String tempSellerRequestId;
 
     @Column(name = "seller_name", nullable = false, length = 100)
     private String sellerName;
+
+//    @Column(name = "terms_accepted", nullable = false)
+//    private boolean termsAccepted;
 
     // ---------------- 1:1 ----------------
 
@@ -42,12 +45,17 @@ public class TempSeller {
     private TempSellerBankDetails bankDetails;
 
     // ---------------- 1:N ----------------
-
-    @OneToMany(mappedBy = "seller", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<TempSellerLicence> licences = new ArrayList<>();
-
     @OneToMany(mappedBy = "seller", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TempSellerDocument> documents = new ArrayList<>();
+
+    @Column(name = "gst_number", nullable = false, length = 100)
+    private String gstNumber;
+
+    @Column(name = "gst_document_file_url", nullable = false)
+    private String gstFileUrl;
+
+    @Column(name = "is_gst_verified", columnDefinition = "boolean default false", nullable = false)
+    private boolean isGstVerified = false;
 
     // ---------------- N:N ----------------
 
@@ -59,6 +67,10 @@ public class TempSeller {
             uniqueConstraints = @UniqueConstraint(columnNames = {"temp_seller_id", "product_type_id"})
     )
     private List<ProductTypeMaster> productTypes = new ArrayList<>();
+
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "product_type_id", nullable = false)
+//    private ProductTypeMaster productTypes;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_type_id", nullable = false)
@@ -72,14 +84,14 @@ public class TempSeller {
     @Column(name = "phone", unique = true, nullable = false, length = 100)
     private String phone;
 
-    @Column(name = "isPhoneVerified", nullable = false)
+    @Column(name = "is_phone_verified", nullable = false)
     private boolean isPhoneVerified;
 
     //    TODO: confirmation required, unique email is required or not
     @Column(name = "email", unique = true, nullable = false, length = 100)
     private String email;
 
-    @Column(name = "isEmailVerified", nullable = false)
+    @Column(name = "is_email_verified", nullable = false)
     private boolean isEmailVerified;
 
     @Column(name = "website")
@@ -87,6 +99,9 @@ public class TempSeller {
 
     @Column(name = "status", nullable = false, length = 100)
     private String status; // open, In Progress, Closed
+
+    @Column(name = "terms_accepted", nullable = false, columnDefinition = "boolean default false")
+    private boolean termsAccepted = false;
 
     @Column(name = "created_by", length = 100)
     private String createdBy;
@@ -102,12 +117,11 @@ public class TempSeller {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "is_active")
+    private Boolean isActive = true;
+
     // -------- Helper Methods --------
 
-    public void addLicence(TempSellerLicence licence) {
-        licences.add(licence);
-        licence.setSeller(this);
-    }
 
     public void addDocument(TempSellerDocument doc) {
         documents.add(doc);

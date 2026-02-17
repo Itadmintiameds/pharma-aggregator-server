@@ -7,7 +7,7 @@ spring:
     # DB_HOST=localhost when running locally; set DB_HOST=postgres-dev when using docker-compose
     url: jdbc:postgresql://host.docker.internal:5432/pharma-aggregator?charSet=UTF8
     username: postgres
-    password: root
+    password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -18,9 +18,33 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
 
+  mail:   # Email configuration
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+  # Twilio sms
+twilio:
+  account-sid: ${ACCOUNT_SID}
+  auth-token: ${AUTH_TOKEN}
+  verify:
+    service-sid: ${SERVICE_SID}
+
 springdoc:
   swagger-ui:
     enabled: true
     try-it-out-enabled: true
 
 
+logging:
+  level:
+    org.springframework.mail: DEBUG
+    jakarta.mail: DEBUG
