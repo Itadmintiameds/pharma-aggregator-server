@@ -10,6 +10,7 @@ services:
     container_name: pharma-aggregator-dev
     environment:
       SPRING_PROFILES_ACTIVE: dev
+      DB_HOST: postgres-dev
     depends_on:
       postgres-dev:
         condition: service_healthy
