@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/master/product-types")
+@RequestMapping("/product-types")
 @RequiredArgsConstructor
 public class ProductTypeMasterController {
 

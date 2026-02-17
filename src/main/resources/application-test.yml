@@ -1,8 +1,12 @@
+server:
+  servlet:
+    context-path: /api/v1
+
 spring:
   datasource:
-    url: jdbc:postgresql://postgres-test:5432/pharma-aggregator_test?charSet=UTF8
-    username: postgres
-    password: root
+    url: jdbc:postgresql://${DB_URL}:${DB_PORT}/${DB_NAME}?characterEncoding=UTF-8
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -12,6 +16,26 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+
+  mail: # Email configuration
+    host: smtp.gmail.com
+    port: 587
+    username: basavarajunn@tiameds.ai
+    password: ovfx kzmu ikhg rily
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+  # Twilio sms
+twilio:
+  account-sid: AC35ec54287b2863257cb5acbdffa10fe0
+  auth-token: 307dcd91011116c4b9b782a19560e177
+  verify:
+    service-sid: VA12037d4ce3dc3ae5e66c1f9efbfcc508
 
 springdoc:
   swagger-ui:

@@ -11,7 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/independent/email")
+@RequestMapping("/independent/email")
 @RequiredArgsConstructor
 @Tag(name = "📧 Independent Email API", description = "Completely standalone email endpoints - NO DEPENDENCIES on TempSeller")
 public class IndependentEmailController {

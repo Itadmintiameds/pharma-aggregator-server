@@ -2,6 +2,10 @@ spring:
   application:
     name: pharma-aggregator-server
 
+server:
+  servlet:
+    context-path: /api/v1
+
 springdoc:
   api-docs:
     path: /api-docs
