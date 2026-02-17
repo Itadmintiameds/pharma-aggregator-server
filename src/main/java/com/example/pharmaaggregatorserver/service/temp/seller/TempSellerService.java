@@ -1,15 +1,18 @@
 package com.example.pharmaaggregatorserver.service.temp.seller;
 
-import com.example.pharmaaggregatorserver.dto.response.temp.seller.TempSellerAdminResponseDTO;
-import com.example.pharmaaggregatorserver.dto.response.temp.seller.TempSellerResponseDTO;
+import com.example.pharmaaggregatorserver.dto.admin.TempSellerAdminResponseDTO;
+import com.example.pharmaaggregatorserver.dto.seller.TempSellerRequestDTO;
+import com.example.pharmaaggregatorserver.dto.seller.TempSellerResponseDTO;
+import com.example.pharmaaggregatorserver.entity.temp.seller.TempSeller;
 
 import java.util.List;
 
 public interface TempSellerService {
+    TempSellerResponseDTO createTempSeller(TempSellerRequestDTO requestDTO);
 
     /* Get All Temporary Sellers */
-    public List<TempSellerAdminResponseDTO> getALLTempSellers();
+    List<TempSellerAdminResponseDTO> getALLTempSellers();
 
     /* Get Temporary Sellers By Id*/
-    public TempSellerResponseDTO findById();
+    TempSeller findById(Long id);
 }

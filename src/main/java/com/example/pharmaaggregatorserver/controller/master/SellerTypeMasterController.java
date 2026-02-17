@@ -1,28 +1,25 @@
 package com.example.pharmaaggregatorserver.controller.master;
 
-import com.example.pharmaaggregatorserver.entity.master.SellerTypeMaster;
-import com.example.pharmaaggregatorserver.service.serviceImpl.master.SellerTypeMasterServiceImpl;
+
+import com.example.pharmaaggregatorserver.dto.master.ResponseDTO.SellerTypeResponseDTO;
+import com.example.pharmaaggregatorserver.service.master.SellerTypeMasterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/seller-types")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class SellerTypeMasterController {
 
-    private final SellerTypeMasterServiceImpl sellerTypeMasterService;
+    private final SellerTypeMasterService sellerTypeMasterService;
 
-    /**
-     * GET /api/v1/seller-types
-     * Get all seller types
-     */
     @GetMapping
-    public ResponseEntity<List<SellerTypeMaster>> getAllSellerTypes() {
-        List<SellerTypeMaster> sellerTypes = sellerTypeMasterService.getAllSellerTypes();
-        return ResponseEntity.ok(sellerTypes);
+    public ResponseEntity<List<SellerTypeResponseDTO>> getAllSellerTypes() {
+        return ResponseEntity.ok(sellerTypeMasterService.getAllSellerTypes());
     }
 }

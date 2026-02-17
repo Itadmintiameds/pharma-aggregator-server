@@ -1,9 +1,13 @@
 package com.example.pharmaaggregatorserver.controller.temp.seller;
 
-import com.example.pharmaaggregatorserver.dto.response.temp.seller.TempSellerAdminResponseDTO;
-import com.example.pharmaaggregatorserver.dto.response.temp.seller.TempSellerResponseDTO;
+
+import com.example.pharmaaggregatorserver.dto.admin.TempSellerAdminResponseDTO;
+import com.example.pharmaaggregatorserver.dto.seller.TempSellerRequestDTO;
+import com.example.pharmaaggregatorserver.dto.seller.TempSellerResponseDTO;
+import com.example.pharmaaggregatorserver.entity.temp.seller.TempSeller;
 import com.example.pharmaaggregatorserver.response.ApiResponse;
-import com.example.pharmaaggregatorserver.service.serviceImpl.temp.seller.TempSellerServiceImpl;
+import com.example.pharmaaggregatorserver.service.temp.seller.TempSellerService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,10 +18,16 @@ import java.util.List;
 @RestController
 @RequestMapping("/temp-sellers")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class TempSellerController {
 
-    private final TempSellerServiceImpl tempSellerService;
+    private final TempSellerService tempSellerService;
+
+    @PostMapping
+    public ResponseEntity<TempSellerResponseDTO> createTempSeller(
+            @Valid @RequestBody TempSellerRequestDTO requestDTO) {
+        TempSellerResponseDTO response = tempSellerService.createTempSeller(requestDTO);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
 
     @GetMapping
     public ResponseEntity<?> getAllTempSellers() {
@@ -30,13 +40,13 @@ public class TempSellerController {
         ));
     }
 
-    @GetMapping("/id")
+    @GetMapping("/{id}")
     public ResponseEntity<?> getTempSellerById(@PathVariable Long id) {
-        TempSellerResponseDTO dto = tempSellerService.findById();
+        TempSeller seller = tempSellerService.findById(id);
         return ResponseEntity.ok(new ApiResponse<>(
                 HttpStatus.OK.toString(),
                 "Temporary Sellers Fetched successfully",
-                dto
+                seller
         ));
     }
 }

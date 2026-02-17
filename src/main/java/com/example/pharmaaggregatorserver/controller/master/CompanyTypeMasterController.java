@@ -1,28 +1,24 @@
 package com.example.pharmaaggregatorserver.controller.master;
 
-import com.example.pharmaaggregatorserver.entity.master.CompanyTypeMaster;
-import com.example.pharmaaggregatorserver.service.serviceImpl.master.CompanyTypeMasterServiceImpl;
+import com.example.pharmaaggregatorserver.dto.master.ResponseDTO.CompanyTypeResponseDTO;
+import com.example.pharmaaggregatorserver.service.master.CompanyTypeMasterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/company-types")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class CompanyTypeMasterController {
 
-    private final CompanyTypeMasterServiceImpl companyTypeMasterService;
+    private final CompanyTypeMasterService companyTypeMasterService;
 
-    /**
-     * GET /api/v1/company-types
-     * Get all company types
-     */
     @GetMapping
-    public ResponseEntity<List<CompanyTypeMaster>> getAllCompanyTypes() {
-        List<CompanyTypeMaster> companyTypes = companyTypeMasterService.getAllCompanyTypes();
-        return ResponseEntity.ok(companyTypes);
+    public ResponseEntity<List<CompanyTypeResponseDTO>> getAllCompanyTypes() {
+        return ResponseEntity.ok(companyTypeMasterService.getAllCompanyTypes());
     }
 }
