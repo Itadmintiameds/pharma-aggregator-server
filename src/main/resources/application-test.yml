@@ -5,7 +5,7 @@ server:
 spring:
   datasource:
     url: jdbc:postgresql://${DB_URL}:${DB_PORT}/${DB_NAME}?characterEncoding=UTF-8
-    username:  ${DB_USERNAME}
+    username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
@@ -16,6 +16,26 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+
+  mail: # Email configuration
+    host: smtp.gmail.com
+    port: 587
+    username: basavarajunn@tiameds.ai
+    password: ovfx kzmu ikhg rily
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+  # Twilio sms
+twilio:
+  account-sid: 1234567890
+  auth-token: 1234567890
+  verify:
+    service-sid: 1234567890
 
 springdoc:
   swagger-ui:
