@@ -10,7 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/temp-seller/email-otp")
+@RequestMapping("temp-seller/email-otp")
 @RequiredArgsConstructor
 public class TempSellerEmailOtpController {
 
