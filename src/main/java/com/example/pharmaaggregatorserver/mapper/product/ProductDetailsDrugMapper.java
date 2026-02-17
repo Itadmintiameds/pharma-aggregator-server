@@ -106,6 +106,8 @@ public class ProductDetailsDrugMapper {
         MoleculeDto dto = new MoleculeDto();
         dto.setMoleculeId(entity.getMoleculeId());
         dto.setMoleculeName(entity.getMoleculeName());
+        dto.setMechanismOfAction(entity.getMechanismOfAction());
+        dto.setPrimaryUse(entity.getPrimaryUse());
         return dto;
     }
 
@@ -113,6 +115,8 @@ public class ProductDetailsDrugMapper {
         Molecule entity = new Molecule();
         entity.setMoleculeId(dto.getMoleculeId());
         entity.setMoleculeName(dto.getMoleculeName());
+        entity.setMechanismOfAction(dto.getMechanismOfAction());
+        entity.setPrimaryUse(dto.getPrimaryUse());
         return entity;
     }
 

@@ -23,4 +23,10 @@ public class Molecule {
     @Column(name = "molecule_name")
     private String moleculeName;
 
+    @Column(name = "mechanism_of_ction")
+    private String mechanismOfAction;
+
+    @Column(name = "primary_use")
+    private String primaryUse;
+
 }

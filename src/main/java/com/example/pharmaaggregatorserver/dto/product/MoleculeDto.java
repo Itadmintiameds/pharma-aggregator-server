@@ -7,5 +7,7 @@ public class MoleculeDto {
 
     private Long moleculeId;
     private String moleculeName;
+    private String mechanismOfAction;
+    private String primaryUse;
 
 }

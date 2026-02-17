@@ -44,16 +44,15 @@ public class ProductDetailsDrugServiceImpl implements ProductDetailsDrugService 
         if (dto.getMolecules() != null && !dto.getMolecules().isEmpty()) {
 
             Set<Molecule> molecules = dto.getMolecules().stream()
-                    .map(m -> moleculeRepository
-                            .findByMoleculeNameIgnoreCase(m.getMoleculeName())
-                            .orElseGet(() ->
-                                    moleculeRepository.save(
-                                            new Molecule(null, m.getMoleculeName())
-                                    )))
+                    .map(m -> moleculeRepository.findById(m.getMoleculeId())
+                            .orElseThrow(() ->
+                                    new RuntimeException("Molecule not found: " + m.getMoleculeId())
+                            ))
                     .collect(Collectors.toSet());
 
             product.setMolecules(molecules);
         }
+
 
         if (dto.getPackagingDetails() != null) {
 
