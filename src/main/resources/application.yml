@@ -2,10 +2,14 @@ spring:
   application:
     name: pharma-aggregator-server
 
+server:
+  servlet:
+    context-path: /api/v1
+
 springdoc:
   api-docs:
     path: /api-docs
   swagger-ui:
-    path: /swagger-ui.html
+    path: /swagger-ui
     enabled: true
 

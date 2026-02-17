@@ -1,6 +1,11 @@
+server:
+  servlet:
+    context-path: /api/v1
+
 spring:
   datasource:
-    url: jdbc:postgresql://postgres-dev:5432/pharma-aggregator?charSet=UTF8
+    # DB_HOST=localhost when running locally; set DB_HOST=postgres-dev when using docker-compose
+    url: jdbc:postgresql://host.docker.internal:5432/pharma-aggregator?charSet=UTF8
     username: postgres
     password: root
     driver-class-name: org.postgresql.Driver
