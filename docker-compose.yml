@@ -10,7 +10,10 @@ services:
     container_name: pharma-aggregator-dev
     environment:
       SPRING_PROFILES_ACTIVE: dev
-    # Removed depends_on: postgres-dev - connecting to external PostgreSQL on Windows
+      DB_HOST: postgres-dev
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
     ports:
       - "8080:8080"
 
