@@ -15,4 +15,8 @@ public interface TempSellerService {
 
     /* Get Temporary Sellers By Id*/
     TempSeller findById(Long id);
+
+    void updateGstVerification(Long tempSellerId, boolean isGstVerified);
+    void updateDocumentVerification(Long tempSellerId, Long documentId, boolean isDocumentVerified);
+    void updateBankDocumentVerification(Long tempSellerId, boolean isBankDocumentVerified);
 }
