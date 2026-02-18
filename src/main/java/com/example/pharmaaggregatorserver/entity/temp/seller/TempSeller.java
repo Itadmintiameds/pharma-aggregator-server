@@ -81,14 +81,14 @@ public class TempSeller {
     private SellerTypeMaster sellerType;
 
     //    TODO: confirmation required, unique phone is required or not
-    @Column(name = "phone", unique = true, nullable = false, length = 100)
+    @Column(name = "phone",  nullable = false, length = 100)
     private String phone;
 
     @Column(name = "is_phone_verified", nullable = false)
     private boolean isPhoneVerified;
 
     //    TODO: confirmation required, unique email is required or not
-    @Column(name = "email", unique = true, nullable = false, length = 100)
+    @Column(name = "email", nullable = false, length = 100)
     private String email;
 
     @Column(name = "is_email_verified", nullable = false)
