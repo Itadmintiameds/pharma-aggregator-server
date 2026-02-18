@@ -31,13 +31,13 @@ public class TempSellerCoordinator {
     @Column(name = "designation", nullable = false, length = 100)
     private String designation;
 
-    @Column(name = "email", nullable = false, length = 100)
+    @Column(name = "email", unique = true,nullable = false, length = 100)
     private String email;
 
     @Column(name = "isEmailVerified", nullable = false)
     private boolean isEmailVerified;
 
-    @Column(name = "mobile", nullable = false, length = 100)
+    @Column(name = "mobile",unique = true, nullable = false, length = 100)
     private String mobile;
 
     @Column(name = "isPhoneVerified", nullable = false)
