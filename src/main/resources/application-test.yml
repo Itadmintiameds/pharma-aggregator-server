@@ -32,10 +32,10 @@ spring:
 
   # Twilio sms
 twilio:
-  account-sid: 1234567890
-  auth-token: 1234567890
+  account-sid: AC35ec54287b2863257cb5acbdffa10fe0
+  auth-token: 3722f073c825a203a5119fc912869ec9
   verify:
-    service-sid: 1234567890
+    service-sid: VA12037d4ce3dc3ae5e66c1f9efbfcc508
 
 springdoc:
   swagger-ui:

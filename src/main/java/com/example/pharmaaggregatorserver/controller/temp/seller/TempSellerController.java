@@ -4,6 +4,9 @@ package com.example.pharmaaggregatorserver.controller.temp.seller;
 import com.example.pharmaaggregatorserver.dto.admin.TempSellerAdminResponseDTO;
 import com.example.pharmaaggregatorserver.dto.seller.TempSellerRequestDTO;
 import com.example.pharmaaggregatorserver.dto.seller.TempSellerResponseDTO;
+import com.example.pharmaaggregatorserver.dto.temp.seller.BankVerificationRequestDTO;
+import com.example.pharmaaggregatorserver.dto.temp.seller.DocumentVerificationRequestDTO;
+import com.example.pharmaaggregatorserver.dto.temp.seller.GstVerificationRequestDTO;
 import com.example.pharmaaggregatorserver.entity.temp.seller.TempSeller;
 import com.example.pharmaaggregatorserver.response.ApiResponse;
 import com.example.pharmaaggregatorserver.service.temp.seller.TempSellerService;
@@ -49,4 +52,38 @@ public class TempSellerController {
                 seller
         ));
     }
+
+    // PATCH /api/admin/temp-sellers/{id}/verify/gst
+    // { "isGstVerified": true }
+    @PatchMapping("/{id}/verify/gst")
+    public ResponseEntity<ApiResponse<Void>> verifyGst(
+            @PathVariable Long id,
+            @RequestBody GstVerificationRequestDTO requestDTO) {
+
+        tempSellerService.updateGstVerification(id, requestDTO.isGstVerified());
+        return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "GST verification updated successfully", null));
+    }
+
+    // PATCH /api/admin/temp-sellers/{id}/verify/document
+    // { "documentId": 5, "isDocumentVerified": true }
+    @PatchMapping("/{id}/verify/document")
+    public ResponseEntity<ApiResponse<Void>> verifyDocument(
+            @PathVariable Long id,
+            @RequestBody DocumentVerificationRequestDTO requestDTO) {
+
+        tempSellerService.updateDocumentVerification(id, requestDTO.getDocumentId(), requestDTO.isDocumentVerified());
+        return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Document verification updated successfully", null));
+    }
+
+    // PATCH /api/admin/temp-sellers/{id}/verify/bank
+    // { "isBankDocumentVerified": true }
+    @PatchMapping("/{id}/verify/bank")
+    public ResponseEntity<ApiResponse<Void>> verifyBankDocument(
+            @PathVariable Long id,
+            @RequestBody BankVerificationRequestDTO requestDTO) {
+
+        tempSellerService.updateBankDocumentVerification(id, requestDTO.isBankDocumentVerified());
+        return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Bank document verification updated successfully", null));
+    }
+
 }

@@ -108,49 +108,27 @@ public class IndependentEmailServiceImpl implements IndependentEmailService {
         StringBuilder content = new StringBuilder();
 
         content.append("Dear ").append(request.getCoordinatorName()).append(",\n\n");
-        content.append("Your application has been successfully submitted to Pharma Aggregator.\n\n");
 
-        content.append("═══════════════════════════════════════════\n");
-        content.append("         APPLICATION DETAILS              \n");
-        content.append("═══════════════════════════════════════════\n\n");
+        content.append("Greetings from TiaMeds Marketplace.\n\n");
 
-        content.append("📌 Application Request ID: ").append(request.getApplicationRequestId()).append("\n");
-        content.append("📅 Submission Date: ").append(submissionDate).append("\n");
-        content.append("✅ Status: SUBMITTED\n\n");
+        content.append("Thank you for your interest in onboarding ").append(request.getSellerName() != null ? request.getSellerName() : "your company")
+                .append(" as a Seller Company on the TiaMeds Marketplace platform and for submitting the registration details.\n\n");
 
-        content.append("───────────────────────────────────────────\n");
-        content.append("          SELLER INFORMATION              \n");
-        content.append("───────────────────────────────────────────\n\n");
-        content.append("🏢 Seller Name: ").append(request.getSellerName() != null ? request.getSellerName() : "Not Provided").append("\n");
-        content.append("📧 Email: ").append(request.getSellerEmail() != null ? request.getSellerEmail() : "Not Provided").append("\n");
-        content.append("📞 Phone: ").append(request.getSellerPhone() != null ? request.getSellerPhone() : "Not Provided").append("\n\n");
+        content.append("We are pleased to inform you that the registration details of ")
+                .append(request.getSellerName() != null ? request.getSellerName() : "your company")
+                .append(" have been received successfully, and the Request ID is ").append(request.getApplicationRequestId()).append(".\n\n");
 
-        content.append("───────────────────────────────────────────\n");
-        content.append("        COORDINATOR INFORMATION           \n");
-        content.append("───────────────────────────────────────────\n\n");
-        content.append("👤 Name: ").append(request.getCoordinatorName()).append("\n");
-        content.append("📧 Email: ").append(request.getCoordinatorEmail()).append("\n");
-        content.append("📞 Mobile: ").append(request.getCoordinatorMobile() != null ? request.getCoordinatorMobile() : "Not Provided").append("\n");
-        content.append("💼 Designation: ").append(request.getCoordinatorDesignation() != null ? request.getCoordinatorDesignation() : "Coordinator").append("\n\n");
+        content.append("Your application is currently under review by the TiaMeds Admin Team. Once the review process is completed, you will be notified via Email & SMS.\n\n");
 
-        content.append("───────────────────────────────────────────\n");
-        content.append("              NEXT STEPS                  \n");
-        content.append("───────────────────────────────────────────\n\n");
-        content.append("1️⃣ Our team will review your application\n");
-        content.append("2️⃣ Verification process will be initiated\n");
-        content.append("3️⃣ You will receive another email once approved\n\n");
+        content.append("Kindly retain the above Request ID for future reference.\n\n");
 
-        content.append("⚠️ Please quote your Application Request ID: **").append(request.getApplicationRequestId())
-                .append("** in all future correspondence.\n\n");
+        content.append("For any assistance, please contact our support team at [Support Email ID].\n\n");
 
-        content.append("───────────────────────────────────────────\n");
-        content.append("Thank you for registering with Pharma Aggregator!\n");
-        content.append("───────────────────────────────────────────\n\n");
+        content.append("We appreciate your cooperation during this process.\n\n");
 
-        content.append("Best Regards,\n");
-        content.append("Pharma Aggregator Team\n");
-        content.append("---\n");
-        content.append("This is an automated email, please do not reply.\n");
+        content.append("Warm regards,\n");
+        content.append("TiaMeds Marketplace\n");
+        content.append("This is a system-generated email. Please do not reply to this message.\n");
 
         return content.toString();
     }
