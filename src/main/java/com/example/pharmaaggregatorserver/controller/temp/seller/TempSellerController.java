@@ -8,10 +8,13 @@ import com.example.pharmaaggregatorserver.dto.temp.seller.BankVerificationReques
 import com.example.pharmaaggregatorserver.dto.temp.seller.DocumentVerificationRequestDTO;
 import com.example.pharmaaggregatorserver.dto.temp.seller.GstVerificationRequestDTO;
 import com.example.pharmaaggregatorserver.entity.temp.seller.TempSeller;
+import com.example.pharmaaggregatorserver.entity.temp.seller.TempSellerCoordinator;
 import com.example.pharmaaggregatorserver.response.ApiResponse;
+import com.example.pharmaaggregatorserver.service.temp.seller.TempSellerCoordinatorService;
 import com.example.pharmaaggregatorserver.service.temp.seller.TempSellerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -84,6 +87,17 @@ public class TempSellerController {
 
         tempSellerService.updateBankDocumentVerification(id, requestDTO.isBankDocumentVerified());
         return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Bank document verification updated successfully", null));
+    }
+
+    //Get All Coordinator
+
+    @Autowired
+    private TempSellerCoordinatorService coordinatorService;
+
+    @GetMapping("/coordinator")
+    public ResponseEntity<List<TempSellerCoordinator>> getAllTempSellerCoordinators() {
+        List<TempSellerCoordinator> coordinators = coordinatorService.getAllCoordinators();
+        return ResponseEntity.ok(coordinators);
     }
 
 }
