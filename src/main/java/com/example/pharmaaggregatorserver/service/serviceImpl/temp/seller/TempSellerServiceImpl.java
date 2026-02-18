@@ -1,13 +1,16 @@
 package com.example.pharmaaggregatorserver.service.serviceImpl.temp.seller;
 
 import com.example.pharmaaggregatorserver.dto.admin.TempSellerAdminResponseDTO;
-import com.example.pharmaaggregatorserver.dto.seller.*;
 import com.example.pharmaaggregatorserver.dto.seller.OnSubmit.EmailRequestDTO;
 import com.example.pharmaaggregatorserver.dto.seller.OnSubmit.EmailResponseDTO;
+import com.example.pharmaaggregatorserver.dto.seller.*;
 import com.example.pharmaaggregatorserver.entity.master.*;
 import com.example.pharmaaggregatorserver.entity.temp.seller.*;
+import com.example.pharmaaggregatorserver.exception.ApplicationException;
 import com.example.pharmaaggregatorserver.exception.NotFoundException;
 import com.example.pharmaaggregatorserver.repository.master.*;
+import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerBankDetailsRepository;
+import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerDocumentRepository;
 import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerRepository;
 import com.example.pharmaaggregatorserver.service.temp.seller.OnSubmit.IndependentEmailService;
 import com.example.pharmaaggregatorserver.service.temp.seller.RequestIdGeneratorService;
@@ -33,6 +36,8 @@ public class TempSellerServiceImpl implements TempSellerService {
     private final DistrictMasterRepository districtMasterRepository;
     private final TalukaMasterRepository talukaMasterRepository;
     private final RequestIdGeneratorService requestIdGeneratorService;
+    private final TempSellerDocumentRepository tempSellerDocumentRepository;
+    private final TempSellerBankDetailsRepository tempSellerBankDetailsRepository;
 
     // Email service for sending confirmations
     private final IndependentEmailService independentEmailService;
@@ -369,5 +374,48 @@ public class TempSellerServiceImpl implements TempSellerService {
     public TempSeller findById(Long id) {
         return tempSellerRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("TempSeller not found for id: " + id));
+    }
+
+    @Override
+    @Transactional
+    public void updateGstVerification(Long tempSellerId, boolean isGstVerified) {
+        TempSeller seller = tempSellerRepository.findById(tempSellerId)
+                .orElseThrow(() -> new NotFoundException("TempSeller not found for id: " + tempSellerId));
+
+        seller.setGstVerified(isGstVerified);
+        log.info("GST verified: " + seller.isGstVerified());
+        log.info("From API GST verified: " + isGstVerified);
+        tempSellerRepository.save(seller);
+    }
+
+    @Override
+    @Transactional
+    public void updateDocumentVerification(Long tempSellerId, Long documentId, boolean isDocumentVerified) {
+        // Confirm seller exists
+        if (!tempSellerRepository.existsById(tempSellerId)) {
+            throw new NotFoundException("TempSeller not found for id: " + tempSellerId);
+        }
+
+        TempSellerDocument doc = tempSellerDocumentRepository.findById(documentId)
+                .orElseThrow(() -> new NotFoundException("Document not found for id: " + documentId));
+
+        // Guard: document must belong to this seller
+        if (!doc.getSeller().getTempSellerId().equals(tempSellerId)) {
+            throw new ApplicationException("Document id=" + documentId + " does not belong to sellerId=" + tempSellerId);
+        }
+
+        doc.setDocumentVerified(isDocumentVerified);
+        tempSellerDocumentRepository.save(doc);
+    }
+
+    @Override
+    @Transactional
+    public void updateBankDocumentVerification(Long tempSellerId, boolean isBankDocumentVerified) {
+        TempSellerBankDetails bankDetails = tempSellerBankDetailsRepository
+                .findBySeller_TempSellerId(tempSellerId)
+                .orElseThrow(() -> new NotFoundException("Bank details not found for sellerId: " + tempSellerId));
+
+        bankDetails.setBankDocumentVerified(isBankDocumentVerified);
+        tempSellerBankDetailsRepository.save(bankDetails);
     }
 }
