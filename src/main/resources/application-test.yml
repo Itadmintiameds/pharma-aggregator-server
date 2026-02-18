@@ -33,7 +33,7 @@ spring:
   # Twilio sms
 twilio:
   account-sid: AC35ec54287b2863257cb5acbdffa10fe0
-  auth-token: 307dcd91011116c4b9b782a19560e177
+  auth-token: 3722f073c825a203a5119fc912869ec9
   verify:
     service-sid: VA12037d4ce3dc3ae5e66c1f9efbfcc508
 
