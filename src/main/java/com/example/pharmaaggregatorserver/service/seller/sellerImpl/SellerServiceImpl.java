@@ -181,6 +181,7 @@ public class SellerServiceImpl implements SellerService {
         seller.setWebsite(sellerDTO.getWebsite());
         seller.setStatus(sellerDTO.getStatus());
         seller.setTermsAccepted(sellerDTO.isTermsAccepted());
+        seller.setUpdatedBy("ADMIN");
 
         // Update CompanyType
         if (sellerDTO.getCompanyTypeId() != null) {
@@ -217,11 +218,18 @@ public class SellerServiceImpl implements SellerService {
                 existingAddress.setBuildingNo(updatedAddress.getBuildingNo());
                 existingAddress.setLandmark(updatedAddress.getLandmark());
                 existingAddress.setPinCode(updatedAddress.getPinCode());
-                // Note: State, District, Taluka need to be set from IDs if changed
+                existingAddress.setState(stateMasterRepository.findById(sellerDTO.getAddress().getStateId())
+                        .orElseThrow(() -> new NotFoundException("State not found with id: " + sellerDTO.getAddress().getStateId())));
+                existingAddress.setDistrict(districtMasterRepository.findById(sellerDTO.getAddress().getDistrictId())
+                        .orElseThrow(() -> new NotFoundException("District not found with id: " + sellerDTO.getAddress().getDistrictId())));
+                existingAddress.setTaluka(talukaMasterRepository.findById(sellerDTO.getAddress().getTalukaId())
+                        .orElseThrow(() -> new NotFoundException("Taluka not found with id: " + sellerDTO.getAddress().getTalukaId())));
             } else {
                 // Create new address
                 SellerAddress address = SellerAddressMapper.toEntity(sellerDTO.getAddress());
                 address.setSeller(seller);
+                address.setCreatedBy("ADMIN");
+                address.setUpdatedBy("ADMIN");
                 seller.setAddress(address);
             }
         }
@@ -239,10 +247,13 @@ public class SellerServiceImpl implements SellerService {
                 existingCoordinator.setEmailVerified(updatedCoordinator.isEmailVerified());
                 existingCoordinator.setMobile(updatedCoordinator.getMobile());
                 existingCoordinator.setPhoneVerified(updatedCoordinator.isPhoneVerified());
+                existingCoordinator.setUpdatedBy("ADMIN");
             } else {
                 // Create new coordinator
                 SellerCoordinator coordinator = SellerCoordinatorMapper.toEntity(sellerDTO.getCoordinator());
                 coordinator.setSeller(seller);
+                coordinator.setCreatedBy("ADMIN");
+                coordinator.setUpdatedBy("ADMIN");
                 seller.setCoordinator(coordinator);
             }
         }
@@ -260,10 +271,13 @@ public class SellerServiceImpl implements SellerService {
                 existingBankDetails.setAccountNumber(updatedBankDetails.getAccountNumber());
                 existingBankDetails.setAccountHolderName(updatedBankDetails.getAccountHolderName());
                 existingBankDetails.setBankDocumentFileUrl(updatedBankDetails.getBankDocumentFileUrl());
+                existingBankDetails.setUpdatedBy("ADMIN");
             } else {
                 // Create new bank details
                 SellerBankDetails bankDetails = SellerBankDetailsMapper.toEntity(sellerDTO.getBankDetails());
                 bankDetails.setSeller(seller);
+                bankDetails.setCreatedBy("ADMIN");
+                bankDetails.setUpdatedBy("ADMIN");
                 seller.setBankDetails(bankDetails);
             }
         }
@@ -295,6 +309,8 @@ public class SellerServiceImpl implements SellerService {
             for (var docDto : sellerDTO.getDocuments()) {
                 SellerDocument document = SellerDocumentMapper.toEntity(docDto);
                 document.setSeller(seller);
+                document.setCreatedBy("ADMIN");
+                document.setUpdatedBy("ADMIN");
 
                 // Set ProductType for document
                 if (docDto.getProductTypeId() != null) {
