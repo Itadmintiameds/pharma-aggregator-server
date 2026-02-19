@@ -7,5 +7,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface TempSellerCoordinatorRepository extends JpaRepository<TempSellerCoordinator, Long> {
     boolean existsByEmail(String email);
+    // Phone methods
+    boolean existsByMobile(String mobile);
 
 }

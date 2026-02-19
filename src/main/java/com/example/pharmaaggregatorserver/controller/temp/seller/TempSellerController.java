@@ -100,4 +100,10 @@ public class TempSellerController {
         return ResponseEntity.ok(exists);
     }
 
+    @GetMapping("/coordinator/check-phone")
+    public ResponseEntity<Boolean> checkPhoneExists(@RequestParam String mobile) {
+        boolean exists = coordinatorService.checkPhoneExists(mobile);
+        return ResponseEntity.ok(exists);
+    }
+
 }

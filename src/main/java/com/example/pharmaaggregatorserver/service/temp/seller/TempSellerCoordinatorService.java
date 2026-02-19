@@ -16,4 +16,8 @@ public class TempSellerCoordinatorService {
     public boolean checkEmailExists(String email) {
         return coordinatorRepository.existsByEmail(email);
     }
+
+    public boolean checkPhoneExists(String mobile) {
+        return coordinatorRepository.existsByMobile(mobile);
+    }
 }
