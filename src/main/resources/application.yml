@@ -5,6 +5,8 @@ spring:
 server:
   servlet:
     context-path: /api/v1
+  profiles:
+    active: dev
 
 springdoc:
   api-docs:

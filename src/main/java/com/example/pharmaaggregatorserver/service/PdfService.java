@@ -12,6 +12,7 @@ import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
+import com.itextpdf.layout.properties.VerticalAlignment;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -211,60 +212,85 @@ public class PdfService {
                 }
             }
 
-            // ===== ACCEPTANCE CLAUSE =====
+            // ===== ACCEPTANCE CLAUSE WITH CHECKBOX =====
             document.add(new Paragraph("\n"));
 
-            Paragraph acceptance = new Paragraph("I confirm that I have read, understood, and accepted all the above declarations to ensure regulatory compliance and trusted participation on the TiaMeds Marketplace platform.");
+            // Checkbox table: checkbox in left cell, acceptance text in right cell
+            Table checkboxTable = new Table(UnitValue.createPercentArray(new float[]{5, 95}));
+            checkboxTable.useAllAvailableWidth();
+            checkboxTable.setMarginTop(15);
+            checkboxTable.setMarginBottom(25);
+
+            // Left cell - Checkbox (empty square as tick box)
+            Cell checkboxCell = new Cell();
+            checkboxCell.add(new Paragraph("☐").setFontSize(14));
+            checkboxCell.setBorder(Border.NO_BORDER);
+            checkboxCell.setPaddingTop(2);
+            checkboxCell.setPaddingRight(5);
+            checkboxCell.setVerticalAlignment(VerticalAlignment.TOP);
+
+            // Right cell - Acceptance text
+            Cell acceptanceCell = new Cell();
+            Paragraph acceptance = new Paragraph(
+                    "I confirm that I have read, understood, and accepted all the above declarations " +
+                            "to ensure regulatory compliance and trusted participation on the TiaMeds Marketplace platform."
+            );
             acceptance.setBold();
             acceptance.setFontSize(11);
             acceptance.setTextAlignment(TextAlignment.JUSTIFIED);
-            acceptance.setMarginTop(15);
-            acceptance.setMarginBottom(25);
-            document.add(acceptance);
+            acceptanceCell.add(acceptance);
+            acceptanceCell.setBorder(Border.NO_BORDER);
+            acceptanceCell.setPadding(0);
 
-            // ===== SIGNATURE TABLE =====
-            Table signTable = new Table(UnitValue.createPercentArray(new float[]{50, 50}));
-            signTable.useAllAvailableWidth();
-            signTable.setMarginTop(20);
+            checkboxTable.addCell(checkboxCell);
+            checkboxTable.addCell(acceptanceCell);
 
-            // Left Cell
-            Paragraph left1 = new Paragraph("For TiaMeds Marketplace");
-            left1.setBold();
-            left1.setFontSize(11);
+            document.add(checkboxTable);
 
-            Cell leftCell = new Cell();
-            leftCell.add(left1);
-            leftCell.add(new Paragraph("Authorized Signatory").setFontSize(10));
-            leftCell.add(new Paragraph("\n"));
-            leftCell.add(new Paragraph("Signature: ___________________").setFontSize(10));
-            leftCell.add(new Paragraph("\n"));
-            leftCell.add(new Paragraph("Date: ___________________").setFontSize(10));
-            leftCell.setBorder(Border.NO_BORDER);
-            leftCell.setPadding(10);
+            // ===== SIGNATURE TABLE (COMMENTED OUT) =====
+        /*
+        Table signTable = new Table(UnitValue.createPercentArray(new float[]{50, 50}));
+        signTable.useAllAvailableWidth();
+        signTable.setMarginTop(20);
 
-            // Right Cell
-            Paragraph right1 = new Paragraph("For Seller Company");
-            right1.setBold();
-            right1.setFontSize(11);
+        // Left Cell
+        Paragraph left1 = new Paragraph("For TiaMeds Marketplace");
+        left1.setBold();
+        left1.setFontSize(11);
 
-            Cell rightCell = new Cell();
-            rightCell.add(right1);
-            rightCell.add(new Paragraph("Authorized Representative").setFontSize(10));
-            rightCell.add(new Paragraph("\n"));
-            rightCell.add(new Paragraph("Signature: ___________________").setFontSize(10));
-            rightCell.add(new Paragraph("\n"));
-            rightCell.add(new Paragraph("Date: ___________________").setFontSize(10));
-            rightCell.setBorder(Border.NO_BORDER);
-            rightCell.setPadding(10);
+        Cell leftCell = new Cell();
+        leftCell.add(left1);
+        leftCell.add(new Paragraph("Authorized Signatory").setFontSize(10));
+        leftCell.add(new Paragraph("\n"));
+        leftCell.add(new Paragraph("Signature: ___________________").setFontSize(10));
+        leftCell.add(new Paragraph("\n"));
+        leftCell.add(new Paragraph("Date: ___________________").setFontSize(10));
+        leftCell.setBorder(Border.NO_BORDER);
+        leftCell.setPadding(10);
 
-            signTable.addCell(leftCell);
-            signTable.addCell(rightCell);
+        // Right Cell
+        Paragraph right1 = new Paragraph("For Seller Company");
+        right1.setBold();
+        right1.setFontSize(11);
 
-            document.add(signTable);
+        Cell rightCell = new Cell();
+        rightCell.add(right1);
+        rightCell.add(new Paragraph("Authorized Representative").setFontSize(10));
+        rightCell.add(new Paragraph("\n"));
+        rightCell.add(new Paragraph("Signature: ___________________").setFontSize(10));
+        rightCell.add(new Paragraph("\n"));
+        rightCell.add(new Paragraph("Date: ___________________").setFontSize(10));
+        rightCell.setBorder(Border.NO_BORDER);
+        rightCell.setPadding(10);
+
+        signTable.addCell(leftCell);
+        signTable.addCell(rightCell);
+
+        document.add(signTable);
+        */
 
             document.close();
-
-            System.out.println("PDF generated successfully at: " + path);
+//            System.out.println("PDF generated successfully at: " + path);
             return path;
 
         } catch (Exception e) {
