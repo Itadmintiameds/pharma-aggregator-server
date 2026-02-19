@@ -1,6 +1,7 @@
 package com.example.pharmaaggregatorserver.service.serviceImpl.admin;
 
 import com.example.pharmaaggregatorserver.dto.seller.SellerApprovalRequestDTO;
+import com.example.pharmaaggregatorserver.entity.master.ProductTypeMaster;
 import com.example.pharmaaggregatorserver.entity.seller.*;
 import com.example.pharmaaggregatorserver.entity.temp.seller.SellerTerms;
 import com.example.pharmaaggregatorserver.entity.temp.seller.TempSeller;
@@ -19,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -418,7 +420,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 </body>
                 </html>
                 """.formatted(
-                approvedSeller.getSellerName(),
+                approvedSeller.getCoordinator().getName(),
                 approvedSeller.getSellerName(),
                 approvedSeller.getSellerName(),
                 tempSeller.getTempSellerRequestId(),
@@ -456,6 +458,9 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
     private Seller mapAndPersistSeller(TempSeller temp) {
         String sellerId = generateSellerId(temp);
 
+        // ✅ Force load lazy collections before session closes
+        List<ProductTypeMaster> productTypes = new ArrayList<>(temp.getProductTypes());
+
         Seller seller = new Seller();
         seller.setSellerId(sellerId);
         seller.setSellerName(temp.getSellerName());
@@ -467,7 +472,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
         seller.setTermsAccepted(temp.isTermsAccepted());
         seller.setCompanyType(temp.getCompanyType());
         seller.setSellerType(temp.getSellerType());
-        seller.setProductTypes(temp.getProductTypes());
+        seller.setProductTypes(productTypes);
         seller.setStatus("APPROVED");
         seller.setCreatedBy("SYSTEM");
         seller.setUpdatedBy("SYSTEM");
