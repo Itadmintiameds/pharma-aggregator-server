@@ -1,5 +1,6 @@
 package com.example.pharmaaggregatorserver.controller.product;
 
+import com.example.pharmaaggregatorserver.dto.product.CreateProductRequestDto;
 import com.example.pharmaaggregatorserver.dto.product.ProductDetailsDrugDto;
 import com.example.pharmaaggregatorserver.entity.product.ProductDetailsDrug;
 import com.example.pharmaaggregatorserver.mapper.product.ProductDetailsDrugMapper;
@@ -22,15 +23,16 @@ public class ProductDetailsDrugController {
 
     @PostMapping("/create")
     public ResponseEntity<ProductDetailsDrugDto> createProduct(
-            @RequestBody ProductDetailsDrugDto dto) {
+            @RequestBody CreateProductRequestDto request) {
 
         ProductDetailsDrugDto created =
-                productDetailsDrugService.createProduct(dto);
+                productDetailsDrugService.createProduct(request);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(created);
     }
+
 
 
     @GetMapping("/getAll")

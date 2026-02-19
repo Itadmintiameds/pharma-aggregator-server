@@ -1,6 +1,7 @@
 package com.example.pharmaaggregatorserver.controller.product;
 
 import com.example.pharmaaggregatorserver.dto.product.MoleculeDto;
+import com.example.pharmaaggregatorserver.repository.product.MoleculeRepository;
 import com.example.pharmaaggregatorserver.service.product.MoleculeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -15,8 +16,8 @@ import java.util.List;
 public class MoleculeController {
 
     private final MoleculeService moleculeService;
+    private final MoleculeRepository moleculeRepository;
 
-    // ✅ Save molecule
     @PostMapping("/create")
     public ResponseEntity<MoleculeDto> saveMolecule(@RequestBody MoleculeDto dto) {
         return new ResponseEntity<>(
@@ -25,15 +26,17 @@ public class MoleculeController {
         );
     }
 
-    // ✅ Fetch molecule by name (used for auto-populate in frontend)
     @GetMapping("/by-name")
-    public ResponseEntity<MoleculeDto> getByName(@RequestParam String name) {
-        return ResponseEntity.ok(
-                moleculeService.getMoleculeByName(name)
-        );
+    public ResponseEntity<MoleculeDto> getByName(
+            @RequestParam String name
+    ) {
+        MoleculeDto dto = moleculeService.getMoleculeByName(name);
+
+        return ResponseEntity.ok(dto); // dto can be null
     }
 
-    // ✅ Fetch all molecules (dropdown/autocomplete)
+
+
     @GetMapping("/getAll")
     public ResponseEntity<List<MoleculeDto>> getAll() {
         return ResponseEntity.ok(

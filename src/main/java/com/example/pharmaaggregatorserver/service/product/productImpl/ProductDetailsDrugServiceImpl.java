@@ -1,5 +1,6 @@
 package com.example.pharmaaggregatorserver.service.product.productImpl;
 
+import com.example.pharmaaggregatorserver.dto.product.CreateProductRequestDto;
 import com.example.pharmaaggregatorserver.dto.product.PackagingDetailsDrugDto;
 import com.example.pharmaaggregatorserver.dto.product.PricingDetailsDrugDto;
 import com.example.pharmaaggregatorserver.dto.product.ProductDetailsDrugDto;
@@ -34,47 +35,51 @@ public class ProductDetailsDrugServiceImpl implements ProductDetailsDrugService 
 
     @Override
     @Transactional
-    public ProductDetailsDrugDto createProduct(ProductDetailsDrugDto dto) {
+    public ProductDetailsDrugDto createProduct(CreateProductRequestDto request) {
 
-        ProductDetailsDrug product = ProductDetailsDrugMapper.toEntity(dto);
+        // 1️⃣ Product
+        ProductDetailsDrug product =
+                ProductDetailsDrugMapper.toEntity(request.getProduct());
 
-        // Setting Product ID
-        product.setProductId(generateProductId(dto.getProductName()));
+        product.setProductId(generateProductId(product.getProductName()));
 
-        if (dto.getMolecules() != null && !dto.getMolecules().isEmpty()) {
+        // 2️⃣ Molecules (MANY-TO-MANY)
+        if (request.getMoleculeIds() != null && !request.getMoleculeIds().isEmpty()) {
 
-            Set<Molecule> molecules = dto.getMolecules().stream()
-                    .map(m -> moleculeRepository.findById(m.getMoleculeId())
-                            .orElseThrow(() ->
-                                    new RuntimeException("Molecule not found: " + m.getMoleculeId())
-                            ))
-                    .collect(Collectors.toSet());
+            Set<Molecule> molecules =
+                    moleculeRepository.findAllById(request.getMoleculeIds())
+                            .stream()
+                            .collect(Collectors.toSet());
+
+            if (molecules.size() != request.getMoleculeIds().size()) {
+                throw new RuntimeException("One or more molecules not found");
+            }
 
             product.setMolecules(molecules);
         }
 
-
-        if (dto.getPackagingDetails() != null) {
+        // 3️⃣ Packaging (ONE-TO-ONE)
+        if (request.getPackagingDetails() != null) {
 
             PackagingDetailsDrug packaging =
-                    ProductDetailsDrugMapper.toPackagingEntity(dto.getPackagingDetails());
+                    ProductDetailsDrugMapper.toPackagingEntity(
+                            request.getPackagingDetails());
 
-            // Setting Packaging ID
             packaging.setPackagingId(generatePackagingId());
             packaging.setProduct(product);
             product.setPackagingDetails(packaging);
         }
 
-        if (dto.getPricingDetails() != null && !dto.getPricingDetails().isEmpty()) {
+        // 4️⃣ Pricing (ONE-TO-MANY)
+        if (request.getPricingDetails() != null &&
+                !request.getPricingDetails().isEmpty()) {
 
             Set<PricingDetailsDrug> pricingEntities =
-                    dto.getPricingDetails().stream()
+                    request.getPricingDetails().stream()
                             .map(ProductDetailsDrugMapper::toPricingEntity)
                             .collect(Collectors.toSet());
 
             pricingEntities.forEach(pricing -> {
-
-                // Setting Pricing ID
                 pricing.setPricingId(generatePricingId());
                 pricing.setProduct(product);
             });
@@ -82,9 +87,12 @@ public class ProductDetailsDrugServiceImpl implements ProductDetailsDrugService 
             product.setPricingDetails(pricingEntities);
         }
 
+        // 5️⃣ SAVE (transactional)
         ProductDetailsDrug saved = productRepository.save(product);
+
         return ProductDetailsDrugMapper.toDto(saved);
     }
+
 
 
     @Override
