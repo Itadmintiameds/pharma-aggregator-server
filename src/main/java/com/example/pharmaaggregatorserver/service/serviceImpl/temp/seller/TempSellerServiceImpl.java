@@ -50,12 +50,12 @@ public class TempSellerServiceImpl implements TempSellerService {
         String generatedRequestId = requestIdGeneratorService.generateNextRequestId();
 
         // Check if phone or email already exists
-        if (tempSellerRepository.existsByPhone(requestDTO.getPhone())) {
-            throw new RuntimeException("Phone number already exists");
-        }
-        if (tempSellerRepository.existsByEmail(requestDTO.getEmail())) {
-            throw new RuntimeException("Email already exists");
-        }
+//        if (tempSellerRepository.existsByPhone(requestDTO.getPhone())) {
+//            throw new RuntimeException("Phone number already exists");
+//        }
+//        if (tempSellerRepository.existsByEmail(requestDTO.getEmail())) {
+//            throw new RuntimeException("Email already exists");
+//        }
 
         // Fetch master entities
         List<ProductTypeMaster> productType = productTypeMasterRepository.findAllById(requestDTO.getProductTypeId());

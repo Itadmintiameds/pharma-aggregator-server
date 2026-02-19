@@ -9,9 +9,11 @@ import com.example.pharmaaggregatorserver.dto.temp.seller.DocumentVerificationRe
 import com.example.pharmaaggregatorserver.dto.temp.seller.GstVerificationRequestDTO;
 import com.example.pharmaaggregatorserver.entity.temp.seller.TempSeller;
 import com.example.pharmaaggregatorserver.response.ApiResponse;
+import com.example.pharmaaggregatorserver.service.temp.seller.TempSellerCoordinatorService;
 import com.example.pharmaaggregatorserver.service.temp.seller.TempSellerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -96,6 +98,22 @@ public class TempSellerController {
     public ResponseEntity<?> delete(@PathVariable Long id) {
         tempSellerService.deleteBothSellerAndTempSeller(id);
         return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Delete temp seller successfully", null));
+    }
+    //Get All Coordinator
+
+    @Autowired
+    private TempSellerCoordinatorService coordinatorService;
+
+    @GetMapping("/coordinator/check-email")
+    public ResponseEntity<Boolean> checkEmailExists(@RequestParam String email) {
+        boolean exists = coordinatorService.checkEmailExists(email);
+        return ResponseEntity.ok(exists);
+    }
+
+    @GetMapping("/coordinator/check-phone")
+    public ResponseEntity<Boolean> checkPhoneExists(@RequestParam String mobile) {
+        boolean exists = coordinatorService.checkPhoneExists(mobile);
+        return ResponseEntity.ok(exists);
     }
 
 }
