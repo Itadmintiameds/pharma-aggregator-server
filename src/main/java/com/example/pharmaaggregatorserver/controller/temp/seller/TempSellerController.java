@@ -94,10 +94,10 @@ public class TempSellerController {
     @Autowired
     private TempSellerCoordinatorService coordinatorService;
 
-    @GetMapping("/coordinator")
-    public ResponseEntity<List<TempSellerCoordinator>> getAllTempSellerCoordinators() {
-        List<TempSellerCoordinator> coordinators = coordinatorService.getAllCoordinators();
-        return ResponseEntity.ok(coordinators);
+    @GetMapping("/coordinator/check-email")
+    public ResponseEntity<Boolean> checkEmailExists(@RequestParam String email) {
+        boolean exists = coordinatorService.checkEmailExists(email);
+        return ResponseEntity.ok(exists);
     }
 
 }

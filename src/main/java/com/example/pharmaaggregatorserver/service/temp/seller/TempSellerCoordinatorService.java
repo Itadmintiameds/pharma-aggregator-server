@@ -13,7 +13,7 @@ public class TempSellerCoordinatorService {
     @Autowired
     private TempSellerCoordinatorRepository coordinatorRepository;
 
-    public List<TempSellerCoordinator> getAllCoordinators() {
-        return coordinatorRepository.findAll();
+    public boolean checkEmailExists(String email) {
+        return coordinatorRepository.existsByEmail(email);
     }
 }
