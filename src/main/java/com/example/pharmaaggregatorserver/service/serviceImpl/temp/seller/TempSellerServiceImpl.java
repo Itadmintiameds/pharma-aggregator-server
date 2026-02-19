@@ -9,6 +9,7 @@ import com.example.pharmaaggregatorserver.entity.temp.seller.*;
 import com.example.pharmaaggregatorserver.exception.ApplicationException;
 import com.example.pharmaaggregatorserver.exception.NotFoundException;
 import com.example.pharmaaggregatorserver.repository.master.*;
+import com.example.pharmaaggregatorserver.repository.seller.SellerRepository;
 import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerBankDetailsRepository;
 import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerDocumentRepository;
 import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerRepository;
@@ -38,6 +39,7 @@ public class TempSellerServiceImpl implements TempSellerService {
     private final RequestIdGeneratorService requestIdGeneratorService;
     private final TempSellerDocumentRepository tempSellerDocumentRepository;
     private final TempSellerBankDetailsRepository tempSellerBankDetailsRepository;
+    private final SellerRepository sellerRepository;
 
     // Email service for sending confirmations
     private final IndependentEmailService independentEmailService;
@@ -417,5 +419,28 @@ public class TempSellerServiceImpl implements TempSellerService {
 
         bankDetails.setBankDocumentVerified(isBankDocumentVerified);
         tempSellerBankDetailsRepository.save(bankDetails);
+    }
+
+    @Override
+    public void deleteTempSeller(Long tempSellerId) {
+        tempSellerRepository.deleteById(tempSellerId);
+    }
+
+    @Override
+    public void deleteBothSellerAndTempSeller(Long tempSellerId) {
+        TempSeller tempSeller = tempSellerRepository.findById(tempSellerId)
+                .orElseThrow(() -> new NotFoundException("TempSeller not found for id: " + tempSellerId));
+
+        // If the TempSeller was approved, also delete the corresponding Seller
+        if ("APPROVED".equals(tempSeller.getStatus())) {
+            sellerRepository.findByEmail(tempSeller.getEmail())
+                    .ifPresent(seller -> {
+                        log.info("Deleting approved Seller with email: {}", tempSeller.getEmail());
+                        sellerRepository.delete(seller);
+                    });
+        }
+
+        tempSellerRepository.deleteById(tempSellerId);
+        log.info("TempSeller deleted with id: {}", tempSellerId);
     }
 }

@@ -4,6 +4,8 @@ import com.example.pharmaaggregatorserver.entity.seller.Seller;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.Optional;
+
 public interface SellerRepository extends JpaRepository<Seller, String> {
 
     /**
@@ -20,4 +22,6 @@ public interface SellerRepository extends JpaRepository<Seller, String> {
             FROM tbl_seller
             """, nativeQuery = true)
     Integer findMaxSellerSequence();
+
+    Optional<Seller> findByEmail(String email);
 }

@@ -86,4 +86,16 @@ public class TempSellerController {
         return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Bank document verification updated successfully", null));
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteByID(@PathVariable Long id) {
+        tempSellerService.deleteTempSeller(id);
+        return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Delete temp seller successfully", null));
+    }
+
+    @DeleteMapping("/both/{id}")
+    public ResponseEntity<?> delete(@PathVariable Long id) {
+        tempSellerService.deleteBothSellerAndTempSeller(id);
+        return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Delete temp seller successfully", null));
+    }
+
 }

@@ -19,4 +19,8 @@ public interface TempSellerService {
     void updateGstVerification(Long tempSellerId, boolean isGstVerified);
     void updateDocumentVerification(Long tempSellerId, Long documentId, boolean isDocumentVerified);
     void updateBankDocumentVerification(Long tempSellerId, boolean isBankDocumentVerified);
+
+    void deleteTempSeller(Long tempSellerId);
+
+    void deleteBothSellerAndTempSeller(Long tempSellerId);
 }
