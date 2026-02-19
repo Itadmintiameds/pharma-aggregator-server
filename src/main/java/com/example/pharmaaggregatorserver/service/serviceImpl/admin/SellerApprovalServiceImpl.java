@@ -1,15 +1,19 @@
 package com.example.pharmaaggregatorserver.service.serviceImpl.admin;
 
 import com.example.pharmaaggregatorserver.dto.seller.SellerApprovalRequestDTO;
+import com.example.pharmaaggregatorserver.entity.seller.*;
 import com.example.pharmaaggregatorserver.entity.temp.seller.SellerTerms;
 import com.example.pharmaaggregatorserver.entity.temp.seller.TempSeller;
+import com.example.pharmaaggregatorserver.entity.temp.seller.TempSellerDocument;
 import com.example.pharmaaggregatorserver.exception.ApplicationException;
 import com.example.pharmaaggregatorserver.exception.NotFoundException;
+import com.example.pharmaaggregatorserver.repository.seller.SellerRepository;
 import com.example.pharmaaggregatorserver.repository.temp.seller.SellerTermsRepository;
 import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerRepository;
 import com.example.pharmaaggregatorserver.service.EmailService;
 import com.example.pharmaaggregatorserver.service.PdfService;
 import com.example.pharmaaggregatorserver.service.admin.SellerApprovalService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
@@ -23,9 +27,10 @@ import java.util.List;
 public class SellerApprovalServiceImpl implements SellerApprovalService {
 
     public static final String SUPPORT_TIAMEDS_COM = "support@tiameds.com";
-    public static final String LOGIN_URL = "https://testdomain.com/seller/login";
+    public static final String LOGIN_URL = "https://pharma-aggregator-test.tiameds.ai/";
+
     private final TempSellerRepository tempSellerRepo;
-    //    private final SellerRepository sellerRepo;
+    private final SellerRepository sellerRepo;
     private final EmailService emailService;
     private final PdfService pdfService;
     //    private final UserService userService;
@@ -41,6 +46,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
      * @param request contains seller ID, status, and reviewer comments
      */
     @Override
+    @Transactional
     public void processReview(SellerApprovalRequestDTO request) {
 
         TempSeller tempSeller = tempSellerRepo.findById(request.getId())
@@ -52,9 +58,9 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
 
             case "REJECT" -> handleRejection(tempSeller, request.getComments());
 
-            case "ACCEPT" -> handleApprovalForTempSeller(tempSeller, request.getComments());
+//            case "ACCEPT" -> handleApprovalForTempSeller(tempSeller, request.getComments());
 
-//            case "ACCEPT" -> handleApproval(tempSeller);
+            case "ACCEPT" -> handleApproval(tempSeller, request.getComments());
 
             default -> throw new ApplicationException("Invalid Status");
         }
@@ -82,7 +88,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 
                     <p>
                         Thank you for submitting your application to onboard as a seller company on the 
-                        <b>TiaMeds Marketplace platform</b> and Your Application ID is <b>%s</b>.
+                        <b>TiaMeds Marketplace platform</b> and Your Request ID is <b>%s</b>.
                     </p>
                 
                     <p>
@@ -90,8 +96,8 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                         require <b>correction or additional information</b> before we can proceed with approval.
                     </p>
                 
-                    <p><b>Please review and address the following points:</b><br>
-                    %s</p>
+                    <p>Please review and address the following points:<br>
+                    <b>%s</b></p>
                 
                     <p>
                         Kindly log in to your application using the link below and update the required information:
@@ -117,7 +123,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                     </p>
                 
                     <p>
-                        Regards,<br>
+                        Warm Regards,<br>
                         TiaMeds Marketplace<br>
                         Seller Onboarding & Compliance Team
                     </p>
@@ -125,7 +131,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 </body>
                 </html>
                 """.formatted(
-                seller.getSellerName(),
+                seller.getCoordinator().getName(),
                 seller.getTempSellerRequestId(),
                 comments,
                 correctionUrl,
@@ -136,7 +142,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
 
         // IMPORTANT: Use HTML email method
         emailService.sendHtmlMail(
-                seller.getEmail(),
+                seller.getCoordinator().getEmail(),
                 "Action Required: Seller Application Correction",
                 body
         );
@@ -159,12 +165,12 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 
                 <p>
                     Thank you for submitting your application to onboard as a seller company on the 
-                    <b>TiaMeds Marketplace platform</b> and Your Application ID is <b>%s</b>.
+                    <b>TiaMeds Marketplace platform</b> and Your Request ID is <b>%s</b>.
                 </p>
                 
                 <p>
                     After a detailed review of your submitted information and documents, we regret to inform 
-                    you that your <b>%s</b> registration application has been rejected due to the following reasons:
+                    you that your <b>%s</b> registration application has been <b>rejected</b> due to the following reasons:
                 </p>
                 
                 <p><b>%s</b></p>
@@ -190,7 +196,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 </p>
                 
                 <p>
-                    Regards,<br>
+                    Warm Regards,<br>
                     TiaMeds Marketplace<br>
                     Seller Onboarding & Compliance Team
                 </p>
@@ -198,7 +204,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 </body>
                 </html>
                 """.formatted(
-                seller.getSellerName(),
+                seller.getCoordinator().getName(),
                 seller.getTempSellerRequestId(),
                 seller.getSellerName(),
                 comments,
@@ -208,7 +214,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
 
         // Use HTML email sender
         emailService.sendHtmlMail(
-                seller.getEmail(),
+                seller.getCoordinator().getEmail(),
                 "Seller Application Status: Rejected",
                 body
         );
@@ -218,20 +224,133 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
      * Handles approval process for temporary seller.
      * Generates agreement PDF, credentials, and sends approval email.
      */
-    private void handleApprovalForTempSeller(TempSeller tempSeller, String comments) {
+//    private void handleApprovalForTempSeller(TempSeller tempSeller, String comments) {
+//
+//        // 1️⃣ Generate Seller Agreement PDF (for record, optional to attach later)
+////        String pdfPath = pdfService.generateTempSellerAgreementPdf(tempSeller);
+//
+//        List<SellerTerms> sellerTerms = sellerTermsRepository.findAll(Sort.by(Sort.Direction.ASC, "id"));
+//
+//        String pdfPath = pdfService.generateSellerAgreementPdf(sellerTerms);
+//
+//        // 2️⃣ Create Login Credentials (replace with secure generator in prod)
+//        String username = "test";
+//        String password = "test@123";
+//
+//        // HTML Email Body
+//        String body = """
+//                <html>
+//                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+//
+//                <p>Dear %s,</p>
+//
+//                <p>
+//                    We are pleased to inform you that your <b>%s</b> registration on the
+//                    <b>TiaMeds Marketplace platform</b> has been successfully reviewed and <b>approved</b> by our compliance team.
+//                </p>
+//
+//                <p>
+//                    Your %s profile has now been activated, and you may begin accessing the
+//                    TiaMeds Marketplace platform to onboard your products.
+//                </p>
+//
+//                <p><b>Below are your account details:</b></p>
+//
+//                <p>
+//                    Application ID: %s<br>
+//                    Registered Company Name: %s<br>
+//                    Registered Email ID: %s<br>
+//                    Platform Access Link:
+//                    <a href="%s" style="color:#1a73e8; text-decoration:none;">Login to Platform</a>
+//                </p>
+//
+//                <p>
+//                    <b>Admin Approval Comments:</b><br>
+//                    %s
+//                </p>
+//
+//                <p><b>Temporary Login Credentials:</b><br>
+//                    Username: %s<br>
+//                    Temporary Password: %s
+//                </p>
+//
+//                <p>
+//                    For security purposes, you will be required to reset your password upon first login.
+//                </p>
+//
+//                <p>
+//                    Your acceptance of the TiaMeds Marketplace Seller Policies has been recorded and is attached for your reference.
+//                </p>
+//
+//                <p>
+//                    If you have any questions or require assistance, please contact our support team at
+//                    <a href="mailto:%s">%s</a>.
+//                </p>
+//
+//                <p>
+//                    We welcome you to the TiaMeds Marketplace platform and look forward to a successful association.
+//                </p>
+//
+//                <p>
+//                    Warm regards,<br>
+//                    TiaMeds Marketplace<br>
+//                    Seller Onboarding & Compliance Team
+//                </p>
+//
+//                </body>
+//                </html>
+//                """.formatted(
+//                tempSeller.getSellerName(),
+//                tempSeller.getSellerName(),
+//                tempSeller.getSellerName(),
+//                tempSeller.getTempSellerRequestId(),
+//                tempSeller.getSellerName(),
+//                tempSeller.getEmail(),
+//                LOGIN_URL,
+//                comments,
+//                username,
+//                password,
+//                SUPPORT_TIAMEDS_COM,
+//                SUPPORT_TIAMEDS_COM
+//        );
+//
+//        // Send HTML Email
+//        emailService.sendHtmlMailWithAttachment(
+//                tempSeller.getEmail(),
+//                "Seller Application Approved – Welcome to TiaMeds Marketplace",
+//                body,
+//                pdfPath,
+//                "TiaMeds_Seller_Agreement.pdf"
+//        );
+//
+//        // Mark Temp Seller as Approved
+//        tempSeller.setStatus("APPROVED");
+//        tempSellerRepo.save(tempSeller);
+//    }
 
-        // 1️⃣ Generate Seller Agreement PDF (for record, optional to attach later)
-//        String pdfPath = pdfService.generateTempSellerAgreementPdf(tempSeller);
+    /**
+     * Handles the full approval flow:
+     * 1. Copies TempSeller data to the main Seller table
+     * 2. Generates a unique Seller ID
+     * 3. Generates the seller agreement PDF
+     * 4. Sends approval email with credentials and seller ID
+     * 5. Marks TempSeller status as APPROVED
+     */
+    private void handleApproval(TempSeller tempSeller, String comments) {
 
+        // 1️⃣ Migrate data from temp → main seller table
+        Seller approvedSeller = mapAndPersistSeller(tempSeller);
+
+        // 2️⃣ Generate Seller Agreement PDF
         List<SellerTerms> sellerTerms = sellerTermsRepository.findAll(Sort.by(Sort.Direction.ASC, "id"));
 
         String pdfPath = pdfService.generateSellerAgreementPdf(sellerTerms);
 
-        // 2️⃣ Create Login Credentials (replace with secure generator in prod)
+        // 3️⃣ Create Login Credentials (replace with secure generator in production)
         String username = "test";
         String password = "test@123";
 
-        // HTML Email Body
+        // 4️⃣ Build HTML Email Body
         String body = """
                 <html>
                 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -239,31 +358,36 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 <p>Dear %s,</p>
                 
                 <p>
-                    We are pleased to inform you that your <b>%s</b> registration on the 
+                    We are pleased to inform you that your <b>%s</b> registration on the
                     <b>TiaMeds Marketplace platform</b> has been successfully reviewed and <b>approved</b> by our compliance team.
                 </p>
                 
                 <p>
-                    Your %s profile has now been activated, and you may begin accessing the 
+                    Your %s profile has now been activated, and you may begin accessing the
                     TiaMeds Marketplace platform to onboard your products.
                 </p>
                 
                 <p><b>Below are your account details:</b></p>
                 
                 <p>
-                    Application ID: %s<br>
+                    Request ID: %s<br>
+                    Seller ID: <b>%s</b><br>
                     Registered Company Name: %s<br>
                     Registered Email ID: %s<br>
-                    Platform Access Link: 
-                    <a href="%s" style="color:#1a73e8; text-decoration:none;">Login to Platform</a>
+                    TiaMeds Marketplace Access Link:
+                    <a href="%s" style="color:#1a73e8; text-decoration:none;">Login to Platform</a><br>
+                    <b>%s</b>
                 </p>
                 
                 <p>
-                    <b>Admin Approval Comments:</b><br>
-                    %s
+                Please note that the Seller ID %s is your %s’s unique 
+                identification number on the TiaMeds Marketplace platform. This Seller ID will be used to 
+                identify your company across the TiaMeds Marketplace platform for all transactions. Kindly 
+                refer to and quote your Seller ID in all future correspondence with the TiaMeds Marketplace 
+                team.
                 </p>
                 
-                <p><b>Temporary Login Credentials:</b><br>
+                <p><b>Please find the below temporary login credentials:</b><br>
                     Username: %s<br>
                     Temporary Password: %s
                 </p>
@@ -277,7 +401,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 </p>
                 
                 <p>
-                    If you have any questions or require assistance, please contact our support team at 
+                    If you have any questions or require assistance, please contact our support team at
                     <a href="mailto:%s">%s</a>.
                 </p>
                 
@@ -294,72 +418,165 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 </body>
                 </html>
                 """.formatted(
-                tempSeller.getSellerName(),
-                tempSeller.getSellerName(),
-                tempSeller.getSellerName(),
+                approvedSeller.getSellerName(),
+                approvedSeller.getSellerName(),
+                approvedSeller.getSellerName(),
                 tempSeller.getTempSellerRequestId(),
-                tempSeller.getSellerName(),
-                tempSeller.getEmail(),
+                approvedSeller.getSellerId(),
+                approvedSeller.getSellerName(),
+                approvedSeller.getCoordinator().getEmail(),
                 LOGIN_URL,
                 comments,
+                approvedSeller.getSellerId(),
+                approvedSeller.getSellerName(),
                 username,
                 password,
                 SUPPORT_TIAMEDS_COM,
                 SUPPORT_TIAMEDS_COM
         );
 
-        // Send HTML Email
+        // 5️⃣ Send approval email with PDF agreement attached
         emailService.sendHtmlMailWithAttachment(
-                tempSeller.getEmail(),
+                tempSeller.getCoordinator().getEmail(),
                 "Seller Application Approved – Welcome to TiaMeds Marketplace",
                 body,
                 pdfPath,
                 "TiaMeds_Seller_Agreement.pdf"
         );
 
-        // Mark Temp Seller as Approved
+        // 6️⃣ Mark TempSeller as APPROVED
         tempSeller.setStatus("APPROVED");
         tempSellerRepo.save(tempSeller);
     }
 
-//    private void handleApproval(TempSeller tempSeller) {
-//
-//        // 1️⃣ Move to Main Seller Table
-//        Seller seller = mapToMainSeller(tempSeller);
-//        sellerRepo.save(seller);
-//
-//        // 2️⃣ Generate PDF
-//        String pdfPath = pdfService.generateSellerAgreementPdf(seller);
-//
-//        // 3️⃣ Create Login Credentials
-//        String username = userService.generateUsername(seller);
-//        String password = userService.generateRandomPassword();
-//        userService.createUserAccount(seller, username, password);
-//
-//        // 4️⃣ Send Reset Password Link
-//        String resetLink = userService.generateResetLink(seller);
-//
-//        // 5️⃣ Email
-//        emailService.sendMail(
-//                seller.getEmail(),
-//                "Seller Approved 🎉",
-//                "Your account is approved.\nUsername: " + username +
-//                        "\nReset Password: " + resetLink +
-//                        "\nAgreement PDF attached."
-//        );
-//
-//        // 6️⃣ Mark Temp Seller as Completed
-//        tempSeller.setStatus("APPROVED");
-//        tempSellerRepo.save(tempSeller);
-//    }
-//
-//    private Seller mapToMainSeller(TempSeller temp) {
-//        Seller seller = new Seller();
-//        seller.setName(temp.getName());
-//        seller.setEmail(temp.getEmail());
-//        seller.setPhone(temp.getPhone());
-//        seller.setAddress(temp.getAddress());
-//        return seller;
-//    }
+    /**
+     * Maps a TempSeller (and all its child entities) to the main Seller table.
+     * Generates a unique seller ID before saving.
+     */
+    private Seller mapAndPersistSeller(TempSeller temp) {
+        String sellerId = generateSellerId(temp);
+
+        Seller seller = new Seller();
+        seller.setSellerId(sellerId);
+        seller.setSellerName(temp.getSellerName());
+        seller.setPhone(temp.getPhone());
+        seller.setPhoneVerified(temp.isPhoneVerified());
+        seller.setEmail(temp.getEmail());
+        seller.setEmailVerified(temp.isEmailVerified());
+        seller.setWebsite(temp.getWebsite());
+        seller.setTermsAccepted(temp.isTermsAccepted());
+        seller.setCompanyType(temp.getCompanyType());
+        seller.setSellerType(temp.getSellerType());
+        seller.setProductTypes(temp.getProductTypes());
+        seller.setStatus("APPROVED");
+        seller.setCreatedBy("SYSTEM");
+        seller.setUpdatedBy("SYSTEM");
+
+        // Save seller first so child entities can reference it
+        Seller savedSeller = sellerRepo.save(seller);
+
+        // ── Address ──
+        if (temp.getAddress() != null) {
+            SellerAddress address = new SellerAddress();
+            address.setSeller(savedSeller);
+            address.setState(temp.getAddress().getState());
+            address.setDistrict(temp.getAddress().getDistrict());
+            address.setTaluka(temp.getAddress().getTaluka());
+            address.setCity(temp.getAddress().getCity());
+            address.setStreet(temp.getAddress().getStreet());
+            address.setBuildingNo(temp.getAddress().getBuildingNo());
+            address.setLandmark(temp.getAddress().getLandmark());
+            address.setPinCode(temp.getAddress().getPinCode());
+            address.setCreatedBy("SYSTEM");
+            address.setUpdatedBy("SYSTEM");
+            savedSeller.setAddress(address);
+        }
+
+        // ── Coordinator ──
+        if (temp.getCoordinator() != null) {
+            SellerCoordinator coordinator = new SellerCoordinator();
+            coordinator.setSeller(savedSeller);
+            coordinator.setName(temp.getCoordinator().getName());
+            coordinator.setDesignation(temp.getCoordinator().getDesignation());
+            coordinator.setEmail(temp.getCoordinator().getEmail());
+            coordinator.setEmailVerified(temp.getCoordinator().isEmailVerified());
+            coordinator.setMobile(temp.getCoordinator().getMobile());
+            coordinator.setPhoneVerified(temp.getCoordinator().isPhoneVerified());
+            coordinator.setCreatedBy("SYSTEM");
+            coordinator.setUpdatedBy("SYSTEM");
+            savedSeller.setCoordinator(coordinator);
+        }
+
+        // ── Bank Details ──
+        if (temp.getBankDetails() != null) {
+            SellerBankDetails bankDetails = new SellerBankDetails();
+            bankDetails.setSeller(savedSeller);
+            bankDetails.setBankName(temp.getBankDetails().getBankName());
+            bankDetails.setBranch(temp.getBankDetails().getBranch());
+            bankDetails.setIfscCode(temp.getBankDetails().getIfscCode());
+            bankDetails.setAccountNumber(temp.getBankDetails().getAccountNumber());
+            bankDetails.setAccountHolderName(temp.getBankDetails().getAccountHolderName());
+            bankDetails.setBankDocumentFileUrl(temp.getBankDetails().getBankDocumentFileUrl());
+            bankDetails.setBankDocumentVerified(temp.getBankDetails().isBankDocumentVerified());
+            bankDetails.setCreatedBy("SYSTEM");
+            bankDetails.setUpdatedBy("SYSTEM");
+            savedSeller.setBankDetails(bankDetails);
+        }
+
+        // ── GST ──
+        SellerGST gst = new SellerGST();
+        gst.setSeller(savedSeller);
+        gst.setGstNumber(temp.getGstNumber());
+        gst.setGstFileUrl(temp.getGstFileUrl());
+        gst.setGstVerified(temp.isGstVerified());
+        savedSeller.setSellerGST(gst);
+
+        // ── Documents ──
+        if (temp.getDocuments() != null && !temp.getDocuments().isEmpty()) {
+            for (TempSellerDocument tempDoc : temp.getDocuments()) {
+                SellerDocument doc = new SellerDocument();
+                doc.setSeller(savedSeller);
+                doc.setProductTypes(tempDoc.getProductTypes());
+                doc.setDocumentNumber(tempDoc.getDocumentNumber());
+                doc.setDocumentFileUrl(tempDoc.getDocumentFileUrl());
+                doc.setDocumentVerified(tempDoc.isDocumentVerified());
+                doc.setCreatedBy("SYSTEM");
+                doc.setUpdatedBy("SYSTEM");
+                savedSeller.getDocuments().add(doc);
+            }
+        }
+
+        // Final save to persist all cascaded children
+        return sellerRepo.save(savedSeller);
+    }
+
+    /**
+     * Generates a unique Seller ID in the format:
+     * [2 chars from seller name][3 chars from seller type abbreviation][4-digit global sequence]
+     * <p>
+     * Example: CIPLA + MFG → CI + MFG + 0001 = CIMFG0001
+     * <p>
+     * The 4-digit sequence is global (not per name/type) and always increments
+     * from the highest existing sequence number across all seller IDs.
+     */
+    private String generateSellerId(TempSeller tempSeller) {
+        String namePart = tempSeller.getSellerName()
+                .replaceAll("\\s+", "")
+                .toUpperCase();
+        namePart = namePart.length() >= 2 ? namePart.substring(0, 2) : namePart;
+
+        String typePart = tempSeller.getSellerType()
+                .getSellerTypeAbbreviation()
+                .replaceAll("\\s+", "")
+                .toUpperCase();
+        typePart = typePart.length() >= 3 ? typePart.substring(0, 3) : typePart;
+
+        // Find the current max sequence number across ALL seller IDs
+        Integer nextSequence = sellerRepo.findMaxSellerSequence() + 1;
+
+        String sequencePart = String.format("%04d", nextSequence);
+
+        return namePart + typePart + sequencePart;
+    }
 
 }

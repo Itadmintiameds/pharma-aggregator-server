@@ -49,6 +49,9 @@ public class SellerBankDetails {
     @Column(name = "bank_document_file_url", nullable = false)
     private String bankDocumentFileUrl;
 
+    @Column(name = "is_bank_document_verified", columnDefinition = "boolean default false")
+    private boolean isBankDocumentVerified = false;
+
     @Column(name = "created_by", length = 100)
     private String createdBy;
 
