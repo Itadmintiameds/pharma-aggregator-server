@@ -16,6 +16,7 @@ import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerRevie
 import com.example.pharmaaggregatorserver.service.EmailService;
 import com.example.pharmaaggregatorserver.service.PdfService;
 import com.example.pharmaaggregatorserver.service.admin.SellerApprovalService;
+import com.example.pharmaaggregatorserver.service.auth.UserCreationService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +39,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
     private final SellerRepository sellerRepo;
     private final EmailService emailService;
     private final PdfService pdfService;
-    //    private final UserService userService;
+    private final UserCreationService userCreationService;
     private final SellerTermsRepository sellerTermsRepository;
     private final TempSellerReviewHistoryRepository reviewHistoryRepository;
 
@@ -356,9 +357,18 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
 
         String pdfPath = pdfService.generateSellerAgreementPdf(sellerTerms);
 
-        // 3️⃣ Create Login Credentials (replace with secure generator in production)
-        String username = "test";
-        String password = "test@123";
+        // 3️⃣ Create User account with auto-generated secure password
+        String coordinatorEmail = tempSeller.getCoordinator().getEmail();
+        UserCreationService.UserCreationResult result =
+                userCreationService.createSellerUser(coordinatorEmail);
+
+        // username = coordinator email, plainTempPassword = to be emailed (never stored)
+        String username = coordinatorEmail;
+        String password = result.plainTempPassword();
+
+        // 4️⃣ Link the created user to the approved seller
+        approvedSeller.setUser(result.user());
+        sellerRepo.save(approvedSeller);
 
         // 4️⃣ Build HTML Email Body
         String body = """

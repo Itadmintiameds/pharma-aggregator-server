@@ -1,5 +1,6 @@
 package com.example.pharmaaggregatorserver.entity.seller;
 
+import com.example.pharmaaggregatorserver.entity.auth.User;
 import com.example.pharmaaggregatorserver.entity.master.CompanyTypeMaster;
 import com.example.pharmaaggregatorserver.entity.master.ProductTypeMaster;
 import com.example.pharmaaggregatorserver.entity.master.SellerTypeMaster;
@@ -84,6 +85,10 @@ public class Seller {
 
     @Column(name = "terms_accepted", nullable = false, columnDefinition = "boolean default false")
     private boolean termsAccepted = false;
+
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    private User user;
 
     @Column(name = "created_by", length = 100)
     private String createdBy;
