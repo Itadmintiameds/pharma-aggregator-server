@@ -72,6 +72,9 @@ public class TempSeller {
 //    @JoinColumn(name = "product_type_id", nullable = false)
 //    private ProductTypeMaster productTypes;
 
+    @OneToMany(mappedBy = "tempSeller", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<TempSellerReviewHistory> reviewHistories = new ArrayList<>();
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_type_id", nullable = false)
     private CompanyTypeMaster companyType;

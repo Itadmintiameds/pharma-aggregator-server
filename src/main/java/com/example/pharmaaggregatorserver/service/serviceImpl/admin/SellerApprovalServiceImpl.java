@@ -6,11 +6,13 @@ import com.example.pharmaaggregatorserver.entity.seller.*;
 import com.example.pharmaaggregatorserver.entity.temp.seller.SellerTerms;
 import com.example.pharmaaggregatorserver.entity.temp.seller.TempSeller;
 import com.example.pharmaaggregatorserver.entity.temp.seller.TempSellerDocument;
+import com.example.pharmaaggregatorserver.entity.temp.seller.TempSellerReviewHistory;
 import com.example.pharmaaggregatorserver.exception.ApplicationException;
 import com.example.pharmaaggregatorserver.exception.NotFoundException;
 import com.example.pharmaaggregatorserver.repository.seller.SellerRepository;
 import com.example.pharmaaggregatorserver.repository.temp.seller.SellerTermsRepository;
 import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerRepository;
+import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerReviewHistoryRepository;
 import com.example.pharmaaggregatorserver.service.EmailService;
 import com.example.pharmaaggregatorserver.service.PdfService;
 import com.example.pharmaaggregatorserver.service.admin.SellerApprovalService;
@@ -20,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,6 +40,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
     private final PdfService pdfService;
     //    private final UserService userService;
     private final SellerTermsRepository sellerTermsRepository;
+    private final TempSellerReviewHistoryRepository reviewHistoryRepository;
 
     /**
      * Processes admin review decision based on request status.
@@ -77,6 +81,8 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
         // Update seller status
         seller.setStatus("CORRECTION_REQUIRED");
         tempSellerRepo.save(seller);
+
+        saveReviewHistory(seller, "CORRECTION_REQUIRED", comments);
 
         // Correction URL
         String correctionUrl = "https://testdomain.com/seller/correction/" + seller.getTempSellerId();
@@ -158,6 +164,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
 
         seller.setStatus("REJECTED");
         tempSellerRepo.save(seller);
+        saveReviewHistory(seller, "REJECTED", comments);
 
         String body = """
                 <html>
@@ -342,6 +349,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
 
         // 1️⃣ Migrate data from temp → main seller table
         Seller approvedSeller = mapAndPersistSeller(tempSeller);
+        saveReviewHistory(tempSeller, "APPROVED", comments);
 
         // 2️⃣ Generate Seller Agreement PDF
         List<SellerTerms> sellerTerms = sellerTermsRepository.findAll(Sort.by(Sort.Direction.ASC, "id"));
@@ -576,12 +584,26 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 .toUpperCase();
         typePart = typePart.length() >= 3 ? typePart.substring(0, 3) : typePart;
 
+        // Acquire PostgreSQL advisory lock before reading max sequence to prevent
+        // duplicate seller IDs under concurrent admin approvals (multi-node safe)
+        sellerRepo.acquireSellerIdLock();
         // Find the current max sequence number across ALL seller IDs
         Integer nextSequence = sellerRepo.findMaxSellerSequence() + 1;
 
         String sequencePart = String.format("%04d", nextSequence);
 
         return namePart + typePart + sequencePart;
+    }
+
+    private void saveReviewHistory(TempSeller seller, String status, String comments) {
+        TempSellerReviewHistory history = TempSellerReviewHistory.builder()
+                .tempSeller(seller)
+                .status(status)
+                .comments(comments)
+                .reviewedBy("ADMIN") // replace with actual admin context later
+                .reviewedAt(LocalDateTime.now())
+                .build();
+        reviewHistoryRepository.save(history);
     }
 
 }

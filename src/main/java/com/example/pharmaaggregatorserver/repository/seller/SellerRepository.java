@@ -24,4 +24,14 @@ public interface SellerRepository extends JpaRepository<Seller, String> {
     Integer findMaxSellerSequence();
 
     Optional<Seller> findByEmail(String email);
+
+    /**
+     * Acquires a PostgreSQL transaction-scoped advisory lock using key 12345.
+     * This ensures only one transaction at a time can generate a seller ID,
+     * preventing duplicate sequence numbers under concurrent admin approvals.
+     * The lock is automatically released when the transaction commits or rolls back.
+     * Safe for multi-node deployments as the lock resides in PostgreSQL, not the JVM.
+     */
+    @Query(value = "SELECT pg_advisory_xact_lock(12345)", nativeQuery = true)
+    void acquireSellerIdLock();
 }
