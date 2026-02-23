@@ -1,6 +1,7 @@
 package com.example.pharmaaggregatorserver.service.serviceImpl.admin;
 
 import com.example.pharmaaggregatorserver.dto.seller.SellerApprovalRequestDTO;
+import com.example.pharmaaggregatorserver.entity.auth.User;
 import com.example.pharmaaggregatorserver.entity.master.ProductTypeMaster;
 import com.example.pharmaaggregatorserver.entity.seller.*;
 import com.example.pharmaaggregatorserver.entity.temp.seller.SellerTerms;
@@ -348,27 +349,20 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
      */
     private void handleApproval(TempSeller tempSeller, String comments) {
 
-        // 1️⃣ Migrate data from temp → main seller table
-        Seller approvedSeller = mapAndPersistSeller(tempSeller);
-        saveReviewHistory(tempSeller, "APPROVED", comments);
-
-        // 2️⃣ Generate Seller Agreement PDF
-        List<SellerTerms> sellerTerms = sellerTermsRepository.findAll(Sort.by(Sort.Direction.ASC, "id"));
-
-        String pdfPath = pdfService.generateSellerAgreementPdf(sellerTerms);
-
-        // 3️⃣ Create User account with auto-generated secure password
+        // 1️⃣ Create User FIRST
         String coordinatorEmail = tempSeller.getCoordinator().getEmail();
         UserCreationService.UserCreationResult result =
                 userCreationService.createSellerUser(coordinatorEmail);
-
-        // username = coordinator email, plainTempPassword = to be emailed (never stored)
         String username = coordinatorEmail;
         String password = result.plainTempPassword();
 
-        // 4️⃣ Link the created user to the approved seller
-        approvedSeller.setUser(result.user());
-        sellerRepo.save(approvedSeller);
+        // 2️⃣ Migrate data from temp → main seller table (pass user)
+        Seller approvedSeller = mapAndPersistSeller(tempSeller, result.user());
+        saveReviewHistory(tempSeller, "APPROVED", comments);
+
+        // 3️⃣ Generate Seller Agreement PDF
+        List<SellerTerms> sellerTerms = sellerTermsRepository.findAll(Sort.by(Sort.Direction.ASC, "id"));
+        String pdfPath = pdfService.generateSellerAgreementPdf(sellerTerms);
 
         // 4️⃣ Build HTML Email Body
         String body = """
@@ -400,7 +394,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 </p>
                 
                 <p>
-                Please note that the Seller ID %s is your %s’s unique 
+                Please note that the Seller ID %s is your %s's unique 
                 identification number on the TiaMeds Marketplace platform. This Seller ID will be used to 
                 identify your company across the TiaMeds Marketplace platform for all transactions. Kindly 
                 refer to and quote your Seller ID in all future correspondence with the TiaMeds Marketplace 
@@ -473,7 +467,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
      * Maps a TempSeller (and all its child entities) to the main Seller table.
      * Generates a unique seller ID before saving.
      */
-    private Seller mapAndPersistSeller(TempSeller temp) {
+    private Seller mapAndPersistSeller(TempSeller temp, User user) {
         String sellerId = generateSellerId(temp);
 
         // ✅ Force load lazy collections before session closes
@@ -481,6 +475,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
 
         Seller seller = new Seller();
         seller.setSellerId(sellerId);
+        seller.setUser(user);
         seller.setSellerName(temp.getSellerName());
         seller.setPhone(temp.getPhone());
         seller.setPhoneVerified(temp.isPhoneVerified());
