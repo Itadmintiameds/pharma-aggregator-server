@@ -34,4 +34,6 @@ public interface SellerRepository extends JpaRepository<Seller, String> {
      */
     @Query(value = "SELECT pg_advisory_xact_lock(12345)", nativeQuery = true)
     void acquireSellerIdLock();
+
+    Optional<Seller> findByUser_Username(String username);
 }

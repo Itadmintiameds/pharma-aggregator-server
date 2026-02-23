@@ -15,4 +15,6 @@ public interface SellerService {
     void deleteBySellerId(String sellerId);
 
     SellerDTO updateSeller(String sellerId, SellerDTO sellerDTO);
+
+    void resetPassword(String username, String currentPassword, String newPassword);
 }

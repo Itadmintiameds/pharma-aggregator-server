@@ -13,6 +13,7 @@ import com.example.pharmaaggregatorserver.repository.seller.SellerRepository;
 import com.example.pharmaaggregatorserver.service.seller.SellerService;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -30,6 +31,7 @@ public class SellerServiceImpl implements SellerService {
     private final StateMasterRepository stateMasterRepository;
     private final DistrictMasterRepository districtMasterRepository;
     private final TalukaMasterRepository talukaMasterRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public List<SellerDTO> findAll() {
@@ -325,5 +327,18 @@ public class SellerServiceImpl implements SellerService {
         // Save updated seller (cascade will handle child entities)
         Seller updatedSeller = sellerRepository.save(seller);
         return SellerMapper.toDto(updatedSeller);
+    }
+
+    @Override
+    public void resetPassword(String username, String currentPassword, String newPassword) {
+        Seller seller = sellerRepository.findByUser_Username(username)
+                .orElseThrow(() -> new NotFoundException("Seller not found"));
+        boolean isMatch = passwordEncoder.matches(currentPassword, seller.getUser().getPasswordHash());
+        if (!isMatch) {
+            throw new RuntimeException("Password not-matched");
+        }
+        String newPasswordHash = passwordEncoder.encode(newPassword);
+        seller.getUser().setPasswordHash(newPasswordHash);
+        sellerRepository.save(seller);
     }
 }
