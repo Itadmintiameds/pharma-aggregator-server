@@ -1,5 +1,6 @@
 package com.example.pharmaaggregatorserver.entity.temp.seller;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -25,6 +26,7 @@ public class TempSellerReviewHistory {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "temp_seller_id", nullable = false)
+    @JsonIgnore
     private TempSeller tempSeller;
 
     @Column(nullable = false, length = 100)
