@@ -50,4 +50,6 @@ public class SellerDTO {
     private String status; // Approved, Correction_required, Rejected
 
     private boolean termsAccepted;
+
+    private boolean isPasswordTemporary;
 }

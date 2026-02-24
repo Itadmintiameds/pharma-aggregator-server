@@ -39,6 +39,7 @@ public class SellerMapper {
                 .website(seller.getWebsite())
                 .status(seller.getStatus())
                 .termsAccepted(seller.isTermsAccepted())
+                .isPasswordTemporary(seller.getUser().isPasswordTemporary())
                 .build();
     }
 }

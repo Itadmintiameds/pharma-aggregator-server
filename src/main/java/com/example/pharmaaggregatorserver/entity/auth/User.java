@@ -19,9 +19,9 @@ import java.util.Set;
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
-    private String userId;
+    private Long userId;
 
     // coordinator email from TempSellerCoordinator
     @Column(name = "username", unique = true, nullable = false, length = 100)
