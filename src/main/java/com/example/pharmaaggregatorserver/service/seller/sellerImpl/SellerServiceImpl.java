@@ -339,6 +339,7 @@ public class SellerServiceImpl implements SellerService {
         }
         String newPasswordHash = passwordEncoder.encode(newPassword);
         seller.getUser().setPasswordHash(newPasswordHash);
+        seller.getUser().setPasswordTemporary(false);
         sellerRepository.save(seller);
     }
 }
