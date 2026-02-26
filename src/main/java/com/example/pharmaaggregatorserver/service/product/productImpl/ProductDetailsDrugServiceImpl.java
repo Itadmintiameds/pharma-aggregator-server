@@ -107,7 +107,7 @@ public class ProductDetailsDrugServiceImpl implements ProductDetailsDrugService 
 
     @Override
     @Transactional(readOnly = true)
-    public ProductDetailsDrugDto getProductById(Long productId) {
+    public ProductDetailsDrugDto getProductById(String productId) {
 
         ProductDetailsDrug product = productRepository.findById(productId)
                 .orElseThrow(() ->
@@ -118,7 +118,7 @@ public class ProductDetailsDrugServiceImpl implements ProductDetailsDrugService 
     }
 
     @Override
-    public void deleteProduct(Long productId) {
+    public void deleteProduct(String productId) {
 
         ProductDetailsDrug product = productRepository.findById(productId)
                 .orElseThrow(() ->
@@ -130,7 +130,7 @@ public class ProductDetailsDrugServiceImpl implements ProductDetailsDrugService 
 
     @Override
     public ProductDetailsDrug updateProduct(
-            Long productId,
+            String productId,
             ProductDetailsDrugDto dto
     ) {
 
@@ -165,21 +165,59 @@ public class ProductDetailsDrugServiceImpl implements ProductDetailsDrugService 
         }
 
         // Adding new pricing row
+//        if (dto.getPricingDetails() != null) {
+//            for (PricingDetailsDrugDto priceDto : dto.getPricingDetails()) {
+//
+//                if (priceDto.getPricingId() != null) continue;
+//
+//                PricingDetailsDrug pricing =
+//                        ProductDetailsDrugMapper.toPricingEntity(priceDto);
+//
+//                pricing.setPricingId(null);
+//                pricing.setProduct(existingProduct);
+//
+//                pricingRepository.save(pricing);
+//            }
+//        }
+
+        // Pricing fields updation / insertion
         if (dto.getPricingDetails() != null) {
+
             for (PricingDetailsDrugDto priceDto : dto.getPricingDetails()) {
 
-                if (priceDto.getPricingId() != null) continue;
+                // 🔹 UPDATE existing pricing
+                if (priceDto.getPricingId() != null) {
 
-                PricingDetailsDrug pricing =
-                        ProductDetailsDrugMapper.toPricingEntity(priceDto);
+                    PricingDetailsDrug existingPricing =
+                            pricingRepository.findById(priceDto.getPricingId())
+                                    .orElseThrow(() ->
+                                            new RuntimeException("Pricing not found"));
 
-                pricing.setPricingId(null);
-                pricing.setProduct(existingProduct);
+                    existingPricing.setBatchLotNumber(priceDto.getBatchLotNumber());
+                    existingPricing.setManufacturerName(priceDto.getManufacturerName());
+                    existingPricing.setManufacturingDate(priceDto.getManufacturingDate());
+                    existingPricing.setExpiryDate(priceDto.getExpiryDate());
+                    existingPricing.setStorageCondition(priceDto.getStorageCondition());
+                    existingPricing.setStockQuantity(priceDto.getStockQuantity());
+                    existingPricing.setPricePerUnit(priceDto.getPricePerUnit());
+                    existingPricing.setMrp(priceDto.getMrp());
+                    existingPricing.setDiscountPercentage(priceDto.getDiscountPercentage());
+                    existingPricing.setGstPercentage(priceDto.getGstPercentage());
+                    existingPricing.setHsnCode(priceDto.getHsnCode());
 
-                pricingRepository.save(pricing);
+                    pricingRepository.save(existingPricing);
+                }
+
+                // 🔹 CREATE new pricing
+                else {
+                    PricingDetailsDrug pricing =
+                            ProductDetailsDrugMapper.toPricingEntity(priceDto);
+
+                    pricing.setProduct(existingProduct);
+                    pricingRepository.save(pricing);
+                }
             }
         }
-
         return productRepository.save(existingProduct);
     }
 
