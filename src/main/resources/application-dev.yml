@@ -41,6 +41,12 @@ twilio:
   verify:
     service-sid: ${SERVICE_SID:dummy_service}
 
+server:
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-exception: true
+    include-stacktrace: always
 
 
 springdoc:
@@ -53,3 +59,13 @@ logging:
   level:
     org.springframework.mail: DEBUG
     jakarta.mail: DEBUG
+
+    org.springframework.web: DEBUG
+
+    org.springframework.security: DEBUG
+
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql: TRACE
+    org.hibernate.engine.transaction.internal.TransactionImpl: DEBUG
+
+    com.fasterxml.jackson.databind: DEBUG

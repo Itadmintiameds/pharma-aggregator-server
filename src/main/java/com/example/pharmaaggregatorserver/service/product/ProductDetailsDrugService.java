@@ -12,12 +12,12 @@ public interface ProductDetailsDrugService {
 
     List<ProductDetailsDrugDto> getAllProducts();
 
-    ProductDetailsDrugDto getProductById(Long productId);
+    ProductDetailsDrugDto getProductById(String productId);
 
-    void deleteProduct(Long productId);
+    void deleteProduct(String productId);
 
     ProductDetailsDrug updateProduct(
-            Long productId,
+            String productId,
             ProductDetailsDrugDto dto
     );
 

@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface ProductDetailsDrugRepository extends JpaRepository<ProductDetailsDrug, Long> {
+public interface ProductDetailsDrugRepository extends JpaRepository<ProductDetailsDrug, String> {
 
     @Query(value = """
     SELECT MAX(CAST(SUBSTRING(product_id, LENGTH(product_id) - 4, 5) AS INTEGER))

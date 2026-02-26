@@ -42,7 +42,7 @@ public class ProductDetailsDrugController {
 
     @GetMapping("/getById/{productId}")
     public ResponseEntity<ProductDetailsDrugDto> getProductById(
-            @PathVariable Long productId) {
+            @PathVariable String productId) {
 
         return ResponseEntity.ok(
                 productDetailsDrugService.getProductById(productId)
@@ -52,7 +52,7 @@ public class ProductDetailsDrugController {
 
     @DeleteMapping("/delete/{productId}")
     public ResponseEntity<Map<String, String>> deleteProduct(
-            @PathVariable Long productId) {
+            @PathVariable String productId) {
 
         productDetailsDrugService.deleteProduct(productId);
 
@@ -66,7 +66,7 @@ public class ProductDetailsDrugController {
 
     @PutMapping("/update/{productId}")
     public ResponseEntity<ProductDetailsDrugDto> updateProduct(
-            @PathVariable Long productId,
+            @PathVariable String productId,
             @RequestBody ProductDetailsDrugDto dto
     ) {
         ProductDetailsDrug updated =
