@@ -18,6 +18,8 @@ public class PricingDetailsDrugDto {
     private Long mrp;
     private Long discountPercentage;
     private Long gstPercentage;
+    private Long additionalDiscount;
+    private Long finalPrice;
     private Long hsnCode;
     private Long createdBy;
     private Long modifiedBy;
