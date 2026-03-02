@@ -50,6 +50,12 @@ public class PricingDetailsDrug {
     @Column(name = "gst_percentage")
     private Long gstPercentage;
 
+    @Column(name = "additional_discount")
+    private Long additionalDiscount;
+
+    @Column(name = "final_price")
+    private Long finalPrice;
+
     @Column(name = "hsn_code")
     private Long hsnCode;
 
