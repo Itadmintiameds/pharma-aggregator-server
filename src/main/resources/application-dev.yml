@@ -1,6 +1,12 @@
 server:
   servlet:
     context-path: /api/v1
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-exception: true
+    include-stacktrace: always
+
 
 spring:
   datasource:
@@ -8,7 +14,7 @@ spring:
     # DB_HOST=localhost when running locally; set DB_HOST=postgres-dev when using docker-compose
     url: jdbc:postgresql://host.docker.internal:5432/pharma-aggregator?charSet=UTF8
     username: postgres
-    password: root
+    password: Tiamed!!
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -47,12 +53,12 @@ twilio:
   verify:
     service-sid: ${SERVICE_SID:dummy_service}
 
-server:
-  error:
-    include-message: always
-    include-binding-errors: always
-    include-exception: true
-    include-stacktrace: always
+#server:
+#  error:
+#    include-message: always
+#    include-binding-errors: always
+#    include-exception: true
+#    include-stacktrace: always
 
 
 springdoc:
