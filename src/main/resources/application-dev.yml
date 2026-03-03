@@ -10,7 +10,7 @@ server:
 app:
   frontend-url: http://localhost:3000
   #reset-token-expiration-hours: 1
-  reset-token-expiration-minutes: 5
+  reset-token-expiration-minutes: 30
 
 spring:
   datasource:
