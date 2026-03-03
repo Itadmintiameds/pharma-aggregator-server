@@ -8,6 +8,9 @@ server:
     include-exception: true
     include-stacktrace: always
 
+app:
+  frontend-url: http://localhost:3000
+  reset-token-expiration-minutes: 5
 
 spring:
   datasource:
