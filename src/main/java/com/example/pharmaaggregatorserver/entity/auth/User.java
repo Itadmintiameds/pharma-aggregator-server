@@ -47,6 +47,13 @@ public class User {
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 
+    // NEW: Password reset fields
+    @Column(name = "reset_password_token", length = 255)
+    private String resetPasswordToken;
+
+    @Column(name = "reset_password_expires")
+    private LocalDateTime resetPasswordExpires;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "tbl_user_roles",

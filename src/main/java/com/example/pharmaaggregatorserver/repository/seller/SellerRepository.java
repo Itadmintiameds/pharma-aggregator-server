@@ -4,6 +4,7 @@ import com.example.pharmaaggregatorserver.entity.seller.Seller;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface SellerRepository extends JpaRepository<Seller, String> {
@@ -36,4 +37,16 @@ public interface SellerRepository extends JpaRepository<Seller, String> {
     void acquireSellerIdLock();
 
     Optional<Seller> findByUser_Username(String username);
+
+    //Get All Active Seller
+    @Query("SELECT DISTINCT s FROM Seller s " +
+            "LEFT JOIN FETCH s.address " +
+            "LEFT JOIN FETCH s.coordinator " +
+            "LEFT JOIN FETCH s.bankDetails " +
+            "LEFT JOIN FETCH s.sellerGST " +
+            "LEFT JOIN FETCH s.companyType " +
+            "LEFT JOIN FETCH s.sellerType " +
+            "LEFT JOIN FETCH s.user " +
+            "WHERE s.isActive = true")
+    List<Seller> findAllActiveSellers();
 }

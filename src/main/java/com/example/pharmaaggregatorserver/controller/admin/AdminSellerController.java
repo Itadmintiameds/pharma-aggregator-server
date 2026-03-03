@@ -18,9 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminSellerController {
 
     private final SellerApprovalService approvalService;
-
     // ================= ADMIN SELLER REVIEW CONTROLLER =================
-
     /**
      * Handles admin review actions for temporary seller registrations.
      * Admin can ACCEPT, REJECT, or request CORRECTION.
