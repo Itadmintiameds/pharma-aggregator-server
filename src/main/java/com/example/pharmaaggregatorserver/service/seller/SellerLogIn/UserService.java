@@ -1,0 +1,162 @@
+package com.example.pharmaaggregatorserver.service.seller.SellerLogIn;
+
+// UserService.java
+import com.example.pharmaaggregatorserver.entity.auth.User;
+import com.example.pharmaaggregatorserver.exception.BadRequestException;
+import com.example.pharmaaggregatorserver.exception.ResourceNotFoundException;
+import com.example.pharmaaggregatorserver.exception.UnauthorizedException;
+import com.example.pharmaaggregatorserver.repository.seller.SellerLogIn.SellerUserRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.util.Base64;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class UserService {
+
+    private final SellerUserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final PasswordResetEmailService passwordResetEmailService;
+
+    @Value("${app.reset-token-expiration-hours:1}")
+    private int tokenExpirationHours;
+
+    // Your existing reset password method
+    @Transactional
+    public void resetPassword(String username, String currentPassword, String newPassword) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+
+        // Verify current password
+        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            // Increment failed login attempts
+            user.setFailedLoginAttempts(user.getFailedLoginAttempts() + 1);
+
+            // Lock account if too many failed attempts
+            if (user.getFailedLoginAttempts() >= 5) {
+                user.setAccountLocked(true);
+            }
+
+            userRepository.save(user);
+            throw new UnauthorizedException("Current password is incorrect");
+        }
+
+        // Reset failed login attempts on successful password change
+        user.setFailedLoginAttempts(0);
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setPasswordTemporary(false);
+        userRepository.save(user);
+
+        log.info("Password reset successfully for user: {}", username);
+    }
+
+    // Forgot password - generate and send reset token
+    @Transactional
+    public void forgotPassword(String email) {
+        // Find user by email (username field contains email)
+        User user = userRepository.findByUsername(email).orElse(null);
+
+        // Always return success (security best practice - prevent email enumeration)
+        if (user == null) {
+            log.info("Password reset requested for non-existent email: {}", email);
+            return;
+        }
+
+        // Check if account is locked
+        if (user.isAccountLocked()) {
+            log.warn("Password reset requested for locked account: {}", email);
+            throw new BadRequestException("Account is locked. Please contact support.");
+        }
+
+        // Check if user is active
+        if (!user.isActive()) {
+            log.warn("Password reset requested for inactive account: {}", email);
+            throw new BadRequestException("Account is inactive. Please contact support.");
+        }
+
+        // Generate secure token
+        String token = generateSecureToken();
+        LocalDateTime expiry = LocalDateTime.now().plusHours(tokenExpirationHours);
+
+        // Save token to database
+        user.setResetPasswordToken(token);
+        user.setResetPasswordExpires(expiry);
+        userRepository.save(user);
+
+        // Send email with reset link
+        try {
+            passwordResetEmailService.sendPasswordResetEmail(user.getUsername(), token);
+            log.info("Password reset token generated and email sent for user: {}", email);
+        } catch (Exception e) {
+            log.error("Failed to send password reset email", e);
+            // Clear token if email fails
+            user.setResetPasswordToken(null);
+            user.setResetPasswordExpires(null);
+            userRepository.save(user);
+            throw new RuntimeException("Failed to send password reset email. Please try again.");
+        }
+    }
+
+    // Validate reset token
+    public boolean validateResetToken(String token) {
+        LocalDateTime now = LocalDateTime.now();
+        return userRepository.findByValidResetToken(token, now).isPresent();
+    }
+
+    // Reset password with token
+    @Transactional
+    public void resetPasswordWithToken(String token, String newPassword) {
+        LocalDateTime now = LocalDateTime.now();
+        User user = userRepository.findByValidResetToken(token, now)
+                .orElseThrow(() -> new BadRequestException("Invalid or expired reset token"));
+
+        // Check if account is locked
+        if (user.isAccountLocked()) {
+            throw new BadRequestException("Account is locked. Please contact support.");
+        }
+
+        // Check if user is active
+        if (!user.isActive()) {
+            throw new BadRequestException("Account is inactive. Please contact support.");
+        }
+
+        // Update password
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+
+        // Clear reset token fields
+        user.setResetPasswordToken(null);
+        user.setResetPasswordExpires(null);
+
+        // Reset failed login attempts
+        user.setFailedLoginAttempts(0);
+
+        // Set password as not temporary
+        user.setPasswordTemporary(false);
+
+        userRepository.save(user);
+
+        log.info("Password reset successfully with token for user: {}", user.getUsername());
+    }
+
+    // Helper method to generate secure token
+    private String generateSecureToken() {
+        SecureRandom secureRandom = new SecureRandom();
+        byte[] tokenBytes = new byte[32];
+        secureRandom.nextBytes(tokenBytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes);
+    }
+
+    // Get user by username
+    public User getUserByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+    }
+}
