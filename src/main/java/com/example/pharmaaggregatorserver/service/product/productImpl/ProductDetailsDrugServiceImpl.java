@@ -1,9 +1,6 @@
 package com.example.pharmaaggregatorserver.service.product.productImpl;
 
-import com.example.pharmaaggregatorserver.dto.product.CreateProductRequestDto;
-import com.example.pharmaaggregatorserver.dto.product.PackagingDetailsDrugDto;
-import com.example.pharmaaggregatorserver.dto.product.PricingDetailsDrugDto;
-import com.example.pharmaaggregatorserver.dto.product.ProductDetailsDrugDto;
+import com.example.pharmaaggregatorserver.dto.product.*;
 import com.example.pharmaaggregatorserver.entity.product.Molecule;
 import com.example.pharmaaggregatorserver.entity.product.PackagingDetailsDrug;
 import com.example.pharmaaggregatorserver.entity.product.PricingDetailsDrug;
@@ -92,7 +89,6 @@ public class ProductDetailsDrugServiceImpl implements ProductDetailsDrugService 
 
         return ProductDetailsDrugMapper.toDto(saved);
     }
-
 
 
     @Override
@@ -270,4 +266,9 @@ public class ProductDetailsDrugServiceImpl implements ProductDetailsDrugService 
     }
 
 
+    @Override
+    public List<TherapeuticSubcategoryDto> getSubcategories(String categoryId) {
+        return productRepository.findByCategoryId(categoryId);
+
+    }
 }
