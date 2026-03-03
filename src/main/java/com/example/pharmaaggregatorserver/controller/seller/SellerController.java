@@ -20,4 +20,6 @@ public class SellerController {
         sellerService.resetPassword(dto.getUsername(), dto.getCurrentPassword(),  dto.getNewPassword());
         return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Password Changed", null));
     }
+
+
 }
