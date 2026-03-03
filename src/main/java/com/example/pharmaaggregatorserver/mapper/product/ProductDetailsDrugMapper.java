@@ -171,7 +171,7 @@ public class ProductDetailsDrugMapper {
         dto.setMrp(entity.getMrp());
         dto.setDiscountPercentage(entity.getDiscountPercentage());
         dto.setGstPercentage(entity.getGstPercentage());
-        dto.setAdditionalDiscount(entity.getAdditionalDiscount());
+        dto.setMinimumPurchaseQuantity(entity.getMinimumPurchaseQuantity());
         dto.setFinalPrice(entity.getFinalPrice());
         dto.setHsnCode(entity.getHsnCode());
         dto.setCreatedBy(entity.getCreatedBy());
@@ -195,7 +195,7 @@ public class ProductDetailsDrugMapper {
         entity.setMrp(dto.getMrp());
         entity.setDiscountPercentage(dto.getDiscountPercentage());
         entity.setGstPercentage(dto.getGstPercentage());
-        entity.setAdditionalDiscount(dto.getAdditionalDiscount());
+        entity.setMinimumPurchaseQuantity(dto.getMinimumPurchaseQuantity());
         entity.setFinalPrice(dto.getFinalPrice());
         entity.setHsnCode(dto.getHsnCode());
         entity.setCreatedBy(dto.getCreatedBy());
