@@ -1,7 +1,6 @@
 server:
   servlet:
     context-path: /api/v1
-
   error:
     include-message: always
     include-binding-errors: always
@@ -10,13 +9,16 @@ server:
 
 app:
   frontend-url: http://localhost:3000
-  reset-token-expiration-minutes: 5
+  reset-token-expiration-hours: 1
+
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/pharma-aggregator
+
+    # DB_HOST=localhost when running locally; set DB_HOST=postgres-dev when using docker-compose
+    url: jdbc:postgresql://host.docker.internal:5432/pharma-aggregator?charSet=UTF8
     username: postgres
-    password: root
+    password: Tiamed!!
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -30,8 +32,8 @@ spring:
   mail:   # Email configuration
     host: smtp.gmail.com
     port: 587
-    username: basavarajunn@tiameds.ai
-    password: ovfx kzmu ikhg rily
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
@@ -54,6 +56,14 @@ twilio:
   auth-token: ${AUTH_TOKEN:dummy_token}
   verify:
     service-sid: ${SERVICE_SID:dummy_service}
+
+#server:
+#  error:
+#    include-message: always
+#    include-binding-errors: always
+#    include-exception: true
+#    include-stacktrace: always
+
 
 springdoc:
   swagger-ui:
