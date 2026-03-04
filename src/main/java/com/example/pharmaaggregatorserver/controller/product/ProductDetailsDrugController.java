@@ -2,6 +2,7 @@ package com.example.pharmaaggregatorserver.controller.product;
 
 import com.example.pharmaaggregatorserver.dto.product.CreateProductRequestDto;
 import com.example.pharmaaggregatorserver.dto.product.ProductDetailsDrugDto;
+import com.example.pharmaaggregatorserver.dto.product.TherapeuticSubcategoryDto;
 import com.example.pharmaaggregatorserver.entity.product.ProductDetailsDrug;
 import com.example.pharmaaggregatorserver.mapper.product.ProductDetailsDrugMapper;
 import com.example.pharmaaggregatorserver.service.product.ProductDetailsDrugService;
@@ -15,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/products")
+@RequestMapping("/products")
 @RequiredArgsConstructor
 public class ProductDetailsDrugController {
 
@@ -75,5 +76,13 @@ public class ProductDetailsDrugController {
         return ResponseEntity.ok(ProductDetailsDrugMapper.toDto(updated));
     }
 
+
+    @GetMapping("/subcategories/{categoryId}")
+    public ResponseEntity<List<TherapeuticSubcategoryDto>>
+    getSubcategories(@PathVariable String categoryId) {
+        return ResponseEntity.ok(
+                productDetailsDrugService.getSubcategories(categoryId)
+        );
+    }
 
 }
