@@ -1,6 +1,7 @@
 server:
   servlet:
     context-path: /api/v1
+
   error:
     include-message: always
     include-binding-errors: always
@@ -9,16 +10,13 @@ server:
 
 app:
   frontend-url: http://localhost:3000
-  reset-token-expiration-hours: 1
-
+  reset-token-expiration-minutes: 5
 
 spring:
   datasource:
-
-    # DB_HOST=localhost when running locally; set DB_HOST=postgres-dev when using docker-compose
-    url: jdbc:postgresql://host.docker.internal:5432/pharma-aggregator?charSet=UTF8
+    url: jdbc:postgresql://localhost:5432/pharma-aggregator
     username: postgres
-    password: Tiamed!!
+    password: root
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -57,14 +55,6 @@ twilio:
   verify:
     service-sid: ${SERVICE_SID:dummy_service}
 
-#server:
-#  error:
-#    include-message: always
-#    include-binding-errors: always
-#    include-exception: true
-#    include-stacktrace: always
-
-
 springdoc:
   swagger-ui:
     enabled: true
@@ -85,5 +75,3 @@ logging:
     org.hibernate.engine.transaction.internal.TransactionImpl: DEBUG
 
     com.fasterxml.jackson.databind: DEBUG
-
-
