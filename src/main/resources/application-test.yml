@@ -2,6 +2,10 @@ server:
   servlet:
     context-path: /api/v1
 
+app:
+  frontend-url: https://pharma-aggregator-test.tiameds.ai
+  reset-token-expiration-hours: 1
+
 spring:
   datasource:
 
@@ -42,5 +46,4 @@ springdoc:
   swagger-ui:
     enabled: true
     try-it-out-enabled: true
-
 
