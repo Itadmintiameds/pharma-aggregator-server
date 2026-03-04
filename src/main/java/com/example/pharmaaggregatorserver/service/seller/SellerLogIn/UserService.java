@@ -35,29 +35,45 @@ public class UserService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
 
-        // Verify current password
-        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
-            // Increment failed login attempts
-            user.setFailedLoginAttempts(user.getFailedLoginAttempts() + 1);
+        // Check if this is a first-time login
+        boolean isFirstTimeLogin = user.isPasswordTemporary() || user.getLastLoginAt() == null;
 
-            // Lock account if too many failed attempts
-            if (user.getFailedLoginAttempts() >= 5) {
-                user.setAccountLocked(true);
-            }
+        log.debug("Password reset attempt for user: {}, isFirstTimeLogin: {}", username, isFirstTimeLogin);
 
-            userRepository.save(user);
-            throw new UnauthorizedException("Current password is incorrect");
+        // ONLY allow first-time users to reset password through this method
+        if (!isFirstTimeLogin) {
+            // This is not a first-time login - user has already reset password before
+            throw new BadRequestException("You have already set your password. Please use the regular password reset option or contact support if you forgot your password.");
         }
 
-        // Reset failed login attempts on successful password change
+        // For first-time login, we don't need to verify current password
+        log.info("First-time password reset for user: {}", username);
+
+        // Check if account is locked
+        if (user.isAccountLocked()) {
+            throw new BadRequestException("Account is locked. Please contact support.");
+        }
+
+        // Check if user is active
+        if (!user.isActive()) {
+            throw new BadRequestException("Account is inactive. Please contact support.");
+        }
+
+        // Validate new password (add your password policy here)
+        if (newPassword == null || newPassword.length() < 8) {
+            throw new BadRequestException("Password must be at least 8 characters long");
+        }
+
+        // Reset password
         user.setFailedLoginAttempts(0);
         user.setPasswordHash(passwordEncoder.encode(newPassword));
-        user.setPasswordTemporary(false);
+        user.setPasswordTemporary(false); // Clear temporary password flag
+        user.setLastLoginAt(LocalDateTime.now()); // Update last login time
+        //user.setPasswordChangedAt(LocalDateTime.now());
         userRepository.save(user);
 
-        log.info("Password reset successfully for user: {}", username);
+        log.info("First-time password reset successful for user: {}", username);
     }
-
     // Forgot password - generate and send reset token
     @Transactional
     public void forgotPassword(String email) {

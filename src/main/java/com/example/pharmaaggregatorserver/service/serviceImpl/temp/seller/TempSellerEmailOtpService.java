@@ -48,28 +48,8 @@ public class TempSellerEmailOtpService {
                 .message("OTP sent successfully")
                 .build();
     }
-    // ================== SEND OTP ==================
-    public OtpResponseDTO sendOtpExistedemail(EmailOtpSendRequestDTO request) {
-        String otp = String.valueOf(
-                100000 + new Random().nextInt(900000)
-        );
 
-        TempSellerEmailOtp emailOtp = TempSellerEmailOtp.builder()
-                .email(request.getEmail())
-                .otp(otp)
-                .expiryTime(LocalDateTime.now().plusMinutes(5))
-                .verified(false)
-                .build();
 
-        otpRepository.save(emailOtp);
-
-        emailService.sendCoordinatorOtp(request.getEmail(), otp);
-
-        return OtpResponseDTO.builder()
-                .status("SUCCESS")
-                .message("OTP sent successfully")
-                .build();
-    }
 
 
     // ================== SEND OTP ==================
