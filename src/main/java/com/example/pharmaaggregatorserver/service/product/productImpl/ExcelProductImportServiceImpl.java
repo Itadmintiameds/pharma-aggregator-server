@@ -2,10 +2,12 @@ package com.example.pharmaaggregatorserver.service.product.productImpl;
 
 import com.example.pharmaaggregatorserver.dto.product.ExcelImportResultDto;
 import com.example.pharmaaggregatorserver.dto.product.ExcelImportResultDto.RowErrorDto;
+import com.example.pharmaaggregatorserver.entity.master.ProductTypeMaster;
 import com.example.pharmaaggregatorserver.entity.product.Molecule;
 import com.example.pharmaaggregatorserver.entity.product.PackagingDetailsDrug;
 import com.example.pharmaaggregatorserver.entity.product.PricingDetailsDrug;
 import com.example.pharmaaggregatorserver.entity.product.ProductDetailsDrug;
+import com.example.pharmaaggregatorserver.repository.master.ProductTypeMasterRepository;
 import com.example.pharmaaggregatorserver.repository.product.MoleculeRepository;
 import com.example.pharmaaggregatorserver.repository.product.PackagingDetailsDrugRepository;
 import com.example.pharmaaggregatorserver.repository.product.PricingDetailsDrugRepository;
@@ -21,24 +23,22 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Parses the "Drugs" sheet of the product upload template.
- *
+ * <p>
  * Column layout (0-indexed, matching template v0.1.1):
- *  0  Therapeutic Category
- *  1  Therapeutic Sub Category
- *  2  Product Name              ← row key / mandatory
- *  3  Molecule (comma-separated names)
- *  4  Mechanism of Action (comma-separated, informational – stored on Molecule)
- *  5  Primary Use
- *  6  Dosage Form
- *  7  Strength / Net Quantity
- *  8  Warnings / Precautions
- *  9  Product Description
+ * 0  Therapeutic Category
+ * 1  Therapeutic Sub Category
+ * 2  Product Name              ← row key / mandatory
+ * 3  Molecule (comma-separated names)
+ * 4  Mechanism of Action (comma-separated, informational – stored on Molecule)
+ * 5  Primary Use
+ * 6  Dosage Form
+ * 7  Strength / Net Quantity
+ * 8  Warnings / Precautions
+ * 9  Product Description
  * 10  Product Image URL
  * 11  Product Marketing URL
  * 12  Packaging Unit
@@ -67,40 +67,41 @@ import java.util.stream.Collectors;
 public class ExcelProductImportServiceImpl implements ExcelProductImportService {
 
     // ── Column indices ────────────────────────────────────────────────────
-    private static final int COL_THERAPEUTIC_CAT     = 0;
-    private static final int COL_THERAPEUTIC_SUBCAT  = 1;
-    private static final int COL_PRODUCT_NAME        = 2;
-    private static final int COL_MOLECULES           = 3;
-    private static final int COL_DOSAGE_FORM         = 6;
-    private static final int COL_STRENGTH            = 7;
-    private static final int COL_WARNINGS            = 8;
-    private static final int COL_DESCRIPTION         = 9;
-    private static final int COL_IMAGE_URL           = 10;
-    private static final int COL_MARKETING_URL       = 11;
-    private static final int COL_PKG_UNIT            = 12;
-    private static final int COL_PKG_UNITS_COUNT     = 13;
-    private static final int COL_PKG_MIN_ORDER       = 15;
-    private static final int COL_PKG_MAX_ORDER       = 16;
-    private static final int COL_BATCH_NUMBER        = 17;
-    private static final int COL_MFG_DATE            = 18;
-    private static final int COL_EXPIRY_DATE         = 19;
-    private static final int COL_STORAGE             = 20;
-    private static final int COL_STOCK_QTY           = 21;
-    private static final int COL_PRICE_PER_UNIT      = 23;
-    private static final int COL_MRP                 = 24;
-    private static final int COL_DISCOUNT_PCT        = 25;
-    private static final int COL_MIN_PURCHASE_QTY    = 26;
-    private static final int COL_ADD_DISCOUNT_PCT    = 27;
-    private static final int COL_GST_PCT             = 29;
-    private static final int COL_HSN_CODE            = 30;
+    private static final int COL_THERAPEUTIC_CAT = 0;
+    private static final int COL_THERAPEUTIC_SUBCAT = 1;
+    private static final int COL_PRODUCT_NAME = 2;
+    private static final int COL_MOLECULES = 3;
+    private static final int COL_DOSAGE_FORM = 6;
+    private static final int COL_STRENGTH = 7;
+    private static final int COL_WARNINGS = 8;
+    private static final int COL_DESCRIPTION = 9;
+    private static final int COL_IMAGE_URL = 10;
+    private static final int COL_MARKETING_URL = 11;
+    private static final int COL_PKG_UNIT = 12;
+    private static final int COL_PKG_UNITS_COUNT = 13;
+    private static final int COL_PKG_MIN_ORDER = 15;
+    private static final int COL_PKG_MAX_ORDER = 16;
+    private static final int COL_BATCH_NUMBER = 17;
+    private static final int COL_MFG_DATE = 18;
+    private static final int COL_EXPIRY_DATE = 19;
+    private static final int COL_STORAGE = 20;
+    private static final int COL_STOCK_QTY = 21;
+    private static final int COL_PRICE_PER_UNIT = 23;
+    private static final int COL_MRP = 24;
+    private static final int COL_DISCOUNT_PCT = 25;
+    private static final int COL_MIN_PURCHASE_QTY = 26;
+    private static final int COL_ADD_DISCOUNT_PCT = 27;
+    private static final int COL_GST_PCT = 29;
+    private static final int COL_HSN_CODE = 30;
 
     private static final int DATA_START_ROW = 2; // rows 0 & 1 are headers
 
     // ── Repositories ──────────────────────────────────────────────────────
-    private final ProductDetailsDrugRepository  productRepository;
-    private final MoleculeRepository            moleculeRepository;
+    private final ProductDetailsDrugRepository productRepository;
+    private final MoleculeRepository moleculeRepository;
     private final PackagingDetailsDrugRepository packagingRepository;
-    private final PricingDetailsDrugRepository  pricingRepository;
+    private final PricingDetailsDrugRepository pricingRepository;
+    private final ProductTypeMasterRepository productTypeMasterRepository;
 
     // ─────────────────────────────────────────────────────────────────────
 
@@ -110,9 +111,9 @@ public class ExcelProductImportServiceImpl implements ExcelProductImportService 
 
         validateFile(file);
 
-        List<RowErrorDto> errors    = new ArrayList<>();
-        int successCount            = 0;
-        int totalRows               = 0;
+        List<RowErrorDto> errors = new ArrayList<>();
+        int successCount = 0;
+        int totalRows = 0;
 
         try (InputStream is = file.getInputStream();
              Workbook workbook = new XSSFWorkbook(is)) {
@@ -174,6 +175,13 @@ public class ExcelProductImportServiceImpl implements ExcelProductImportService 
         // Seller mapping will be handled separately.
         ProductDetailsDrug product = buildNewProduct(row, productName);
         product.setProductId(generateProductId(productName));
+
+        // ── Resolve productCategoryId from master table ───────────────────
+        ProductTypeMaster productType = productTypeMasterRepository
+                .findByProductTypeNameIgnoreCase("Drugs")
+                .orElseThrow(() -> new IllegalStateException(
+                        "Product type 'Drugs' not found in master table."));
+        product.setProductCategoryId(String.valueOf(productType.getProductTypeId()));
 
         // ── 2. Molecules (MANY-TO-MANY) ───────────────────────────────────
         String moleculeCell = getString(row, COL_MOLECULES);
@@ -280,25 +288,25 @@ public class ExcelProductImportServiceImpl implements ExcelProductImportService 
     // ── ID generators (mirrors ProductDetailsDrugServiceImpl) ─────────────
 
     private synchronized String generateProductId(String productName) {
-        String prefix   = "SN";
+        String prefix = "SN";
         String namePart = productName.replaceAll("[^a-zA-Z]", "").toUpperCase();
         namePart = namePart.length() >= 3
                 ? namePart.substring(0, 3)
                 : String.format("%-3s", namePart).replace(' ', 'X');
-        Integer last   = productRepository.findMaxProductNumber();
-        int next       = (last == null) ? 1 : last + 1;
+        Integer last = productRepository.findMaxProductNumber();
+        int next = (last == null) ? 1 : last + 1;
         return prefix + namePart + String.format("%05d", next);
     }
 
     private synchronized String generatePackagingId() {
         Integer last = packagingRepository.findMaxPackagingNumber();
-        int next     = (last == null) ? 1 : last + 1;
+        int next = (last == null) ? 1 : last + 1;
         return "SNPKG" + String.format("%05d", next);
     }
 
     private synchronized String generatePricingId() {
         Integer last = pricingRepository.findMaxPricingNumber();
-        int next     = (last == null) ? 1 : last + 1;
+        int next = (last == null) ? 1 : last + 1;
         return "SNBTCH" + String.format("%05d", next);
     }
 
@@ -308,11 +316,16 @@ public class ExcelProductImportServiceImpl implements ExcelProductImportService 
         Cell cell = row.getCell(col, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
         if (cell == null) return null;
         switch (cell.getCellType()) {
-            case STRING:  return cell.getStringCellValue().trim();
-            case NUMERIC: return String.valueOf((long) cell.getNumericCellValue());
-            case BOOLEAN: return String.valueOf(cell.getBooleanCellValue());
-            case FORMULA: return cell.getCellFormula();
-            default:      return null;
+            case STRING:
+                return cell.getStringCellValue().trim();
+            case NUMERIC:
+                return String.valueOf((long) cell.getNumericCellValue());
+            case BOOLEAN:
+                return String.valueOf(cell.getBooleanCellValue());
+            case FORMULA:
+                return cell.getCellFormula();
+            default:
+                return null;
         }
     }
 
@@ -321,11 +334,13 @@ public class ExcelProductImportServiceImpl implements ExcelProductImportService 
         if (cell == null) return null;
         try {
             switch (cell.getCellType()) {
-                case NUMERIC: return (long) cell.getNumericCellValue();
+                case NUMERIC:
+                    return (long) cell.getNumericCellValue();
                 case STRING:
                     String s = cell.getStringCellValue().trim();
                     return s.isEmpty() ? null : Long.parseLong(s.replaceAll("[^0-9]", ""));
-                default: return null;
+                default:
+                    return null;
             }
         } catch (NumberFormatException e) {
             return null;
@@ -355,7 +370,8 @@ public class ExcelProductImportServiceImpl implements ExcelProductImportService 
                     }
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         return null;
     }
 
@@ -372,13 +388,12 @@ public class ExcelProductImportServiceImpl implements ExcelProductImportService 
     }
 
     private boolean isRowEmpty(Row row) {
-        for (int c = row.getFirstCellNum(); c < row.getLastCellNum(); c++) {
-            Cell cell = row.getCell(c);
-            if (cell != null && cell.getCellType() != CellType.BLANK) {
-                String val = getString(row, c);
-                if (val != null && !val.isBlank()) return false;
-            }
-        }
-        return true;
+        // Cols 14 (Pack Size) and 28 (Final Price) contain pre-filled IF formulas
+        // in all 500 template rows — skip them when checking emptiness.
+        // Only check the mandatory Product Name column (col 2) as the real signal.
+        Cell nameCell = row.getCell(COL_PRODUCT_NAME, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
+        if (nameCell == null) return true;
+        String name = getString(row, COL_PRODUCT_NAME);
+        return name == null || name.isBlank();
     }
 }
