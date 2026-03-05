@@ -1,7 +1,6 @@
 server:
   servlet:
     context-path: /api/v1
-
   error:
     include-message: always
     include-binding-errors: always
@@ -10,7 +9,8 @@ server:
 
 app:
   frontend-url: http://localhost:3000
-  reset-token-expiration-minutes: 5
+  reset-token-expiration-hours: 1
+
 
 spring:
   datasource:
@@ -56,6 +56,14 @@ twilio:
   auth-token: ${AUTH_TOKEN:dummy_token}
   verify:
     service-sid: ${SERVICE_SID:dummy_service}
+
+#server:
+#  error:
+#    include-message: always
+#    include-binding-errors: always
+#    include-exception: true
+#    include-stacktrace: always
+
 
 springdoc:
   swagger-ui:

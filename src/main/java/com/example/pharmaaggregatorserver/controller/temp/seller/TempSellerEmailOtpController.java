@@ -22,6 +22,12 @@ public class TempSellerEmailOtpController {
         return otpService.sendOtp(request);
     }
 
+    @PostMapping("/exist/send")
+    public OtpResponseDTO sendOtpExist(
+            @RequestBody EmailOtpSendRequestDTO request) {
+        return otpService.sendOtpExistedemail(request);
+    }
+
     @PostMapping("/verify")
     public OtpResponseDTO verifyOtp(
             @RequestBody EmailOtpVerifyRequestDTO request) {
