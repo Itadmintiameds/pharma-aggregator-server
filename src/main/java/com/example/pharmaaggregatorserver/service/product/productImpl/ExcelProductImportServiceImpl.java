@@ -91,6 +91,7 @@ public class ExcelProductImportServiceImpl implements ExcelProductImportService 
     private static final int COL_DISCOUNT_PCT = 25;
     private static final int COL_MIN_PURCHASE_QTY = 26;
     private static final int COL_ADD_DISCOUNT_PCT = 27;
+    private static final int COL_FINAL_PRICE = 28;
     private static final int COL_GST_PCT = 29;
     private static final int COL_HSN_CODE = 30;
 
@@ -254,6 +255,7 @@ public class ExcelProductImportServiceImpl implements ExcelProductImportService 
         p.setMrp(getLong(row, COL_MRP));
         p.setDiscountPercentage(getLong(row, COL_DISCOUNT_PCT));
         p.setMinimumPurchaseQuantity(getLong(row, COL_MIN_PURCHASE_QTY));
+        p.setFinalPrice(getLong(row, COL_FINAL_PRICE));
         p.setGstPercentage(getLong(row, COL_GST_PCT));
         p.setHsnCode(getLong(row, COL_HSN_CODE));
         p.setCreatedDate(LocalDateTime.now());
