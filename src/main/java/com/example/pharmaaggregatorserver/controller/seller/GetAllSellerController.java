@@ -29,6 +29,7 @@ public class GetAllSellerController {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved sellers"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
+
     public ResponseEntity<List<SellerResponseDTO>> getAllSellers() {
         log.info("REST request to get all sellers");
         List<SellerResponseDTO> sellers = sellerService.getAllSellers();
