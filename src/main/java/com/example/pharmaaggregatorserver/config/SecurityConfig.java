@@ -59,7 +59,10 @@ public class SecurityConfig {
                                         "/swagger-resources/**",
                                         "/webjars/**",
                                         "/",
-                                        "/error"
+                                        "/error",
+                                        "/products/**",
+                                        "/drugCategory/**",
+                                        "/molecules/**"
                                 ).permitAll()
                                 // Auth endpoints - public
                                 .requestMatchers("/api/auth/**").permitAll()
