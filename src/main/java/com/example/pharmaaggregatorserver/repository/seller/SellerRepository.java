@@ -49,4 +49,7 @@ public interface SellerRepository extends JpaRepository<Seller, String> {
             "LEFT JOIN FETCH s.user " +
             "WHERE s.isActive = true")
     List<Seller> findAllActiveSellers();
+
+    @Query("SELECT s FROM Seller s WHERE s.user.userId = :userId")
+    Optional<Seller> findByUserId(Long userId);
 }

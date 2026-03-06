@@ -1,6 +1,7 @@
 package com.example.pharmaaggregatorserver.service.seller;
 
 import com.example.pharmaaggregatorserver.dto.seller.SellerDTO;
+import com.example.pharmaaggregatorserver.entity.seller.Seller;
 
 import java.util.List;
 
@@ -17,4 +18,6 @@ public interface SellerService {
     SellerDTO updateSeller(String sellerId, SellerDTO sellerDTO);
 
     void resetPassword(String username, String currentPassword, String newPassword);
+
+    Seller findSellerByUserId(Long userId);
 }
