@@ -342,4 +342,10 @@ public class SellerServiceImpl implements SellerService {
         seller.getUser().setPasswordTemporary(false);
         sellerRepository.save(seller);
     }
+
+    @Override
+    public Seller findSellerByUserId(Long userId) {
+        return sellerRepository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Seller not found for user id: " + userId));
+    }
 }

@@ -2,7 +2,17 @@ server:
   servlet:
     context-path: /api/v1
 
+app:
+  frontend-url: https://pharma-aggregator-test.tiameds.ai
+  reset-token-expiration-hours: 1
+  jwt:
+    secret: mySecretKeyForJWTTokenGenerationAndValidation2024!@#$%^&*
+    expiration: 86400000
+
 spring:
+  main:
+    allow-bean-definition-overriding: true
+
   datasource:
 
     url: jdbc:postgresql://${DB_URL}:${DB_PORT}/${DB_NAME}?characterEncoding=UTF-8
@@ -42,5 +52,4 @@ springdoc:
   swagger-ui:
     enabled: true
     try-it-out-enabled: true
-
 
