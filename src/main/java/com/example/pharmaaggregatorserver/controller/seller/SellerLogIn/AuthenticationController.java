@@ -21,9 +21,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class AuthenticationController {
-
     private final AuthService authService;
-
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
         try {

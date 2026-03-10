@@ -28,7 +28,7 @@ public class PasswordResetEmailService {  // Renamed from EmailService
             message.setTo(to);
             message.setSubject("Password Reset Request - Pharma Aggregator");
 
-            String resetLink = frontendUrl + "/reset-password?token=" + token;
+            String resetLink = frontendUrl + "/reset-password/" + token;
 
             String emailContent = String.format(
                     "Hello,\n\n" +
