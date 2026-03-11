@@ -15,6 +15,10 @@ import com.example.pharmaaggregatorserver.repository.product.ProductDetailsDrugR
 import com.example.pharmaaggregatorserver.service.product.ExcelProductImportService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
@@ -22,6 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -65,6 +72,9 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class ExcelProductImportServiceImpl implements ExcelProductImportService {
+
+    // ── Supported file types ──────────────────────────────────────────────
+    private enum FileType {XLSX, XLS, CSV}
 
     // ── Column indices ────────────────────────────────────────────────────
     private static final int COL_THERAPEUTIC_CAT = 0;
@@ -110,14 +120,20 @@ public class ExcelProductImportServiceImpl implements ExcelProductImportService 
     @Transactional
     public ExcelImportResultDto importFromExcel(MultipartFile file) {
 
-        validateFile(file);
+        FileType fileType = validateFile(file);  // capture the return value
+
+        if (fileType == FileType.CSV) {
+            return importFromCsv(file);
+        }
 
         List<RowErrorDto> errors = new ArrayList<>();
         int successCount = 0;
         int totalRows = 0;
 
         try (InputStream is = file.getInputStream();
-             Workbook workbook = new XSSFWorkbook(is)) {
+             Workbook workbook = fileType == FileType.XLSX
+                     ? new XSSFWorkbook(is)
+                     : new HSSFWorkbook(is)) {
 
             Sheet sheet = workbook.getSheet("Drugs");
             if (sheet == null) {
@@ -379,14 +395,22 @@ public class ExcelProductImportServiceImpl implements ExcelProductImportService 
 
     // ── Utility ───────────────────────────────────────────────────────────
 
-    private void validateFile(MultipartFile file) {
+    /**
+     * Validates the uploaded file and returns its detected {@link FileType}.
+     *
+     * @throws IllegalArgumentException if the file is empty or has an unsupported extension
+     */
+    private FileType validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("File is empty.");
         }
-        String name = Objects.requireNonNull(file.getOriginalFilename(), "Filename missing");
-        if (!name.endsWith(".xlsx")) {
-            throw new IllegalArgumentException("Only .xlsx files are supported.");
-        }
+        String name = Objects.requireNonNull(file.getOriginalFilename(), "Filename missing")
+                .toLowerCase();
+        if (name.endsWith(".xlsx")) return FileType.XLSX;
+        if (name.endsWith(".xls")) return FileType.XLS;
+        if (name.endsWith(".csv")) return FileType.CSV;
+        throw new IllegalArgumentException(
+                "Unsupported file type. Only .xlsx, .xls, and .csv files are accepted.");
     }
 
     private boolean isRowEmpty(Row row) {
@@ -397,5 +421,157 @@ public class ExcelProductImportServiceImpl implements ExcelProductImportService 
         if (nameCell == null) return true;
         String name = getString(row, COL_PRODUCT_NAME);
         return name == null || name.isBlank();
+    }
+
+    private ExcelImportResultDto importFromCsv(MultipartFile file) {
+        List<RowErrorDto> errors = new ArrayList<>();
+        int successCount = 0;
+        int totalRows = 0;
+
+        try (Reader reader = new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8);
+             CSVParser parser = CSVFormat.RFC4180.builder()
+                     .setIgnoreEmptyLines(true)
+                     .setTrim(true)
+                     .build()
+                     .parse(reader)) {
+
+            int csvRowIndex = 0;
+            for (CSVRecord record : parser) {
+                if (csvRowIndex++ < DATA_START_ROW) continue;
+
+                String productName = getCsvValue(record, COL_PRODUCT_NAME);
+                if (productName == null || productName.isBlank()) continue;
+
+                int humanRowNum = csvRowIndex;
+                totalRows++;
+                try {
+                    importCsvRow(record, humanRowNum);
+                    successCount++;
+                    log.info("Row {} – product '{}' imported successfully.", humanRowNum, productName);
+                } catch (Exception ex) {
+                    log.warn("Row {} – import failed for '{}': {}", humanRowNum, productName, ex.getMessage());
+                    errors.add(RowErrorDto.builder()
+                            .rowNumber(humanRowNum)
+                            .productName(productName)
+                            .errorMessage(ex.getMessage())
+                            .build());
+                }
+            }
+
+        } catch (IllegalArgumentException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new RuntimeException("Failed to parse CSV file: " + ex.getMessage(), ex);
+        }
+
+        return ExcelImportResultDto.builder()
+                .totalRows(totalRows)
+                .successCount(successCount)
+                .failureCount(errors.size())
+                .errors(errors)
+                .build();
+    }
+
+    private void importCsvRow(CSVRecord r, int humanRowNum) {
+        String productName = getCsvValue(r, COL_PRODUCT_NAME);
+        if (productName == null || productName.isBlank()) {
+            throw new IllegalArgumentException("Product Name is mandatory.");
+        }
+
+        ProductDetailsDrug product = new ProductDetailsDrug();
+        product.setProductName(productName);
+        product.setTherapeuticCategory(getCsvValue(r, COL_THERAPEUTIC_CAT));
+        product.setTherapeuticSubcategory(getCsvValue(r, COL_THERAPEUTIC_SUBCAT));
+        product.setDosageForm(getCsvValue(r, COL_DOSAGE_FORM));
+        product.setWarningsPrecautions(getCsvValue(r, COL_WARNINGS));
+        product.setProductDescription(getCsvValue(r, COL_DESCRIPTION));
+        product.setProductImage(getCsvValue(r, COL_IMAGE_URL));
+        product.setProductMarketingUrl(getCsvValue(r, COL_MARKETING_URL));
+        Long strength = csvLong(r, COL_STRENGTH);
+        if (strength != null) product.setStrength(strength);
+        product.setProductId(generateProductId(productName));
+
+        ProductTypeMaster productType = productTypeMasterRepository
+                .findByProductTypeNameIgnoreCase("Drugs")
+                .orElseThrow(() -> new IllegalStateException(
+                        "Product type 'Drugs' not found in master table."));
+        product.setProductCategoryId(String.valueOf(productType.getProductTypeId()));
+
+        String moleculeCell = getCsvValue(r, COL_MOLECULES);
+        if (moleculeCell != null && !moleculeCell.isBlank()) {
+            product.setMolecules(resolveMolecules(moleculeCell));
+        }
+
+        String packagingUnit = getCsvValue(r, COL_PKG_UNIT);
+        if (packagingUnit != null && !packagingUnit.isBlank()) {
+            PackagingDetailsDrug pkg = new PackagingDetailsDrug();
+            pkg.setPackagingUnit(packagingUnit);
+            Long units = csvLong(r, COL_PKG_UNITS_COUNT);
+            pkg.setNumberOfUnits(units);
+            if (units != null) pkg.setPackSize(units);
+            pkg.setMinimumOrderQuantity(csvLong(r, COL_PKG_MIN_ORDER));
+            pkg.setMaximumOrderQuantity(csvLong(r, COL_PKG_MAX_ORDER));
+            pkg.setCreatedDate(LocalDateTime.now());
+            pkg.setModifiedDate(LocalDateTime.now());
+            pkg.setPackagingId(generatePackagingId());
+            pkg.setProduct(product);
+            product.setPackagingDetails(pkg);
+        }
+
+        ProductDetailsDrug saved = productRepository.save(product);
+
+        String batchNumber = getCsvValue(r, COL_BATCH_NUMBER);
+        if (batchNumber != null && !batchNumber.isBlank()) {
+            PricingDetailsDrug pricing = new PricingDetailsDrug();
+            pricing.setBatchLotNumber(batchNumber);
+            pricing.setManufacturingDate(csvDateTime(getCsvValue(r, COL_MFG_DATE)));
+            pricing.setExpiryDate(csvDateTime(getCsvValue(r, COL_EXPIRY_DATE)));
+            pricing.setStorageCondition(getCsvValue(r, COL_STORAGE));
+            pricing.setStockQuantity(csvLong(r, COL_STOCK_QTY));
+            pricing.setPricePerUnit(csvLong(r, COL_PRICE_PER_UNIT));
+            pricing.setMrp(csvLong(r, COL_MRP));
+            pricing.setDiscountPercentage(csvLong(r, COL_DISCOUNT_PCT));
+            pricing.setMinimumPurchaseQuantity(csvLong(r, COL_MIN_PURCHASE_QTY));
+            pricing.setFinalPrice(csvLong(r, COL_FINAL_PRICE));
+            pricing.setGstPercentage(csvLong(r, COL_GST_PCT));
+            pricing.setHsnCode(csvLong(r, COL_HSN_CODE));
+            pricing.setCreatedDate(LocalDateTime.now());
+            pricing.setModifiedDate(LocalDateTime.now());
+            pricing.setPricingId(generatePricingId());
+            pricing.setProduct(saved);
+            pricingRepository.save(pricing);
+        }
+    }
+
+    private String getCsvValue(CSVRecord record, int col) {
+        if (col >= record.size()) return null;
+        String v = record.get(col).trim();
+        return v.isEmpty() ? null : v;
+    }
+
+    private Long csvLong(CSVRecord record, int col) {
+        String v = getCsvValue(record, col);
+        if (v == null) return null;
+        try {
+            return Long.parseLong(v.replaceAll("[^0-9]", ""));
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private LocalDateTime csvDateTime(String s) {
+        if (s == null || s.isBlank()) return null;
+        try {
+            if (s.matches("\\d{4}-\\d{2}-\\d{2}"))
+                return java.time.LocalDate.parse(s).atStartOfDay();
+            if (s.matches("\\d{2}/\\d{2}/\\d{4}")) {
+                String[] p = s.split("/");
+                return java.time.LocalDate.of(
+                        Integer.parseInt(p[2]), Integer.parseInt(p[1]), Integer.parseInt(p[0])
+                ).atStartOfDay();
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
     }
 }

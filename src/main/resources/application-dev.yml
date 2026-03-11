@@ -21,9 +21,9 @@ spring:
     allow-bean-definition-overriding: true
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/pharma-aggregator
+    url: jdbc:postgresql://host.docker.internal:5432/pharma-aggregator?charSet=UTF8
     username: postgres
-    password: root
+    password: Tiamed!!
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
