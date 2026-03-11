@@ -197,6 +197,7 @@ public class ProductDetailsDrugMapper {
         entity.setDiscountPercentage(dto.getDiscountPercentage());
         entity.setGstPercentage(dto.getGstPercentage());
         entity.setMinimumPurchaseQuantity(dto.getMinimumPurchaseQuantity());
+        entity.setAdditionalDiscount(dto.getAdditionalDiscount());
         entity.setFinalPrice(dto.getFinalPrice());
         entity.setHsnCode(dto.getHsnCode());
         entity.setCreatedBy(dto.getCreatedBy());
