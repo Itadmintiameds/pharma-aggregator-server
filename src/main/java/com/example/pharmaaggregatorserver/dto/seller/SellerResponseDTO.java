@@ -76,6 +76,7 @@ public class SellerResponseDTO {
         private String ifscCode;
         private String accountNumber;
         private String accountHolderName;
+        private String bankDocumentFileUrl;
         private boolean isBankDocumentVerified;
     }
 
@@ -86,6 +87,7 @@ public class SellerResponseDTO {
     public static class SellerGSTDTO {
         private Long sellerGstId;
         private String gstNumber;
+        private String gstFileUrl;
         private boolean isGstVerified;
     }
 
@@ -96,6 +98,7 @@ public class SellerResponseDTO {
     public static class SellerDocumentDTO {
         private Long sellerDocumentsId;
         private String documentNumber;
+        private String documentFileUrl;
         private boolean isDocumentVerified;
         private String productType;
     }
