@@ -49,24 +49,27 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth ->
-                        auth.anyRequest().permitAll()
+                        auth
                                 // Swagger UI endpoints - public
-//                                .requestMatchers(
-//                                        "/swagger-ui/**",
-//                                        "/swagger-ui.html",
-//                                        "/v3/api-docs/**",
-//                                        "/api-docs/**",
-//                                        "/swagger-resources/**",
-//                                        "/webjars/**",
-//                                        "/",
-//                                        "/error"
-//                                ).permitAll()
-//                                // Auth endpoints - public
-//                                .requestMatchers("/api/auth/**").permitAll()
-//                                // Public API endpoints - public
-//                                .requestMatchers("/api/public/**").permitAll()
-//                                // All other requests require authentication
-//                                .anyRequest().authenticated()
+                                .requestMatchers(
+                                        "/swagger-ui/**",
+                                        "/swagger-ui.html",
+                                        "/v3/api-docs/**",
+                                        "/api-docs/**",
+                                        "/swagger-resources/**",
+                                        "/webjars/**",
+                                        "/",
+                                        "/error",
+                                        "/products/**",
+                                        "/drugCategory/**",
+                                        "/molecules/**"
+                                ).permitAll()
+                                // Auth endpoints - public
+                                .requestMatchers("/api/auth/**").permitAll()
+                                // Public API endpoints - public
+                                .requestMatchers("/api/public/**").permitAll()
+                                // All other requests require authentication
+                                .anyRequest().authenticated()
                 );
 
         http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);

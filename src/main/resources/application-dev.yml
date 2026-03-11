@@ -21,8 +21,6 @@ spring:
     allow-bean-definition-overriding: true
 
   datasource:
-
-    # DB_HOST=localhost when running locally; set DB_HOST=postgres-dev when using docker-compose
     url: jdbc:postgresql://host.docker.internal:5432/pharma-aggregator?charSet=UTF8
     username: postgres
     password: Tiamed!!
@@ -39,8 +37,8 @@ spring:
   mail:   # Email configuration
     host: smtp.gmail.com
     port: 587
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
+    username: basavarajunn@tiameds.ai
+    password: ovfx kzmu ikhg rily
     properties:
       mail:
         smtp:

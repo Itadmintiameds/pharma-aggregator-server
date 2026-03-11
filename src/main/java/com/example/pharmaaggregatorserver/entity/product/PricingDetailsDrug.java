@@ -53,6 +53,9 @@ public class PricingDetailsDrug {
     @Column(name = "minimum_purchase_quantity")
     private Long minimumPurchaseQuantity;
 
+    @Column(name = "additional_discount")
+    private Long additionalDiscount;
+
     @Column(name = "final_price")
     private Long finalPrice;
 
