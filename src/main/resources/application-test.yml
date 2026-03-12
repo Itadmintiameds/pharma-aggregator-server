@@ -41,6 +41,11 @@ spring:
             enable: true
             required: true
 
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
   # Twilio sms
 twilio:
   account-sid: AC35ec54287b2863257cb5acbdffa10fe0
@@ -53,3 +58,9 @@ springdoc:
     enabled: true
     try-it-out-enabled: true
 
+aws:
+  s3:
+    access-key: ${AWS_ACCESS_KEY}
+    secret-key: ${AWS_SECRET_KEY}
+    region: ${AWS_REGION}
+    bucket-name: ${AWS_BUCKET_NAME}

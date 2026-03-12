@@ -23,7 +23,7 @@ spring:
   datasource:
     url: jdbc:postgresql://host.docker.internal:5432/pharma-aggregator?charSet=UTF8
     username: postgres
-    password: Tiamed!!
+    password: root
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -47,6 +47,11 @@ spring:
             enable: true
             required: true
 
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
 
 
 #  # Twilio sms
@@ -90,3 +95,10 @@ logging:
     org.hibernate.engine.transaction.internal.TransactionImpl: DEBUG
 
     com.fasterxml.jackson.databind: DEBUG
+
+aws:
+  s3:
+    access-key: ${AWS_ACCESS_KEY}
+    secret-key: ${AWS_SECRET_KEY}
+    region: ${AWS_REGION}
+    bucket-name: ${AWS_BUCKET_NAME}
