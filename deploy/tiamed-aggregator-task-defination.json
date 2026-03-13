@@ -60,6 +60,18 @@
         {
           "name": "AWS_BUCKET_NAME",
           "valueFrom": "arn:aws:secretsmanager:ap-south-1:977098986605:secret:pharma_aggregator_test-IWah61:AWS_BUCKET_NAME::"
+        },
+        {
+          "name": "ACCOUNT_SID",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:977098986605:secret:pharma_aggregator_test-IWah61:ACCOUNT_SID::"
+        },
+        {
+          "name": "AUTH_TOKEN",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:977098986605:secret:pharma_aggregator_test-IWah61:AUTH_TOKEN::"
+        },
+        {
+          "name": "SERVICE_SID",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:977098986605:secret:pharma_aggregator_test-IWah61:SERVICE_SID::"
         }
       ]
     ,
