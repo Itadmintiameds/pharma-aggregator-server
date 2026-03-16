@@ -341,6 +341,20 @@ public class TempSellerServiceImpl implements TempSellerService {
         responseDTO.setEmail(seller.getEmail());
         responseDTO.setStatus(seller.getStatus());
         responseDTO.setCreatedAt(seller.getCreatedAt());
+
+        // Map saved documents → documentId + licenseName for the upload step
+        if (seller.getDocuments() != null) {
+            List<TempSellerResponseDTO.DocumentInfo> docInfos = seller.getDocuments().stream()
+                    .map(doc -> {
+                        TempSellerResponseDTO.DocumentInfo info = new TempSellerResponseDTO.DocumentInfo();
+                        info.setDocumentId(doc.getDocumentsId());
+                        info.setLicenseName(doc.getProductTypes().getProductTypeName()); // adjust getter as per your entity
+                        return info;
+                    })
+                    .toList();
+            responseDTO.setDocuments(docInfos);
+        }
+
         return responseDTO;
     }
 
