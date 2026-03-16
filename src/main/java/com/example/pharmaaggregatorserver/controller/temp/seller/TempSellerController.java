@@ -4,19 +4,20 @@ package com.example.pharmaaggregatorserver.controller.temp.seller;
 import com.example.pharmaaggregatorserver.dto.admin.TempSellerAdminResponseDTO;
 import com.example.pharmaaggregatorserver.dto.seller.TempSellerRequestDTO;
 import com.example.pharmaaggregatorserver.dto.seller.TempSellerResponseDTO;
-import com.example.pharmaaggregatorserver.dto.temp.seller.BankVerificationRequestDTO;
-import com.example.pharmaaggregatorserver.dto.temp.seller.DocumentVerificationRequestDTO;
-import com.example.pharmaaggregatorserver.dto.temp.seller.GstVerificationRequestDTO;
+import com.example.pharmaaggregatorserver.dto.temp.seller.*;
 import com.example.pharmaaggregatorserver.entity.temp.seller.TempSeller;
 import com.example.pharmaaggregatorserver.response.ApiResponse;
 import com.example.pharmaaggregatorserver.service.temp.seller.TempSellerCoordinatorService;
+import com.example.pharmaaggregatorserver.service.temp.seller.TempSellerDocumentService;
 import com.example.pharmaaggregatorserver.service.temp.seller.TempSellerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -26,6 +27,7 @@ import java.util.List;
 public class TempSellerController {
 
     private final TempSellerService tempSellerService;
+    private final TempSellerDocumentService tempSellerDocumentService;
 
     @PostMapping
     public ResponseEntity<TempSellerResponseDTO> createTempSeller(
@@ -114,6 +116,32 @@ public class TempSellerController {
     public ResponseEntity<Boolean> checkPhoneExists(@RequestParam String mobile) {
         boolean exists = coordinatorService.checkPhoneExists(mobile);
         return ResponseEntity.ok(exists);
+    }
+
+    @PostMapping(value = "/{tempSellerId}/documents/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<TempSellerDocumentUploadResponse>> uploadDocuments(
+            @PathVariable Long tempSellerId,
+            @RequestPart(value = "gstFile", required = false) MultipartFile gstFile,
+            @RequestPart(value = "bankFile", required = false) MultipartFile bankFile,
+            @RequestPart(value = "licenseFiles", required = false) List<MultipartFile> licenseFiles,
+            @RequestParam(value = "licenseNames", required = false) List<String> licenseNames,
+            @RequestParam(value = "documentIds", required = false) List<Long> documentIds) {
+
+        TempSellerDocumentUploadRequest request = new TempSellerDocumentUploadRequest();
+        request.setGstFile(gstFile);
+        request.setBankFile(bankFile);
+        request.setLicenseFiles(licenseFiles);
+        request.setLicenseNames(licenseNames);
+        request.setDocumentIds(documentIds);
+
+        TempSellerDocumentUploadResponse response =
+                tempSellerDocumentService.uploadDocuments(tempSellerId, request);
+
+        return ResponseEntity.ok(new ApiResponse<>(
+                HttpStatus.OK.toString(),
+                "Documents uploaded successfully",
+                response
+        ));
     }
 
 }

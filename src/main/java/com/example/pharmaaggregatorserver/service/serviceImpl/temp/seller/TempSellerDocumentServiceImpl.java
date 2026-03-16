@@ -31,6 +31,8 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
     private static final DateTimeFormatter TS_FORMATTER =
             DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
+    private static final String PENDING = "PENDING";
+
     private final TempSellerRepository tempSellerRepository;
     private final TempSellerDocumentRepository tempSellerDocumentRepository;
     private final S3Service s3Service;
@@ -54,6 +56,10 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
 
         // ── 1. GST file ────────────────────────────────────────────────────────
         if (hasFile(request.getGstFile())) {
+
+            // delete old S3 object only if it's a real URL, not "PENDING"
+            deleteIfRealUrl(seller.getGstFileUrl());
+
             String key = buildGstKey(reqId, now, request.getGstFile());
             gstUrl = s3Service.uploadFile(key, request.getGstFile());
 
@@ -63,13 +69,18 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
 
         // ── 2. Bank document ───────────────────────────────────────────────────
         if (hasFile(request.getBankFile())) {
-            String key = buildBankKey(reqId, now, request.getBankFile());
-            bankUrl = s3Service.uploadFile(key, request.getBankFile());
 
             if (seller.getBankDetails() == null) {
                 throw new NotFoundException("BankDetails record not found for sellerId: " + tempSellerId
                         + ". Create the seller record (step 1) before uploading files.");
             }
+
+            // delete old S3 object only if it's a real URL, not "PENDING"
+            deleteIfRealUrl(seller.getBankDetails().getBankDocumentFileUrl());
+
+            String key = buildBankKey(reqId, now, request.getBankFile());
+            bankUrl = s3Service.uploadFile(key, request.getBankFile());
+
             seller.getBankDetails().setBankDocumentFileUrl(bankUrl);
             log.info("Bank document uploaded → {}", bankUrl);
         }
@@ -90,9 +101,6 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
 
                 if (!hasFile(file)) continue;
 
-                String key = buildLicenseKey(reqId, name, now, file);
-                String docUrl = s3Service.uploadFile(key, file);
-
                 // Persist URL on the existing TempSellerDocument row
                 TempSellerDocument doc = tempSellerDocumentRepository.findById(docId)
                         .orElseThrow(() -> new NotFoundException("TempSellerDocument not found for id: " + docId));
@@ -102,6 +110,12 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
                     throw new IllegalArgumentException(
                             "Document id=" + docId + " does not belong to sellerId=" + tempSellerId);
                 }
+
+                // delete old S3 object only if it's a real URL, not "PENDING"
+                deleteIfRealUrl(doc.getDocumentFileUrl());
+
+                String key = buildLicenseKey(reqId, name, now, file);
+                String docUrl = s3Service.uploadFile(key, file);
 
                 doc.setDocumentFileUrl(docUrl);
                 tempSellerDocumentRepository.save(doc);
@@ -155,7 +169,10 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
      * Spaces in licenseName are replaced with underscores for a safe S3 key.
      */
     private String buildLicenseKey(String reqId, String licenseName, String timestamp, MultipartFile file) {
-        String safeName = licenseName.trim().replaceAll("\\s+", "_");
+        String safeName = licenseName.trim()
+                .replaceAll("[\\s/\\\\:*?\"<>|#]+", "_")
+                .replaceAll("_+", "_")
+                .replaceAll("^_|_$", "");
         return String.format("tempsellers/%s/licenses/%s_%s.%s",
                 reqId, safeName, timestamp, extension(file));
     }
@@ -194,6 +211,20 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
         if (ids == null || ids.size() != files.size()) {
             throw new IllegalArgumentException(
                     "documentIds must be provided and must match the number of licenseFiles (" + files.size() + ").");
+        }
+    }
+
+    /**
+     * Deletes an existing S3 object only when {@code url} is a real S3 URL.
+     * Skips deletion when the value is null, blank, or the {@code "PENDING"}
+     * placeholder sent by the frontend during Step 1 registration.
+     */
+    private void deleteIfRealUrl(String url) {
+        if (url == null || url.isBlank() || PENDING.equalsIgnoreCase(url.trim())) return;
+        try {
+            s3Service.deleteFile(s3Service.extractKeyFromUrl(url));
+        } catch (Exception e) {
+            log.warn("Could not delete old S3 file (url={}): {}", url, e.getMessage());
         }
     }
 }
