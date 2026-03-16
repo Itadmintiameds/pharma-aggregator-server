@@ -98,4 +98,34 @@ public class S3Service {
         if (idx == -1) throw new IllegalArgumentException("Invalid S3 URL format: " + s3Url);
         return s3Url.substring(idx + ".amazonaws.com/".length());
     }
+
+    /**
+     * Uploads content from a Spring Resource (InputStream) to S3.
+     * Used when migrating files within S3 (e.g. tempsellers → sellers on approval).
+     *
+     * @param key      the destination S3 object key
+     * @param resource the source file as a Spring Resource
+     * @return the public S3 URL of the uploaded file
+     */
+    public String uploadFileFromResource(String key, Resource resource, String contentType) {
+        try {
+            byte[] bytes = resource.getInputStream().readAllBytes();
+
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .contentType(contentType)
+                    .contentDisposition("inline")
+                    .build();
+
+            s3Client.putObject(putObjectRequest, RequestBody.fromBytes(bytes));
+            log.info("Uploaded resource to S3. Key: {}", key);
+
+            return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, key);
+
+        } catch (IOException e) {
+            log.error("Failed to upload resource to S3. Key: {}", key, e);
+            throw new IllegalArgumentException("Failed to upload resource to S3", e);
+        }
+    }
 }

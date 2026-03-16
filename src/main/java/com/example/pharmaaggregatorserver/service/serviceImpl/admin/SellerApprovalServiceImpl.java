@@ -16,11 +16,13 @@ import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerRepos
 import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerReviewHistoryRepository;
 import com.example.pharmaaggregatorserver.service.EmailService;
 import com.example.pharmaaggregatorserver.service.PdfService;
+import com.example.pharmaaggregatorserver.service.S3Service;
 import com.example.pharmaaggregatorserver.service.admin.SellerApprovalService;
 import com.example.pharmaaggregatorserver.service.auth.UserCreationService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
@@ -43,6 +45,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
     private final UserCreationService userCreationService;
     private final SellerTermsRepository sellerTermsRepository;
     private final TempSellerReviewHistoryRepository reviewHistoryRepository;
+    private final S3Service s3Service;
 
     /**
      * Processes admin review decision based on request status.
@@ -464,14 +467,22 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
     }
 
     /**
-     * Maps a TempSeller (and all its child entities) to the main Seller table.
-     * Generates a unique seller ID before saving.
+     * PHASE 1: Maps all TempSeller data → Seller table using temp S3 URLs as-is.
+     * PHASE 2: Once DB save is confirmed, migrates every image from
+     *           tempsellers/{REQ_ID}/... → sellers/{SELLER_ID}/...
+     *           then deletes the old temp S3 objects.
+     *
+     * If any image migration fails it is logged but does NOT roll back the approval.
      */
     private Seller mapAndPersistSeller(TempSeller temp, User user) {
         String sellerId = generateSellerId(temp);
 
         // ✅ Force load lazy collections before session closes
         List<ProductTypeMaster> productTypes = new ArrayList<>(temp.getProductTypes());
+
+        // ═══════════════════════════════════════════════════════════════
+        // PHASE 1 — Build and persist all entities with existing temp URLs
+        // ═══════════════════════════════════════════════════════════════
 
         Seller seller = new Seller();
         seller.setSellerId(sellerId);
@@ -489,11 +500,13 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
         seller.setStatus("APPROVED");
         seller.setCreatedBy("SYSTEM");
         seller.setUpdatedBy("SYSTEM");
+        // Seller image: set temp URL for now — will be replaced in Phase 2
+        seller.setSellerImageUrl(temp.getSellerImageUrl());
 
         // Save seller first so child entities can reference it
         Seller savedSeller = sellerRepo.save(seller);
 
-        // ── Address ──
+        // ── Address ──────────────────────────────────────────────────────
         if (temp.getAddress() != null) {
             SellerAddress address = new SellerAddress();
             address.setSeller(savedSeller);
@@ -525,7 +538,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
             savedSeller.setCoordinator(coordinator);
         }
 
-        // ── Bank Details ──
+        // ── Bank Details — store temp URL for now ─────────────────────────
         if (temp.getBankDetails() != null) {
             SellerBankDetails bankDetails = new SellerBankDetails();
             bankDetails.setSeller(savedSeller);
@@ -534,29 +547,29 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
             bankDetails.setIfscCode(temp.getBankDetails().getIfscCode());
             bankDetails.setAccountNumber(temp.getBankDetails().getAccountNumber());
             bankDetails.setAccountHolderName(temp.getBankDetails().getAccountHolderName());
-            bankDetails.setBankDocumentFileUrl(temp.getBankDetails().getBankDocumentFileUrl());
+            bankDetails.setBankDocumentFileUrl(temp.getBankDetails().getBankDocumentFileUrl()); // temp URL for now
             bankDetails.setBankDocumentVerified(temp.getBankDetails().isBankDocumentVerified());
             bankDetails.setCreatedBy("SYSTEM");
             bankDetails.setUpdatedBy("SYSTEM");
             savedSeller.setBankDetails(bankDetails);
         }
 
-        // ── GST ──
+        // ── GST — store temp URL for now ──────────────────────────────────
         SellerGST gst = new SellerGST();
         gst.setSeller(savedSeller);
         gst.setGstNumber(temp.getGstNumber());
-        gst.setGstFileUrl(temp.getGstFileUrl());
+        gst.setGstFileUrl(temp.getGstFileUrl()); // temp URL for now
         gst.setGstVerified(temp.isGstVerified());
         savedSeller.setSellerGST(gst);
 
-        // ── Documents ──
+        // ── Documents — store temp URLs for now ───────────────────────────
         if (temp.getDocuments() != null && !temp.getDocuments().isEmpty()) {
             for (TempSellerDocument tempDoc : temp.getDocuments()) {
                 SellerDocument doc = new SellerDocument();
                 doc.setSeller(savedSeller);
                 doc.setProductTypes(tempDoc.getProductTypes());
                 doc.setDocumentNumber(tempDoc.getDocumentNumber());
-                doc.setDocumentFileUrl(tempDoc.getDocumentFileUrl());
+                doc.setDocumentFileUrl(tempDoc.getDocumentFileUrl()); // temp URL for now
                 doc.setDocumentVerified(tempDoc.isDocumentVerified());
                 doc.setCreatedBy("SYSTEM");
                 doc.setUpdatedBy("SYSTEM");
@@ -564,8 +577,17 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
             }
         }
 
-        // Final save to persist all cascaded children
-        return sellerRepo.save(savedSeller);
+        // Persist everything with temp URLs
+        Seller fullyPersistedSeller = sellerRepo.save(savedSeller);
+        log.info("✅ Phase 1 complete — Seller persisted with id={}", fullyPersistedSeller.getSellerId());
+
+        // ═══════════════════════════════════════════════════════════════
+        // PHASE 2 — Migrate all S3 images to sellers/{SELLER_ID}/...
+        //           then delete the old temp objects
+        // ═══════════════════════════════════════════════════════════════
+        migrateAllSellerImages(temp, fullyPersistedSeller);
+
+        return fullyPersistedSeller;
     }
 
     /**
@@ -611,4 +633,143 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
         reviewHistoryRepository.save(history);
     }
 
+    /**
+     * Migrates every file for an approved seller from the temp S3 folder
+     * to the permanent seller folder, updates the DB URL, then deletes the temp file.
+     *
+     * Folder mapping:
+     *  tempsellers/{REQ_ID}/sellerimage/... → sellers/{SELLER_ID}/sellerimage/...
+     *  tempsellers/{REQ_ID}/gst/...         → sellers/{SELLER_ID}/gst/...
+     *  tempsellers/{REQ_ID}/bankdocument/... → sellers/{SELLER_ID}/bankdocument/...
+     *  tempsellers/{REQ_ID}/licenses/...    → sellers/{SELLER_ID}/licenses/...
+     */
+    private void migrateAllSellerImages(TempSeller temp, Seller seller) {
+
+        String sellerId = seller.getSellerId();
+        log.info("🚀 Phase 2 — Starting S3 migration for sellerId={}", sellerId);
+
+        // ── 1. Seller profile image ──────────────────────────────────────
+        if (hasUrl(temp.getSellerImageUrl())) {
+            String newUrl = copyToSellerFolder(
+                    temp.getSellerImageUrl(),
+                    sellerId,
+                    "sellerimage"
+            );
+            if (newUrl != null) {
+                seller.setSellerImageUrl(newUrl);
+                sellerRepo.save(seller);
+                deleteOldFile(temp.getSellerImageUrl());
+                log.info("✅ Seller image migrated for sellerId={}", sellerId);
+            }
+        }
+
+        // ── 2. GST document ──────────────────────────────────────────────
+        if (seller.getSellerGST() != null && hasUrl(seller.getSellerGST().getGstFileUrl())) {
+            String newUrl = copyToSellerFolder(
+                    temp.getGstFileUrl(),
+                    sellerId,
+                    "gst"
+            );
+            if (newUrl != null) {
+                seller.getSellerGST().setGstFileUrl(newUrl);
+                sellerRepo.save(seller);
+                deleteOldFile(temp.getGstFileUrl());
+                log.info("✅ GST document migrated for sellerId={}", sellerId);
+            }
+        }
+
+        // ── 3. Bank document ─────────────────────────────────────────────
+        if (seller.getBankDetails() != null && hasUrl(temp.getBankDetails().getBankDocumentFileUrl())) {
+            String newUrl = copyToSellerFolder(
+                    temp.getBankDetails().getBankDocumentFileUrl(),
+                    sellerId,
+                    "bankdocument"
+            );
+            if (newUrl != null) {
+                seller.getBankDetails().setBankDocumentFileUrl(newUrl);
+                sellerRepo.save(seller);
+                deleteOldFile(temp.getBankDetails().getBankDocumentFileUrl());
+                log.info("✅ Bank document migrated for sellerId={}", sellerId);
+            }
+        }
+
+        // ── 4. License documents ─────────────────────────────────────────
+        if (temp.getDocuments() != null && !temp.getDocuments().isEmpty()) {
+            List<TempSellerDocument> tempDocs = temp.getDocuments();
+            List<SellerDocument> sellerDocs = seller.getDocuments();
+
+            for (int i = 0; i < tempDocs.size(); i++) {
+                String tempUrl = tempDocs.get(i).getDocumentFileUrl();
+                if (!hasUrl(tempUrl)) continue;
+
+                String newUrl = copyToSellerFolder(tempUrl, sellerId, "licenses");
+                if (newUrl != null) {
+                    sellerDocs.get(i).setDocumentFileUrl(newUrl);
+                    deleteOldFile(tempUrl);
+                    log.info("✅ License document [{}] migrated for sellerId={}", i, sellerId);
+                }
+            }
+            sellerRepo.save(seller);
+        }
+
+        log.info("✅ Phase 2 complete — All S3 images migrated for sellerId={}", sellerId);
+    }
+
+    /**
+     * Copies a file from its current S3 URL to:
+     * sellers/{sellerId}/{folder}/{original-filename}
+     *
+     * Returns the new S3 URL on success, or null if the copy fails.
+     */
+    private String copyToSellerFolder(String sourceUrl, String sellerId, String folder) {
+        try {
+            String oldKey = s3Service.extractKeyFromUrl(sourceUrl);
+            String fileName = oldKey.substring(oldKey.lastIndexOf('/') + 1);
+            String newKey = String.format("sellers/%s/%s/%s", sellerId, folder, fileName);
+
+            // Derive content type from the file extension in the key
+            String contentType = resolveContentType(newKey);
+
+            Resource resource = s3Service.getFile(oldKey);
+            return s3Service.uploadFileFromResource(newKey, resource, contentType);
+
+        } catch (Exception e) {
+            log.error("❌ Failed to copy S3 file from url={} to sellers/{}/{}: {}",
+                    sourceUrl, sellerId, folder, e.getMessage(), e);
+            return null;
+        }
+    }
+
+    /**
+     * Infers the MIME content type from the S3 key file extension.
+     * Defaults to application/octet-stream if extension is unrecognised.
+     */
+    private String resolveContentType(String key) {
+        if (key == null) return "application/octet-stream";
+        String lower = key.toLowerCase();
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+        if (lower.endsWith(".png"))  return "image/png";
+        if (lower.endsWith(".gif"))  return "image/gif";
+        if (lower.endsWith(".webp")) return "image/webp";
+        if (lower.endsWith(".pdf"))  return "application/pdf";
+        return "application/octet-stream";
+    }
+
+    /**
+     * Deletes an old temp S3 file. Logs a warning on failure but never throws.
+     */
+    private void deleteOldFile(String url) {
+        try {
+            s3Service.deleteFile(s3Service.extractKeyFromUrl(url));
+        } catch (Exception e) {
+            log.warn("⚠️ Could not delete old S3 file url={}: {}", url, e.getMessage());
+        }
+    }
+
+    /**
+     * Returns true when a URL is a real S3 URL (not null, blank, or PENDING placeholder).
+     */
+    private boolean hasUrl(String url) {
+        return url != null && !url.isBlank() && !"PENDING".equalsIgnoreCase(url.trim());
+    }
 }
