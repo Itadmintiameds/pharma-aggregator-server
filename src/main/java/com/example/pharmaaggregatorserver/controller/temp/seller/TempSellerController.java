@@ -121,6 +121,7 @@ public class TempSellerController {
     @PostMapping(value = "/{tempSellerId}/documents/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<TempSellerDocumentUploadResponse>> uploadDocuments(
             @PathVariable Long tempSellerId,
+            @RequestPart(value = "sellerImage", required = false) MultipartFile sellerImage,
             @RequestPart(value = "gstFile", required = false) MultipartFile gstFile,
             @RequestPart(value = "bankFile", required = false) MultipartFile bankFile,
             @RequestPart(value = "licenseFiles", required = false) List<MultipartFile> licenseFiles,
@@ -128,6 +129,7 @@ public class TempSellerController {
             @RequestParam(value = "documentIds", required = false) List<Long> documentIds) {
 
         TempSellerDocumentUploadRequest request = new TempSellerDocumentUploadRequest();
+        request.setSellerImage(sellerImage);
         request.setGstFile(gstFile);
         request.setBankFile(bankFile);
         request.setLicenseFiles(licenseFiles);

@@ -18,6 +18,11 @@ public class TempSellerDocumentUploadResponse {
     private String tempSellerRequestId;
 
     /**
+     * S3 URL of the uploaded seller profile image (null if not uploaded)
+     */
+    private String sellerImageUrl;
+
+    /**
      * S3 URL of the uploaded GST certificate (null if not uploaded).
      */
     private String gstFileUrl;

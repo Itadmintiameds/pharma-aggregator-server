@@ -20,6 +20,12 @@ import java.util.List;
 public class TempSellerDocumentUploadRequest {
 
     /**
+     * Seller profile image / logo
+     * Stored at: tempsellers/{REQ_ID}/sellerimage/SELLER_IMAGE_{timestamp}.{ext}
+     */
+    private MultipartFile sellerImage;
+
+    /**
      * GST certificate file.
      * Stored at: tempsellers/{REQ_ID}/gst/GST_IMAGE_{timestamp}.{ext}
      */

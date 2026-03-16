@@ -50,9 +50,19 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
         String reqId = seller.getTempSellerRequestId(); // e.g. REQ_001
         String now = LocalDateTime.now().format(TS_FORMATTER);
 
+        String sellerImageUrl = null;
         String gstUrl = null;
         String bankUrl = null;
         List<TempSellerDocumentUploadResponse.LicenseUploadResult> licenseResults = new ArrayList<>();
+
+        // ── 0. Seller Image / Logo ─────────────────────────────────────────────
+        if (hasFile(request.getSellerImage())) {
+            deleteIfRealUrl(seller.getSellerImageUrl());
+            String key = buildSellerImageKey(reqId, now, request.getSellerImage());
+            sellerImageUrl = s3Service.uploadFile(key, request.getSellerImage());
+            seller.setSellerImageUrl(sellerImageUrl);
+            log.info("Seller image uploaded → {}", sellerImageUrl);
+        }
 
         // ── 1. GST file ────────────────────────────────────────────────────────
         if (hasFile(request.getGstFile())) {
@@ -136,6 +146,7 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
         return TempSellerDocumentUploadResponse.builder()
                 .tempSellerId(seller.getTempSellerId())
                 .tempSellerRequestId(reqId)
+                .sellerImageUrl(sellerImageUrl)
                 .gstFileUrl(gstUrl)
                 .bankDocumentFileUrl(bankUrl)
                 .licenseResults(licenseResults)
@@ -226,5 +237,14 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
         } catch (Exception e) {
             log.warn("Could not delete old S3 file (url={}): {}", url, e.getMessage());
         }
+    }
+
+    /**
+     * tempsellers/{REQ_ID}/sellerimage/SELLER_IMAGE_{timestamp}.{ext}
+     * e.g. tempsellers/REQ_001/sellerimage/SELLER_IMAGE_20250101123045.jpg
+     */
+    private String buildSellerImageKey(String reqId, String timestamp, MultipartFile file) {
+        return String.format("tempsellers/%s/sellerimage/SELLER_IMAGE_%s.%s",
+                reqId, timestamp, extension(file));
     }
 }
