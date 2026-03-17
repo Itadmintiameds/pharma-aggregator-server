@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -101,6 +102,10 @@ public class SellerResponseDTO {
         private String documentFileUrl;
         private boolean isDocumentVerified;
         private String productType;
+        private LocalDate licenseIssueDate;
+        private LocalDate licenseExpiryDate;
+        private String licenseIssuingAuthority;
+        private String licenseStatus;
     }
 
     @Data
