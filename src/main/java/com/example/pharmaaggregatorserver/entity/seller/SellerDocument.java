@@ -11,6 +11,7 @@ import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -44,6 +45,19 @@ public class SellerDocument {
 
     @Column(name = "is_document_verified")
     private boolean isDocumentVerified;
+
+    // New license fields
+    @Column(name = "license_issue_date")
+    private LocalDate licenseIssueDate;
+
+    @Column(name = "license_expiry_date")
+    private LocalDate licenseExpiryDate;
+
+    @Column(name = "license_issuing_authority", length = 255)
+    private String licenseIssuingAuthority;
+
+    @Column(name = "license_status", length = 20)
+    private String licenseStatus; // Active/Expired - This will be system generated
 
     @Column(name = "created_by", length = 100)
     private String createdBy;

@@ -558,6 +558,10 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 doc.setDocumentNumber(tempDoc.getDocumentNumber());
                 doc.setDocumentFileUrl(tempDoc.getDocumentFileUrl());
                 doc.setDocumentVerified(tempDoc.isDocumentVerified());
+                doc.setLicenseIssueDate(tempDoc.getLicenseIssueDate());
+                doc.setLicenseExpiryDate(tempDoc.getLicenseExpiryDate());
+                doc.setLicenseIssuingAuthority(tempDoc.getLicenseIssuingAuthority());
+                doc.setLicenseStatus(tempDoc.getLicenseStatus());
                 doc.setCreatedBy("SYSTEM");
                 doc.setUpdatedBy("SYSTEM");
                 savedSeller.getDocuments().add(doc);
