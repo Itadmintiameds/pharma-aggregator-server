@@ -17,6 +17,8 @@ public class SellerDTO {
 
     private String sellerName;
 
+    private String sellerImageUrl;
+
     private SellerAddressDTO address;
 
     private SellerCoordinatorDTO coordinator;

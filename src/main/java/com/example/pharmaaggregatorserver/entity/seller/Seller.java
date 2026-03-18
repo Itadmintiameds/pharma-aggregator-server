@@ -31,6 +31,9 @@ public class Seller {
     @Column(name = "seller_name")
     private String sellerName;
 
+    @Column(name = "seller_image_url")
+    private String sellerImageUrl;
+
     @OneToOne(mappedBy = "seller", cascade = CascadeType.ALL, orphanRemoval = true)
     private SellerAddress address;
 

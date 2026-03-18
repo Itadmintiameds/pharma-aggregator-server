@@ -20,4 +20,15 @@ public class TempSellerResponseDTO {
     public void setCreatedAt(LocalDateTime createdAt) {
     }
     // Include other fields as needed
+
+    // Returned so the frontend knows which documentId + name to send
+    // when calling POST /{tempSellerId}/documents/upload
+    private List<DocumentInfo> documents;
+
+    @Getter
+    @Setter
+    public static class DocumentInfo {
+        private Long documentId;
+        private String licenseName;   // e.g. "Drug License", "FSSAI"
+    }
 }

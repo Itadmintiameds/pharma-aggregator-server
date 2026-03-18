@@ -15,6 +15,7 @@ public class SellerMapper {
                 .builder()
                 .sellerId(seller.getSellerId())
                 .sellerName(seller.getSellerName())
+                .sellerImageUrl(seller.getSellerImageUrl())
                 .address(SellerAddressMapper.toDto(seller.getAddress()))
                 .coordinator(SellerCoordinatorMapper.toDto(seller.getCoordinator()))
                 .bankDetails(SellerBankDetailsMapper.toDto(seller.getBankDetails()))
