@@ -128,5 +128,6 @@ public class SellerEditRequest {
         private LocalDate licenseIssueDate;
         private LocalDate licenseExpiryDate;
         private String licenseIssuingAuthority;
+        private String licenseStatus;
     }
 }

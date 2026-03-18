@@ -48,6 +48,9 @@ public class PendingSellerDocument {
     @Column(name = "license_issuing_authority")
     private String licenseIssuingAuthority;
 
+    @Column(name = "license_status", length = 20)
+    private String licenseStatus; // Active/Expired - This will be system generated
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

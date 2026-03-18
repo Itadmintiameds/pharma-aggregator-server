@@ -105,6 +105,7 @@ public class SellerProfileService {
             document.setLicenseIssueDate(docDTO.getLicenseIssueDate());
             document.setLicenseExpiryDate(docDTO.getLicenseExpiryDate());
             document.setLicenseIssuingAuthority(docDTO.getLicenseIssuingAuthority());
+            document.setLicenseStatus(docDTO.getLicenseStatus());
 
             pendingSellerDocumentRepository.save(document);
         }
@@ -341,6 +342,10 @@ public class SellerProfileService {
                 document.setProductTypes(pendingDoc.getProductType());
                 document.setDocumentNumber(pendingDoc.getDocumentNumber());
                 document.setDocumentFileUrl(pendingDoc.getDocumentFileUrl());
+                document.setLicenseIssueDate(pendingDoc.getLicenseIssueDate());
+                document.setLicenseExpiryDate(pendingDoc.getLicenseExpiryDate());
+                document.setLicenseIssuingAuthority(pendingDoc.getLicenseIssuingAuthority());
+                document.setLicenseStatus(pendingDoc.getLicenseStatus());
                 document.setCreatedBy("system");
                 document.setCreatedAt(LocalDateTime.now());
                 seller.getDocuments().add(document);
