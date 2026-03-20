@@ -29,7 +29,8 @@ public class CrossConfig {
                 "POST",
                 "PUT",
                 "DELETE",
-                "OPTIONS"
+                "OPTIONS",
+                "PATCH"
         ));
 
         // Allow headers
