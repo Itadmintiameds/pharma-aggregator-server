@@ -16,4 +16,7 @@ public class SellerTerms {
 
     @Column(columnDefinition = "TEXT")
     private String termText;
+
+    @Column(name = "terms_url")
+    private String termsUrl;
 }

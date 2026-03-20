@@ -23,9 +23,12 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -364,8 +367,10 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
         saveReviewHistory(tempSeller, "APPROVED", comments);
 
         // 3️⃣ Generate Seller Agreement PDF
-        List<SellerTerms> sellerTerms = sellerTermsRepository.findAll(Sort.by(Sort.Direction.ASC, "id"));
-        String pdfPath = pdfService.generateSellerAgreementPdf(sellerTerms);
+        SellerTerms terms = sellerTermsRepository.findByTermText("Seller-Terms")
+                .orElseThrow(() -> new ApplicationException("No seller terms PDF URL configured"));
+
+        byte[] pdfBytes = fetchPdfFromUrl(terms.getTermsUrl());
 
         // 4️⃣ Build HTML Email Body
         String body = """
@@ -457,7 +462,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 tempSeller.getCoordinator().getEmail(),
                 "Seller Application Approved – Welcome to TiaMeds Marketplace",
                 body,
-                pdfPath,
+                pdfBytes,                         // byte[]
                 "TiaMeds_Seller_Agreement.pdf"
         );
 
@@ -469,9 +474,9 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
     /**
      * PHASE 1: Maps all TempSeller data → Seller table using temp S3 URLs as-is.
      * PHASE 2: Once DB save is confirmed, migrates every image from
-     *           tempsellers/{REQ_ID}/... → sellers/{SELLER_ID}/...
-     *           then deletes the old temp S3 objects.
-     *
+     * tempsellers/{REQ_ID}/... → sellers/{SELLER_ID}/...
+     * then deletes the old temp S3 objects.
+     * <p>
      * If any image migration fails it is logged but does NOT roll back the approval.
      */
     private Seller mapAndPersistSeller(TempSeller temp, User user) {
@@ -640,12 +645,12 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
     /**
      * Migrates every file for an approved seller from the temp S3 folder
      * to the permanent seller folder, updates the DB URL, then deletes the temp file.
-     *
+     * <p>
      * Folder mapping:
-     *  tempsellers/{REQ_ID}/sellerimage/... → sellers/{SELLER_ID}/sellerimage/...
-     *  tempsellers/{REQ_ID}/gst/...         → sellers/{SELLER_ID}/gst/...
-     *  tempsellers/{REQ_ID}/bankdocument/... → sellers/{SELLER_ID}/bankdocument/...
-     *  tempsellers/{REQ_ID}/licenses/...    → sellers/{SELLER_ID}/licenses/...
+     * tempsellers/{REQ_ID}/sellerimage/... → sellers/{SELLER_ID}/sellerimage/...
+     * tempsellers/{REQ_ID}/gst/...         → sellers/{SELLER_ID}/gst/...
+     * tempsellers/{REQ_ID}/bankdocument/... → sellers/{SELLER_ID}/bankdocument/...
+     * tempsellers/{REQ_ID}/licenses/...    → sellers/{SELLER_ID}/licenses/...
      */
     private void migrateAllSellerImages(TempSeller temp, Seller seller) {
 
@@ -722,7 +727,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
     /**
      * Copies a file from its current S3 URL to:
      * sellers/{sellerId}/{folder}/{original-filename}
-     *
+     * <p>
      * Returns the new S3 URL on success, or null if the copy fails.
      */
     private String copyToSellerFolder(String sourceUrl, String sellerId, String folder) {
@@ -752,10 +757,10 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
         if (key == null) return "application/octet-stream";
         String lower = key.toLowerCase();
         if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
-        if (lower.endsWith(".png"))  return "image/png";
-        if (lower.endsWith(".gif"))  return "image/gif";
+        if (lower.endsWith(".png")) return "image/png";
+        if (lower.endsWith(".gif")) return "image/gif";
         if (lower.endsWith(".webp")) return "image/webp";
-        if (lower.endsWith(".pdf"))  return "application/pdf";
+        if (lower.endsWith(".pdf")) return "application/pdf";
         return "application/octet-stream";
     }
 
@@ -775,5 +780,25 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
      */
     private boolean hasUrl(String url) {
         return url != null && !url.isBlank() && !"PENDING".equalsIgnoreCase(url.trim());
+    }
+
+    private byte[] fetchPdfFromUrl(String url) {
+        try {
+            HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(10_000);
+            connection.setReadTimeout(30_000);
+
+            int status = connection.getResponseCode();
+            if (status != 200) {
+                throw new ApplicationException("Failed to fetch PDF from S3. HTTP status: " + status);
+            }
+
+            try (InputStream in = connection.getInputStream()) {
+                return in.readAllBytes();
+            }
+        } catch (IOException e) {
+            throw new ApplicationException("Error downloading seller agreement PDF: " + e.getMessage());
+        }
     }
 }

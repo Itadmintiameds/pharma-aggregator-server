@@ -1,8 +1,10 @@
 package com.example.pharmaaggregatorserver.service;
 
 import com.example.pharmaaggregatorserver.exception.ApplicationException;
+import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -28,34 +30,27 @@ public class EmailService {
     }
 
     // 🔹 Approval mail with PDF attachment
-    public void sendHtmlMailWithAttachment(String to,
-                                           String subject,
-                                           String htmlBody,
-                                           String filePath,
-                                           String attachmentName) {
+    public void sendHtmlMailWithAttachment(
+            String to, String subject, String htmlBody,
+            byte[] attachmentBytes, String attachmentFilename) {
+
+        MimeMessage message = mailSender.createMimeMessage();
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-
-            // TRUE = multipart email (required for attachments)
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
             helper.setTo(to);
             helper.setSubject(subject);
-            helper.setText(htmlBody, true); // HTML
+            helper.setText(htmlBody, true);
 
-            FileSystemResource file = new FileSystemResource(new File(filePath));
-
-            if (file.exists()) {
-                helper.addAttachment(attachmentName, file);
-            } else {
-                throw new ApplicationException("Attachment file not found at " + filePath);
-            }
+            // Attach PDF bytes directly — no temp file needed
+            helper.addAttachment(
+                    attachmentFilename,
+                    new ByteArrayResource(attachmentBytes),
+                    "application/pdf"
+            );
 
             mailSender.send(message);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new ApplicationException("Failed to send HTML email with attachment");
+        } catch (MessagingException e) {
+            throw new ApplicationException("Failed to send approval email: " + e.getMessage());
         }
     }
 
