@@ -5,6 +5,7 @@ import com.example.pharmaaggregatorserver.dto.seller.OnSubmit.EmailRequestDTO;
 import com.example.pharmaaggregatorserver.dto.seller.OnSubmit.EmailResponseDTO;
 import com.example.pharmaaggregatorserver.dto.seller.*;
 import com.example.pharmaaggregatorserver.entity.master.*;
+import com.example.pharmaaggregatorserver.entity.seller.Seller;
 import com.example.pharmaaggregatorserver.entity.temp.seller.*;
 import com.example.pharmaaggregatorserver.exception.ApplicationException;
 import com.example.pharmaaggregatorserver.exception.NotFoundException;
@@ -13,6 +14,7 @@ import com.example.pharmaaggregatorserver.repository.seller.SellerRepository;
 import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerBankDetailsRepository;
 import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerDocumentRepository;
 import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerRepository;
+import com.example.pharmaaggregatorserver.service.S3Service;
 import com.example.pharmaaggregatorserver.service.temp.seller.OnSubmit.IndependentEmailService;
 import com.example.pharmaaggregatorserver.service.temp.seller.RequestIdGeneratorService;
 import com.example.pharmaaggregatorserver.service.temp.seller.TempSellerService;
@@ -40,6 +42,7 @@ public class TempSellerServiceImpl implements TempSellerService {
     private final TempSellerDocumentRepository tempSellerDocumentRepository;
     private final TempSellerBankDetailsRepository tempSellerBankDetailsRepository;
     private final SellerRepository sellerRepository;
+    private final S3Service s3Service;
 
     // Email service for sending confirmations
     private final IndependentEmailService independentEmailService;
@@ -437,7 +440,12 @@ public class TempSellerServiceImpl implements TempSellerService {
 
     @Override
     public void deleteTempSeller(Long tempSellerId) {
-        tempSellerRepository.deleteById(tempSellerId);
+        TempSeller tempSeller = tempSellerRepository.findById(tempSellerId)
+                .orElseThrow(() -> new NotFoundException("TempSeller not found for id: " + tempSellerId));
+
+        deleteTempSellerS3Files(tempSeller);
+        tempSellerRepository.delete(tempSeller);
+//        log.info("TempSeller deleted with id: {}", tempSellerId);
     }
 
     @Override
@@ -450,11 +458,58 @@ public class TempSellerServiceImpl implements TempSellerService {
             sellerRepository.findByEmail(tempSeller.getEmail())
                     .ifPresent(seller -> {
                         log.info("Deleting approved Seller with email: {}", tempSeller.getEmail());
+                        deleteSellerS3Files(seller);
                         sellerRepository.delete(seller);
                     });
         }
 
-        tempSellerRepository.deleteById(tempSellerId);
-        log.info("TempSeller deleted with id: {}", tempSellerId);
+        deleteTempSellerS3Files(tempSeller);
+        tempSellerRepository.delete(tempSeller);
+//        log.info("TempSeller deleted with id: {}", tempSellerId);
+    }
+
+    // ─── Private Helpers ──────────────────────────────────────────────────────────
+
+    private void deleteTempSellerS3Files(TempSeller tempSeller) {
+        deleteS3File(tempSeller.getSellerImageUrl());
+        deleteS3File(tempSeller.getGstFileUrl());
+
+        if (tempSeller.getBankDetails() != null) {
+            deleteS3File(tempSeller.getBankDetails().getBankDocumentFileUrl());
+        }
+
+        if (tempSeller.getDocuments() != null) {
+            tempSeller.getDocuments()
+                    .forEach(doc -> deleteS3File(doc.getDocumentFileUrl()));
+        }
+    }
+
+    private void deleteSellerS3Files(Seller seller) {
+        deleteS3File(seller.getSellerImageUrl());
+
+        if (seller.getSellerGST() != null) {
+            deleteS3File(seller.getSellerGST().getGstFileUrl());
+        }
+
+        if (seller.getBankDetails() != null) {
+            deleteS3File(seller.getBankDetails().getBankDocumentFileUrl());
+        }
+
+        if (seller.getDocuments() != null) {
+            seller.getDocuments()
+                    .forEach(doc -> deleteS3File(doc.getDocumentFileUrl()));
+        }
+    }
+
+    private void deleteS3File(String fileUrl) {
+        if (fileUrl == null || fileUrl.isBlank()) return;
+        try {
+            String key = s3Service.extractKeyFromUrl(fileUrl);
+            s3Service.deleteFile(key);
+//            log.info("Deleted S3 file: {}", key);
+        } catch (Exception e) {
+            // Log but don't fail the delete — the DB record should still be removed
+            log.warn("Could not delete S3 file for URL: {}. Reason: {}", fileUrl, e.getMessage());
+        }
     }
 }
