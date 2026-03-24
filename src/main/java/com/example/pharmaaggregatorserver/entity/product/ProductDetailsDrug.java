@@ -35,16 +35,16 @@ public class ProductDetailsDrug {
     @Column(name = "therapeutic_subcategory")
     private String therapeuticSubcategory;
 
-    @ManyToMany(
-            fetch = FetchType.LAZY,
-            cascade = { CascadeType.PERSIST, CascadeType.MERGE }
-    )
-    @JoinTable(
-            name = "pm_product_molecule",
-            joinColumns = @JoinColumn(name = "product_id"),
-            inverseJoinColumns = @JoinColumn(name = "molecule_id")
-    )
-    private Set<Molecule> molecules;
+//    @ManyToMany(
+//            fetch = FetchType.LAZY,
+//            cascade = { CascadeType.PERSIST, CascadeType.MERGE }
+//    )
+//    @JoinTable(
+//            name = "pm_product_molecule",
+//            joinColumns = @JoinColumn(name = "product_id"),
+//            inverseJoinColumns = @JoinColumn(name = "molecule_id")
+//    )
+//    private Set<Molecule> molecules;
 
 
     @Column(name = "dosage_form")

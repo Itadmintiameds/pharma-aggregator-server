@@ -52,7 +52,7 @@ public class ProductDetailsDrugServiceImpl implements ProductDetailsDrugService 
                 throw new RuntimeException("One or more molecules not found");
             }
 
-            product.setMolecules(molecules);
+//            product.setMolecules(molecules);
         }
 
         // 3️⃣ Packaging (ONE-TO-ONE)

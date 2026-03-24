@@ -204,7 +204,7 @@ public class ExcelProductImportServiceImpl implements ExcelProductImportService 
         String moleculeCell = getString(row, COL_MOLECULES);
         if (moleculeCell != null && !moleculeCell.isBlank()) {
             Set<Molecule> molecules = resolveMolecules(moleculeCell);
-            product.setMolecules(molecules);
+//            product.setMolecules(molecules);
         }
 
         // ── 3. Packaging (ONE-TO-ONE) ─────────────────────────────────────
@@ -499,7 +499,7 @@ public class ExcelProductImportServiceImpl implements ExcelProductImportService 
 
         String moleculeCell = getCsvValue(r, COL_MOLECULES);
         if (moleculeCell != null && !moleculeCell.isBlank()) {
-            product.setMolecules(resolveMolecules(moleculeCell));
+//            product.setMolecules(resolveMolecules(moleculeCell));
         }
 
         String packagingUnit = getCsvValue(r, COL_PKG_UNIT);

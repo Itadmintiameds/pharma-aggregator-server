@@ -49,8 +49,9 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth ->
-                                auth.anyRequest().permitAll()
-                        // Swagger UI endpoints - public
+                           auth.anyRequest().permitAll()
+  //                              auth
+//                                         Swagger UI endpoints - public
 //                                .requestMatchers(
 //                                        "/swagger-ui/**",
 //                                        "/swagger-ui.html",
