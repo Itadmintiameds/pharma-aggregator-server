@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/products")
+@RequestMapping("/products/old")
 @RequiredArgsConstructor
 public class ProductDetailsDrugController {
 

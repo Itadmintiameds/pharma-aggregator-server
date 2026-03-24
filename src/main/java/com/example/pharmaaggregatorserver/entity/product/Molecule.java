@@ -29,4 +29,7 @@ public class Molecule {
     @Column(name = "primary_use")
     private String primaryUse;
 
+    @Column(name = "drug_schedule")
+    private String drugSchedule;
+
 }

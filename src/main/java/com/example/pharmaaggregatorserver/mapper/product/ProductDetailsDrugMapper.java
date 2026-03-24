@@ -30,13 +30,13 @@ public class ProductDetailsDrugMapper {
         dto.setCreatedDate(entity.getCreatedDate());
         dto.setModifiedDate(entity.getModifiedDate());
 
-            if (entity.getMolecules() != null) {
-            dto.setMolecules(
-                    entity.getMolecules().stream()
-                            .map(ProductDetailsDrugMapper::toMoleculeDto)
-                            .collect(Collectors.toSet())
-            );
-        }
+//            if (entity.getMolecules() != null) {
+//            dto.setMolecules(
+//                    entity.getMolecules().stream()
+//                            .map(ProductDetailsDrugMapper::toMoleculeDto)
+//                            .collect(Collectors.toSet())
+//            );
+//        }
 
 
         dto.setPackagingDetails(toPackagingDto(entity.getPackagingDetails()));
@@ -74,13 +74,13 @@ public class ProductDetailsDrugMapper {
         entity.setCreatedDate(dto.getCreatedDate());
         entity.setModifiedDate(dto.getModifiedDate());
 
-        if (dto.getMolecules() != null) {
-            entity.setMolecules(
-                    dto.getMolecules().stream()
-                            .map(ProductDetailsDrugMapper::toMoleculeEntity)
-                            .collect(Collectors.toSet())
-            );
-        }
+//        if (dto.getMolecules() != null) {
+//            entity.setMolecules(
+//                    dto.getMolecules().stream()
+//                            .map(ProductDetailsDrugMapper::toMoleculeEntity)
+//                            .collect(Collectors.toSet())
+//            );
+//        }
 
         PackagingDetailsDrug packaging = toPackagingEntity(dto.getPackagingDetails());
         if (packaging != null) {
