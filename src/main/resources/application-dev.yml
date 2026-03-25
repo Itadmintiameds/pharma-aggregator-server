@@ -62,10 +62,10 @@ spring:
 #    service-sid: ${SERVICE_SID}
 
 twilio:
-  account-sid: ${ACCOUNT_SID:dummy_sid}
-  auth-token: ${AUTH_TOKEN:dummy_token}
+  account-sid: ${ACCOUNT_SID}
+  auth-token: ${AUTH_TOKEN}
   verify:
-    service-sid: ${SERVICE_SID:dummy_service}
+    service-sid: ${SERVICE_SID}
 
 #server:
 #  error:

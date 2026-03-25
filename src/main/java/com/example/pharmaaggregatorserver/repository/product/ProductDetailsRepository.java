@@ -1,8 +1,12 @@
 package com.example.pharmaaggregatorserver.repository.product;
 
+import com.example.pharmaaggregatorserver.dto.product.DosageDto;
+import com.example.pharmaaggregatorserver.dto.product.TherapeuticSubcategoryDto;
 import com.example.pharmaaggregatorserver.entity.product.ProductDetails;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+
+import java.util.List;
 
 public interface ProductDetailsRepository extends JpaRepository<ProductDetails, String> {
 
@@ -13,4 +17,22 @@ public interface ProductDetailsRepository extends JpaRepository<ProductDetails, 
     Integer findMaxProductNumber();
 
 
+    List<ProductDetails> findBySellerSellerId(String sellerId);
+
+    @Query(
+            value = """
+        SELECT 
+            subcategory_id AS subcategoryId,
+            subcategory_name AS subcategoryName
+        FROM pm_product_therapeuticsubcategory_drug
+        WHERE category_id = :categoryId
+        ORDER BY subcategory_id
+    """,
+            nativeQuery = true
+    )
+    List<TherapeuticSubcategoryDto> findByCategoryId(String categoryId);
+
+
+    @Query(value = "SELECT dosage_name AS dosageName FROM tbl_dosage_form_master", nativeQuery = true)
+    List<DosageDto> getAllDosageNames();
 }

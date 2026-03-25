@@ -1,6 +1,8 @@
 package com.example.pharmaaggregatorserver.service.product.productImpl;
 
+import com.example.pharmaaggregatorserver.dto.product.DosageDto;
 import com.example.pharmaaggregatorserver.dto.product.ProductDetailsDto;
+import com.example.pharmaaggregatorserver.dto.product.TherapeuticSubcategoryDto;
 import com.example.pharmaaggregatorserver.entity.product.Category;
 import com.example.pharmaaggregatorserver.entity.product.Molecule;
 import com.example.pharmaaggregatorserver.entity.product.ProductDetails;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -227,5 +230,68 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
         int nextNumber = (lastNumber == null) ? 1 : lastNumber + 1;
 
         return prefix + prefixNew + String.format("%05d", nextNumber);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProductDetailsDto> getAllProducts(Long userId) {
+
+        Seller seller = sellerRepo.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Seller not found"));
+
+        List<ProductDetails> products = productRepo.findBySellerSellerId(seller.getSellerId());
+
+        return products.stream()
+                .map(productMapper::toDto)
+                .toList();
+    }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProductDetailsDto getProductById(String productId, Long userId) {
+
+        Seller seller = sellerRepo.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Seller not found"));
+
+        ProductDetails product = productRepo.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        if (!product.getSeller().getSellerId().equals(seller.getSellerId())) {
+            throw new RuntimeException("Unauthorized access to this product");
+        }
+
+        return productMapper.toDto(product);
+    }
+
+
+    @Override
+    @Transactional
+    public void deleteProductById(String productId, Long userId) {
+
+        Seller seller = sellerRepo.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Seller not found"));
+
+        ProductDetails product = productRepo.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        if (!product.getSeller().getSellerId().equals(seller.getSellerId())) {
+            throw new RuntimeException("Unauthorized to delete this product");
+        }
+
+        productRepo.delete(product);
+    }
+
+    @Override
+    public List<TherapeuticSubcategoryDto> getSubcategories(String categoryId) {
+        return productRepo.findByCategoryId(categoryId);
+
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DosageDto> getAllDosage() {
+
+        return productRepo.getAllDosageNames();
     }
 }
