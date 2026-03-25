@@ -670,10 +670,10 @@ public class SellerProfileService {
     /**
      * Get pending seller by ID
      */
-    public PendingSeller getPendingSellerById(Long pendingSellerId) {
-        return pendingSellerRepository.findById(pendingSellerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Pending seller not found with id: " + pendingSellerId));
-    }
+//    public PendingSeller getPendingSellerById(Long pendingSellerId) {
+//        return pendingSellerRepository.findById(pendingSellerId)
+//                .orElseThrow(() -> new ResourceNotFoundException("Pending seller not found with id: " + pendingSellerId));
+//    }
 
     /**
      * Map PendingSeller entity to PendingSellerResponseDTO
@@ -1014,4 +1014,17 @@ public class SellerProfileService {
 
         log.info("Pending seller record deleted (rollback) for pendingSellerId={}", pendingSellerId);
     }
+
+    /**
+     * Get pending seller by ID and map to DTO
+     * @param pendingSellerId the ID of the pending seller
+     * @return PendingSellerResponseDTO with all details
+     */
+    public PendingSellerResponseDTO getPendingSellerById(Long pendingSellerId) {
+        PendingSeller pendingSeller = pendingSellerRepository.findById(pendingSellerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Pending seller not found with id: " + pendingSellerId));
+
+        return mapToPendingResponseDTO(pendingSeller);
+    }
+
 }

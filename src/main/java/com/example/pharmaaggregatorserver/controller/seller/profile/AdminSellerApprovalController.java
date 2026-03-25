@@ -6,9 +6,10 @@ import com.example.pharmaaggregatorserver.service.profile.SellerProfileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/admin/seller-requests")
 @RequiredArgsConstructor
@@ -20,6 +21,14 @@ public class AdminSellerApprovalController {
     public ResponseEntity<List<PendingSellerResponseDTO>> getPendingRequests() {
         List<PendingSellerResponseDTO> pendingRequests = sellerProfileService.getPendingRequests();
         return ResponseEntity.ok(pendingRequests);
+    }
+
+    @GetMapping("/pending/{id}")
+    public ResponseEntity<PendingSellerResponseDTO> getPendingSellerByIdRequests(
+            @PathVariable Long id) {
+        log.info("Received request to fetch pending seller with ID: {}", id);
+        PendingSellerResponseDTO pendingRequest = sellerProfileService.getPendingSellerById(id);
+        return ResponseEntity.ok(pendingRequest);
     }
 
     @PostMapping("/{id}/approve")
