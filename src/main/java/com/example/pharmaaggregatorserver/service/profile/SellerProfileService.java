@@ -18,6 +18,7 @@ import com.example.pharmaaggregatorserver.repository.seller.SellerRepository;
 import com.example.pharmaaggregatorserver.repository.seller.profile.PendingSellerDocumentRepository;
 import com.example.pharmaaggregatorserver.repository.seller.profile.PendingSellerRepository;
 import com.example.pharmaaggregatorserver.service.EmailService;
+import com.example.pharmaaggregatorserver.service.S3Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -43,6 +44,9 @@ public class SellerProfileService {
     private final TalukaMasterRepository talukaRepository;
     private final ProductTypeMasterRepository productTypeRepository;
     private final EmailService emailService;  // Inject EmailService
+    private final S3Service s3Service;
+    private static final DateTimeFormatter TS_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
     @Transactional
     public SellerResponseDTO requestSellerUpdate(String sellerId, SellerEditRequest request, String requestedBy) {
@@ -74,7 +78,7 @@ public class SellerProfileService {
                 .orElseThrow(() -> new ResourceNotFoundException("Pending seller not found"));
 
         // Return response
-        return mapToResponseDTO(request, savedPending.getPendingSellerId());
+        return mapToResponseDTO(savedPending);
     }
 
     @Transactional
@@ -108,6 +112,7 @@ public class SellerProfileService {
             document.setLicenseStatus(docDTO.getLicenseStatus());
 
             pendingSellerDocumentRepository.save(document);
+            pendingSeller.getDocuments().add(document);
         }
     }
 
@@ -204,47 +209,49 @@ public class SellerProfileService {
         }
 
         try {
+            String now = LocalDateTime.now().format(TS_FORMATTER);
             String sellerId = null;
+
             if ("UPDATE".equals(pendingSeller.getRequestType())) {
-                // Update existing seller
                 Seller seller = sellerRepository.findById(pendingSeller.getSellerId())
                         .orElseThrow(() -> new ResourceNotFoundException("Seller not found with id: " + pendingSeller.getSellerId()));
 
+                sellerId = seller.getSellerId();
+
+                // Move files from pendingsellers/ → sellers/ and update URLs before applying to seller
+                movePendingFilesToSeller(pendingSeller, sellerId, now);
+
                 updateSellerFromPending(seller, pendingSeller);
                 sellerRepository.save(seller);
-                sellerId = seller.getSellerId();
-                log.info("Updated existing seller with ID: {}", seller.getSellerId());
+                log.info("Updated existing seller with ID: {}", sellerId);
 
             } else if ("CREATE".equals(pendingSeller.getRequestType())) {
-                // Create new seller
-                Seller newSeller = createSellerFromPending(pendingSeller);
                 sellerId = generateSellerId();
+
+                // Move files from pendingsellers/ → sellers/ and update URLs before creating seller
+                movePendingFilesToSeller(pendingSeller, sellerId, now);
+
+                Seller newSeller = createSellerFromPending(pendingSeller);
                 newSeller.setSellerId(sellerId);
                 sellerRepository.save(newSeller);
                 log.info("Created new seller with ID: {}", sellerId);
             }
 
-            // Send approval email (HTML format)
             sendApprovalEmail(pendingSeller, sellerId, approvedBy);
 
-            // Delete documents first (due to foreign key constraints)
+            // Delete pending documents and pending seller record
             if (pendingSeller.getDocuments() != null && !pendingSeller.getDocuments().isEmpty()) {
                 pendingSellerDocumentRepository.deleteAll(pendingSeller.getDocuments());
             }
-
-            // Then delete the pending request
             pendingSellerRepository.delete(pendingSeller);
 
             log.info("Seller update approved by: {} for pending request ID: {}", approvedBy, pendingSellerId);
 
         } catch (Exception e) {
             log.error("Failed to approve seller update for pending request ID: {}", pendingSellerId, e);
-
-            // Update the pending request status to reflect the error
             pendingSeller.setStatus("APPROVAL_FAILED");
             pendingSeller.setRejectionReason("Failed to update main table: " + e.getMessage());
             pendingSellerRepository.save(pendingSeller);
-
             throw new RuntimeException("Failed to approve seller update: " + e.getMessage(), e);
         }
     }
@@ -788,89 +795,136 @@ public class SellerProfileService {
         return dto;
     }
 
-    private SellerResponseDTO mapToResponseDTO(SellerEditRequest request, Long pendingSellerId) {
+    private SellerResponseDTO mapToResponseDTO(PendingSeller savedPending) {
         SellerResponseDTO response = new SellerResponseDTO();
 
-        response.setPendingSellerId(pendingSellerId);
+        response.setPendingSellerId(savedPending.getPendingSellerId());
         response.setMessage("Update request submitted successfully and pending admin approval");
-        response.setSellerName(request.getSellerName());
-        response.setProductTypeId(request.getProductTypeId());
-        response.setCompanyTypeId(request.getCompanyTypeId());
-        response.setSellerTypeId(request.getSellerTypeId());
-        response.setPhone(request.getPhone());
-        response.setEmail(request.getEmail());
-        response.setTermsAccepted(request.getTermsAccepted());
-        response.setWebsite(request.getWebsite());
-        response.setGstNumber(request.getGstNumber());
-        response.setGstFileUrl(request.getGstFileUrl());
+        response.setSellerName(savedPending.getSellerName());
+        response.setPhone(savedPending.getPhone());
+        response.setEmail(savedPending.getEmail());
+        response.setWebsite(savedPending.getWebsite());
+        response.setGstNumber(savedPending.getGstNumber());
+        response.setGstFileUrl(savedPending.getGstFileUrl());
+        response.setTermsAccepted(savedPending.isTermsAccepted());
 
-        // Convert DTOs from request to response DTOs
-        if (request.getAddress() != null) {
-            response.setAddress(convertToResponseAddress(request.getAddress()));
+        if (savedPending.getCompanyType() != null) {
+            response.setCompanyTypeId(savedPending.getCompanyType().getCompanyTypeId());
+        }
+        if (savedPending.getSellerType() != null) {
+            response.setSellerTypeId(savedPending.getSellerType().getSellerTypeId());
+        }
+        if (savedPending.getProductTypes() != null && !savedPending.getProductTypes().isEmpty()) {
+            response.setProductTypeId(
+                    savedPending.getProductTypes().stream()
+                            .map(pt -> pt.getProductTypeId())
+                            .collect(Collectors.toList())
+            );
         }
 
-        if (request.getCoordinator() != null) {
-            response.setCoordinator(convertToResponseCoordinator(request.getCoordinator()));
+        if (savedPending.getState() != null) {
+            SellerResponseDTO.AddressDTO addr = new SellerResponseDTO.AddressDTO();
+            addr.setStateId(savedPending.getState().getStateId());
+            addr.setDistrictId(savedPending.getDistrict() != null ? savedPending.getDistrict().getDistrictId() : null);
+            addr.setTalukaId(savedPending.getTaluka() != null ? savedPending.getTaluka().getTalukaId() : null);
+            addr.setCity(savedPending.getCity());
+            addr.setStreet(savedPending.getStreet());
+            addr.setBuildingNo(savedPending.getBuildingNo());
+            addr.setLandmark(savedPending.getLandmark());
+            addr.setPinCode(savedPending.getPinCode());
+            response.setAddress(addr);
         }
 
-        if (request.getBankDetails() != null) {
-            response.setBankDetails(convertToResponseBankDetails(request.getBankDetails()));
+        if (savedPending.getCoordinatorName() != null) {
+            SellerResponseDTO.CoordinatorDTO coord = new SellerResponseDTO.CoordinatorDTO();
+            coord.setName(savedPending.getCoordinatorName());
+            coord.setDesignation(savedPending.getCoordinatorDesignation());
+            coord.setEmail(savedPending.getCoordinatorEmail());
+            coord.setMobile(savedPending.getCoordinatorMobile());
+            response.setCoordinator(coord);
         }
 
-        if (request.getDocuments() != null) {
-            response.setDocuments(convertToResponseDocuments(request.getDocuments()));
+        if (savedPending.getBankName() != null) {
+            SellerResponseDTO.BankDetailsDTO bank = new SellerResponseDTO.BankDetailsDTO();
+            bank.setBankName(savedPending.getBankName());
+            bank.setBranch(savedPending.getBankBranch());
+            bank.setIfscCode(savedPending.getBankIfscCode());
+            bank.setAccountNumber(savedPending.getBankAccountNumber());
+            bank.setAccountHolderName(savedPending.getBankAccountHolderName());
+            bank.setBankDocumentFileUrl(savedPending.getBankDocumentFileUrl());
+            response.setBankDetails(bank);
+        }
+
+        if (savedPending.getDocuments() != null && !savedPending.getDocuments().isEmpty()) {
+            List<SellerResponseDTO.DocumentDTO> documentDTOs = savedPending.getDocuments().stream()
+                    .map(doc -> {
+                        SellerResponseDTO.DocumentDTO dto = new SellerResponseDTO.DocumentDTO();
+                        dto.setPendingSellerDocumentId(doc.getId());
+                        dto.setProductTypeId(doc.getProductType().getProductTypeId());
+                        dto.setProductTypeName(doc.getProductType().getProductTypeName());
+                        dto.setDocumentNumber(doc.getDocumentNumber());
+                        dto.setDocumentFileUrl(doc.getDocumentFileUrl());
+                        dto.setLicenseIssueDate(doc.getLicenseIssueDate());
+                        dto.setLicenseExpiryDate(doc.getLicenseExpiryDate());
+                        dto.setLicenseIssuingAuthority(doc.getLicenseIssuingAuthority());
+                        return dto;
+                    })
+                    .collect(Collectors.toList());
+            response.setDocuments(documentDTOs);
         }
 
         return response;
     }
 
-    private SellerResponseDTO.AddressDTO convertToResponseAddress(SellerEditRequest.AddressDTO requestAddress) {
-        SellerResponseDTO.AddressDTO responseAddress = new SellerResponseDTO.AddressDTO();
-        responseAddress.setStateId(requestAddress.getStateId());
-        responseAddress.setDistrictId(requestAddress.getDistrictId());
-        responseAddress.setTalukaId(requestAddress.getTalukaId());
-        responseAddress.setCity(requestAddress.getCity());
-        responseAddress.setStreet(requestAddress.getStreet());
-        responseAddress.setBuildingNo(requestAddress.getBuildingNo());
-        responseAddress.setLandmark(requestAddress.getLandmark());
-        responseAddress.setPinCode(requestAddress.getPinCode());
-        return responseAddress;
-    }
-
-    private SellerResponseDTO.CoordinatorDTO convertToResponseCoordinator(SellerEditRequest.CoordinatorDTO requestCoordinator) {
-        SellerResponseDTO.CoordinatorDTO responseCoordinator = new SellerResponseDTO.CoordinatorDTO();
-        responseCoordinator.setName(requestCoordinator.getName());
-        responseCoordinator.setDesignation(requestCoordinator.getDesignation());
-        responseCoordinator.setEmail(requestCoordinator.getEmail());
-        responseCoordinator.setMobile(requestCoordinator.getMobile());
-        return responseCoordinator;
-    }
-
-    private SellerResponseDTO.BankDetailsDTO convertToResponseBankDetails(SellerEditRequest.BankDetailsDTO requestBankDetails) {
-        SellerResponseDTO.BankDetailsDTO responseBankDetails = new SellerResponseDTO.BankDetailsDTO();
-        responseBankDetails.setBankName(requestBankDetails.getBankName());
-        responseBankDetails.setBranch(requestBankDetails.getBranch());
-        responseBankDetails.setIfscCode(requestBankDetails.getIfscCode());
-        responseBankDetails.setAccountNumber(requestBankDetails.getAccountNumber());
-        responseBankDetails.setAccountHolderName(requestBankDetails.getAccountHolderName());
-        responseBankDetails.setBankDocumentFileUrl(requestBankDetails.getBankDocumentFileUrl());
-        return responseBankDetails;
-    }
-
-    private List<SellerResponseDTO.DocumentDTO> convertToResponseDocuments(List<SellerEditRequest.DocumentDTO> requestDocuments) {
-        return requestDocuments.stream()
-                .map(doc -> {
-                    SellerResponseDTO.DocumentDTO responseDoc = new SellerResponseDTO.DocumentDTO();
-                    responseDoc.setProductTypeId(doc.getProductTypeId());
-                    responseDoc.setDocumentNumber(doc.getDocumentNumber());
-                    responseDoc.setDocumentFileUrl(doc.getDocumentFileUrl());
-                    responseDoc.setLicenseIssueDate(doc.getLicenseIssueDate());
-                    responseDoc.setLicenseExpiryDate(doc.getLicenseExpiryDate());
-                    responseDoc.setLicenseIssuingAuthority(doc.getLicenseIssuingAuthority());
-                    return responseDoc;
-                })
-                .collect(Collectors.toList());
-    }
+//    private SellerResponseDTO.AddressDTO convertToResponseAddress(SellerEditRequest.AddressDTO requestAddress) {
+//        SellerResponseDTO.AddressDTO responseAddress = new SellerResponseDTO.AddressDTO();
+//        responseAddress.setStateId(requestAddress.getStateId());
+//        responseAddress.setDistrictId(requestAddress.getDistrictId());
+//        responseAddress.setTalukaId(requestAddress.getTalukaId());
+//        responseAddress.setCity(requestAddress.getCity());
+//        responseAddress.setStreet(requestAddress.getStreet());
+//        responseAddress.setBuildingNo(requestAddress.getBuildingNo());
+//        responseAddress.setLandmark(requestAddress.getLandmark());
+//        responseAddress.setPinCode(requestAddress.getPinCode());
+//        return responseAddress;
+//    }
+//
+//    private SellerResponseDTO.CoordinatorDTO convertToResponseCoordinator(SellerEditRequest.CoordinatorDTO requestCoordinator) {
+//        SellerResponseDTO.CoordinatorDTO responseCoordinator = new SellerResponseDTO.CoordinatorDTO();
+//        responseCoordinator.setName(requestCoordinator.getName());
+//        responseCoordinator.setDesignation(requestCoordinator.getDesignation());
+//        responseCoordinator.setEmail(requestCoordinator.getEmail());
+//        responseCoordinator.setMobile(requestCoordinator.getMobile());
+//        return responseCoordinator;
+//    }
+//
+//    private SellerResponseDTO.BankDetailsDTO convertToResponseBankDetails(SellerEditRequest.BankDetailsDTO requestBankDetails) {
+//        SellerResponseDTO.BankDetailsDTO responseBankDetails = new SellerResponseDTO.BankDetailsDTO();
+//        responseBankDetails.setBankName(requestBankDetails.getBankName());
+//        responseBankDetails.setBranch(requestBankDetails.getBranch());
+//        responseBankDetails.setIfscCode(requestBankDetails.getIfscCode());
+//        responseBankDetails.setAccountNumber(requestBankDetails.getAccountNumber());
+//        responseBankDetails.setAccountHolderName(requestBankDetails.getAccountHolderName());
+//        responseBankDetails.setBankDocumentFileUrl(requestBankDetails.getBankDocumentFileUrl());
+//        return responseBankDetails;
+//    }
+//
+//    private List<SellerResponseDTO.DocumentDTO> convertToResponseDocuments(List<SellerEditRequest.DocumentDTO> requestDocuments) {
+//        return requestDocuments.stream()
+//                .map(doc -> {
+//                    SellerResponseDTO.DocumentDTO responseDoc = new SellerResponseDTO.DocumentDTO();
+//                    responseDoc.setProductTypeId(doc.getProductTypeId());
+//                    responseDoc.setProductTypeName(productTypeRepository.findById(doc.getProductTypeId())
+//                            .orElse(new ProductTypeMaster()).getProductTypeName());
+//                    responseDoc.setDocumentNumber(doc.getDocumentNumber());
+//                    responseDoc.setDocumentFileUrl(doc.getDocumentFileUrl());
+//                    responseDoc.setLicenseIssueDate(doc.getLicenseIssueDate());
+//                    responseDoc.setLicenseExpiryDate(doc.getLicenseExpiryDate());
+//                    responseDoc.setLicenseIssuingAuthority(doc.getLicenseIssuingAuthority());
+//                    return responseDoc;
+//                })
+//                .collect(Collectors.toList());
+//    }
 
     @Transactional
     public void deleteOldRejectedRequests(LocalDateTime cutoffDate) {
@@ -882,5 +936,82 @@ public class SellerProfileService {
         }
         pendingSellerRepository.deleteAll(rejectedRequests);
         log.info("Deleted {} old rejected requests created before {}", rejectedRequests.size(), cutoffDate);
+    }
+
+    /**
+     * Copies files from pendingsellers/{sellerId}/... to sellers/{sellerId}/...
+     * Updates the URL fields on the pendingSeller entity IN PLACE before
+     * updateSellerFromPending/createSellerFromPending reads them.
+     * Old pendingsellers/ objects are deleted from S3 after successful copy.
+     */
+    private void movePendingFilesToSeller(PendingSeller pending, String sellerId, String now) {
+
+        // ── GST file ──────────────────────────────────────────────────────────
+        if (isRealUrl(pending.getGstFileUrl()) && isPendingUrl(pending.getGstFileUrl())) {
+            String ext       = extractExtension(pending.getGstFileUrl());
+            String targetKey = String.format("sellers/%s/gst/GST_IMAGE_%s.%s", sellerId, now, ext);
+            String newUrl    = s3Service.copyFile(s3Service.extractKeyFromUrl(pending.getGstFileUrl()), targetKey);
+            s3Service.deleteFile(s3Service.extractKeyFromUrl(pending.getGstFileUrl()));
+            pending.setGstFileUrl(newUrl);
+            log.info("GST file moved → {}", newUrl);
+        }
+        // else: URL is already a sellers/ URL — untouched, copied as-is to main seller table
+
+        // ── Bank document ─────────────────────────────────────────────────────
+        if (isRealUrl(pending.getBankDocumentFileUrl()) && isPendingUrl(pending.getBankDocumentFileUrl())) {
+            String ext       = extractExtension(pending.getBankDocumentFileUrl());
+            String targetKey = String.format("sellers/%s/bankdocument/BANK_DETAILS_%s.%s", sellerId, now, ext);
+            String newUrl    = s3Service.copyFile(s3Service.extractKeyFromUrl(pending.getBankDocumentFileUrl()), targetKey);
+            s3Service.deleteFile(s3Service.extractKeyFromUrl(pending.getBankDocumentFileUrl()));
+            pending.setBankDocumentFileUrl(newUrl);
+            log.info("Bank document moved → {}", newUrl);
+        }
+
+        // ── License / document files ──────────────────────────────────────────
+        if (pending.getDocuments() != null) {
+            for (PendingSellerDocument doc : pending.getDocuments()) {
+                if (isRealUrl(doc.getDocumentFileUrl()) && isPendingUrl(doc.getDocumentFileUrl())) {
+                    String ext       = extractExtension(doc.getDocumentFileUrl());
+                    String safeName  = doc.getProductType().getProductTypeName()
+                            .trim()
+                            .replaceAll("[\\s/\\\\:*?\"<>|#]+", "_")
+                            .replaceAll("_+", "_");
+                    String targetKey = String.format("sellers/%s/licenses/%s_%s.%s", sellerId, safeName, now, ext);
+                    String newUrl    = s3Service.copyFile(s3Service.extractKeyFromUrl(doc.getDocumentFileUrl()), targetKey);
+                    s3Service.deleteFile(s3Service.extractKeyFromUrl(doc.getDocumentFileUrl()));
+                    doc.setDocumentFileUrl(newUrl);
+                    log.info("License '{}' moved → {}", safeName, newUrl);
+                }
+                // else: already a sellers/ URL — no move needed
+            }
+        }
+    }
+
+    /** Only move files that were uploaded to the pending area */
+    private boolean isPendingUrl(String url) {
+        return url != null && url.contains("/pendingsellers/");
+    }
+
+    /** Returns true when a URL is a real S3 URL (not null/blank/PENDING) */
+    private boolean isRealUrl(String url) {
+        return url != null && !url.isBlank() && !"PENDING".equalsIgnoreCase(url.trim());
+    }
+
+    /** Extracts extension from a URL. Falls back to "bin". */
+    private String extractExtension(String url) {
+        int dot = url.lastIndexOf('.');
+        int slash = url.lastIndexOf('/');
+        return (dot > slash && dot < url.length() - 1) ? url.substring(dot + 1).toLowerCase() : "bin";
+    }
+
+    @Transactional
+    public void deletePendingSeller(Long pendingSellerId) {
+        PendingSeller pendingSeller = pendingSellerRepository.findById(pendingSellerId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Pending seller not found with id: " + pendingSellerId));
+
+        pendingSellerRepository.delete(pendingSeller);
+
+        log.info("Pending seller record deleted (rollback) for pendingSellerId={}", pendingSellerId);
     }
 }

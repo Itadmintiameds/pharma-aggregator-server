@@ -56,7 +56,9 @@ public class SellerResponseDTO {
 
     @Data
     public static class DocumentDTO {
+        private Long pendingSellerDocumentId;
         private Long productTypeId;
+        private String productTypeName;
         private String documentNumber;
         private String documentFileUrl;
         private LocalDate licenseIssueDate;
