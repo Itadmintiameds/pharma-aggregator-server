@@ -128,4 +128,31 @@ public class S3Service {
             throw new IllegalArgumentException("Failed to upload resource to S3", e);
         }
     }
+
+    /**
+     * Copies an S3 object from sourceKey to targetKey within the same bucket.
+     * Returns the public URL of the new object.
+     * Used when moving files from pendingsellers/ → sellers/ on approval.
+     *
+     * @param sourceKey the existing S3 object key
+     * @param targetKey the destination S3 object key
+     * @return the public S3 URL of the copied object
+     */
+    public String copyFile(String sourceKey, String targetKey) {
+        try {
+            s3Client.copyObject(CopyObjectRequest.builder()
+                    .sourceBucket(bucketName)
+                    .sourceKey(sourceKey)
+                    .destinationBucket(bucketName)
+                    .destinationKey(targetKey)
+                    .build());
+
+            log.info("Copied S3 object from {} → {}", sourceKey, targetKey);
+            return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, targetKey);
+
+        } catch (S3Exception e) {
+            log.error("Failed to copy S3 object. Source: {}, Target: {}. Error: {}", sourceKey, targetKey, e.awsErrorDetails().errorMessage());
+            throw new IllegalArgumentException("Failed to copy file in S3: " + e.awsErrorDetails().errorMessage(), e);
+        }
+    }
 }

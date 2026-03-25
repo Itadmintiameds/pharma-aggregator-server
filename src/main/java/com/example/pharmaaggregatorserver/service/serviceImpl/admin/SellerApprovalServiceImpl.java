@@ -10,6 +10,7 @@ import com.example.pharmaaggregatorserver.entity.temp.seller.TempSellerDocument;
 import com.example.pharmaaggregatorserver.entity.temp.seller.TempSellerReviewHistory;
 import com.example.pharmaaggregatorserver.exception.ApplicationException;
 import com.example.pharmaaggregatorserver.exception.NotFoundException;
+import com.example.pharmaaggregatorserver.repository.master.ProductTypeMasterRepository;
 import com.example.pharmaaggregatorserver.repository.seller.SellerRepository;
 import com.example.pharmaaggregatorserver.repository.temp.seller.SellerTermsRepository;
 import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerRepository;
@@ -49,6 +50,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
     private final SellerTermsRepository sellerTermsRepository;
     private final TempSellerReviewHistoryRepository reviewHistoryRepository;
     private final S3Service s3Service;
+    private final ProductTypeMasterRepository productTypeMasterRepository;
 
     /**
      * Processes admin review decision based on request status.
