@@ -57,6 +57,7 @@ public class ProductDetails {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "seller_id", nullable = false)
+    @JsonBackReference
     private Seller seller;
 
     @ManyToMany(
