@@ -24,7 +24,13 @@ public class SellerProfileMapper {
         SellerResponseDTO dto = new SellerResponseDTO();
 
         // Basic info
-        dto.setSellerId(seller.getSellerId());
+        if (seller.getSellerId() != null) {
+            try {
+                dto.setSellerId(Long.parseLong(seller.getSellerId()));
+            } catch (NumberFormatException e) {
+                dto.setSellerId(null);
+            }
+        }
         dto.setSellerName(seller.getSellerName());
         dto.setPhone(seller.getPhone());
         dto.setEmail(seller.getEmail());

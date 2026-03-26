@@ -52,4 +52,6 @@ public interface SellerRepository extends JpaRepository<Seller, String> {
 
     @Query("SELECT s FROM Seller s WHERE s.user.userId = :userId")
     Optional<Seller> findByUserId(Long userId);
+
+    Optional<Seller> findBySellerId(String sellerId);
 }

@@ -2,6 +2,7 @@ package com.example.pharmaaggregatorserver.controller.seller.profile;
 import com.example.pharmaaggregatorserver.dto.seller.SellerLogIn.ApiResponse;
 import com.example.pharmaaggregatorserver.dto.seller.profile.ApprovalRequestDTO;
 import com.example.pharmaaggregatorserver.dto.seller.profile.PendingSellerResponseDTO;
+import com.example.pharmaaggregatorserver.dto.seller.profile.SellerResponseDTO;
 import com.example.pharmaaggregatorserver.service.profile.SellerProfileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +30,12 @@ public class AdminSellerApprovalController {
         log.info("Received request to fetch pending seller with ID: {}", id);
         PendingSellerResponseDTO pendingRequest = sellerProfileService.getPendingSellerById(id);
         return ResponseEntity.ok(pendingRequest);
+    }
+
+    @GetMapping("/{sellerId}")
+    public ResponseEntity<SellerResponseDTO> getSellerById(@PathVariable String sellerId) {
+        SellerResponseDTO seller = sellerProfileService.findSellerById(sellerId);
+        return ResponseEntity.ok(seller);
     }
 
     @PostMapping("/{id}/approve")
