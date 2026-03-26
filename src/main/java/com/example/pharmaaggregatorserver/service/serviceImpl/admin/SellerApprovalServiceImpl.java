@@ -177,7 +177,6 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
         seller.setStatus("REJECTED");
         tempSellerRepo.save(seller);
         saveReviewHistory(seller, "REJECTED", comments);
-        tempSellerService.deleteTempSeller(seller.getTempSellerId());
 
         String body = """
                 <html>
@@ -240,6 +239,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 "Seller Application Status: Rejected",
                 body
         );
+        tempSellerService.deleteTempSeller(seller.getTempSellerId());
     }
 
     /**
