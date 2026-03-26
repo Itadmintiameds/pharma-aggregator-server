@@ -20,6 +20,7 @@ import com.example.pharmaaggregatorserver.service.PdfService;
 import com.example.pharmaaggregatorserver.service.S3Service;
 import com.example.pharmaaggregatorserver.service.admin.SellerApprovalService;
 import com.example.pharmaaggregatorserver.service.auth.UserCreationService;
+import com.example.pharmaaggregatorserver.service.temp.seller.TempSellerService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,6 +52,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
     private final TempSellerReviewHistoryRepository reviewHistoryRepository;
     private final S3Service s3Service;
     private final ProductTypeMasterRepository productTypeMasterRepository;
+    private final TempSellerService tempSellerService;
 
     /**
      * Processes admin review decision based on request status.
@@ -175,6 +177,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
         seller.setStatus("REJECTED");
         tempSellerRepo.save(seller);
         saveReviewHistory(seller, "REJECTED", comments);
+        tempSellerService.deleteTempSeller(seller.getTempSellerId());
 
         String body = """
                 <html>
