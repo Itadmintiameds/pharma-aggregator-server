@@ -13,6 +13,7 @@ import com.example.pharmaaggregatorserver.entity.seller.*;
 import com.example.pharmaaggregatorserver.entity.seller.profile.PendingSeller;
 import com.example.pharmaaggregatorserver.entity.seller.profile.PendingSellerDocument;
 import com.example.pharmaaggregatorserver.exception.ResourceNotFoundException;
+import com.example.pharmaaggregatorserver.mapper.seller.profile.SellerByIdMapper;
 import com.example.pharmaaggregatorserver.repository.master.*;
 import com.example.pharmaaggregatorserver.repository.seller.SellerRepository;
 import com.example.pharmaaggregatorserver.repository.seller.profile.PendingSellerDocumentRepository;
@@ -34,6 +35,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class SellerProfileService {
+    private final SellerByIdMapper sellerByIdMapper;
     private final SellerRepository sellerRepository;
     private final PendingSellerRepository pendingSellerRepository;
     private final PendingSellerDocumentRepository pendingSellerDocumentRepository;
@@ -1025,6 +1027,14 @@ public class SellerProfileService {
                 .orElseThrow(() -> new ResourceNotFoundException("Pending seller not found with id: " + pendingSellerId));
 
         return mapToPendingResponseDTO(pendingSeller);
+    }
+
+    @Transactional(readOnly = true)
+    public SellerResponseDTO findSellerById(String sellerId) {
+        Seller seller = sellerRepository.findBySellerId(sellerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Seller not found with id: " + sellerId));
+
+        return sellerByIdMapper.toResponseDTO(seller);
     }
 
 }
