@@ -1,6 +1,7 @@
 package com.example.pharmaaggregatorserver.entity.product;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -24,6 +25,6 @@ public class TherapeuticSubcategoryMaster {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "therapeutic_category_id", nullable = false)
-    @JsonBackReference
+    @JsonIgnore
     private TherapeuticCategoryMaster therapeuticCategoryMaster;
 }

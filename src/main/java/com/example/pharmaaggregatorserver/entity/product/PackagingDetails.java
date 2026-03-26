@@ -1,6 +1,7 @@
 package com.example.pharmaaggregatorserver.entity.product;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -50,7 +51,7 @@ public class PackagingDetails {
 
     @OneToOne
     @JoinColumn(name = "product_id")
-    @JsonBackReference
+    @JsonIgnore
     private ProductDetails productDetails;
 
 }

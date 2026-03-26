@@ -2,6 +2,7 @@ package com.example.pharmaaggregatorserver.entity.product;
 
 import com.example.pharmaaggregatorserver.entity.seller.Seller;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -52,12 +53,12 @@ public class ProductDetails {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
-    @JsonBackReference
+    @JsonIgnore
     private Category category;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "seller_id", nullable = false)
-    @JsonBackReference
+    @JsonIgnore
     private Seller seller;
 
     @ManyToMany(
@@ -72,19 +73,19 @@ public class ProductDetails {
     private Set<Molecule> molecules;
 
     @OneToOne(mappedBy = "productDetails", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonManagedReference
+    @JsonIgnore
     private PackagingDetails packagingDetails;
 
     @OneToMany(mappedBy = "productDetails", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonIgnore
     private Set<PricingDetails> pricingDetails;
 
     @OneToMany(mappedBy = "productDetails", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonIgnore
     private Set<ProductAttributeDrug> productAttributeDrugs;
 
     @OneToMany(mappedBy = "productDetails", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonIgnore
     private Set<ProductImage> productImages;
 
 }

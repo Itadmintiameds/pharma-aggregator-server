@@ -1,6 +1,7 @@
 package com.example.pharmaaggregatorserver.entity.product;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -27,11 +28,11 @@ public class TherapeuticCategoryMaster {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
-    @JsonBackReference
+    @JsonIgnore
     private Category category;
 
     @OneToMany(mappedBy = "therapeuticCategoryMaster", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonIgnore
     private Set<TherapeuticSubcategoryMaster> therapeuticSubcategoryMasters;
 
 }
