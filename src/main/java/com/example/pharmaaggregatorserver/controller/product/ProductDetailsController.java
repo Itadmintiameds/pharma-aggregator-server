@@ -72,6 +72,28 @@ public class ProductDetailsController {
         );
     }
 
+    @PutMapping("/update/{productId}")
+    public ResponseEntity<ApiResponse<ProductDetailsDto>> updateProduct(
+            @PathVariable String productId,
+            @RequestBody ProductDetailsDto dto,
+            Authentication authentication
+    ) {
+
+        UserDetailsImpl user = (UserDetailsImpl) authentication.getPrincipal();
+        Long userId = user.getId();
+
+        ProductDetailsDto updatedProduct =
+                productService.updateProduct(productId, dto, userId);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        "SUCCESS",
+                        "Product updated successfully",
+                        updatedProduct
+                )
+        );
+    }
+
     @GetMapping("/subcategories/{categoryId}")
     public ResponseEntity<List<TherapeuticSubcategoryDto>>
     getSubcategories(@PathVariable String categoryId) {
