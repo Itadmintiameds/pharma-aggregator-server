@@ -16,6 +16,8 @@ public interface ProductDetailsService {
 
     void deleteProductById(String productId, Long userId);
 
+//    ProductDetailsDto updateProduct(String productId, ProductDetailsDto dto, Long userId);
+
     List<TherapeuticSubcategoryDto> getSubcategories(String categoryId);
 
     List<DosageDto> getAllDosage();

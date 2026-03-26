@@ -9,10 +9,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class ProductAttributeDrugMapper {
 
-    public ProductAttributeDrugDto toEntity(ProductAttributeDrugDto dto){
+    public ProductAttributeDrug toEntity(ProductAttributeDrugDto dto){
         if (dto == null) return null;
 
-        ProductAttributeDrugDto entity = new ProductAttributeDrugDto();
+        ProductAttributeDrug entity = new ProductAttributeDrug();
         entity.setProductAttributeId(dto.getProductAttributeId());
         entity.setTherapeuticCategoryId(dto.getTherapeuticCategoryId());
         entity.setTherapeuticSubcategoryId(dto.getTherapeuticSubcategoryId());
@@ -23,7 +23,6 @@ public class ProductAttributeDrugMapper {
         entity.setCreatedDate(dto.getCreatedDate());
         entity.setModifiedDate(dto.getModifiedDate());
         return entity;
-
     }
 
 
