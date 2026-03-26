@@ -1,9 +1,6 @@
 package com.example.pharmaaggregatorserver.service.product.productImpl;
 
-import com.example.pharmaaggregatorserver.dto.product.DosageDto;
-import com.example.pharmaaggregatorserver.dto.product.PackagingDetailsDto;
-import com.example.pharmaaggregatorserver.dto.product.ProductDetailsDto;
-import com.example.pharmaaggregatorserver.dto.product.TherapeuticSubcategoryDto;
+import com.example.pharmaaggregatorserver.dto.product.*;
 import com.example.pharmaaggregatorserver.entity.product.*;
 import com.example.pharmaaggregatorserver.entity.seller.Seller;
 import com.example.pharmaaggregatorserver.mapper.product.*;
@@ -17,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -247,123 +245,155 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
         productRepo.delete(product);
     }
 
-//    @Override
-//    @Transactional
-//    public ProductDetailsDto updateProduct(String productId, ProductDetailsDto dto, Long userId) {
-//
-//        Seller seller = sellerRepo.findByUserId(userId)
-//                .orElseThrow(() -> new RuntimeException("Seller not found"));
-//
-//        ProductDetails existingProduct = productRepo.findById(productId)
-//                .orElseThrow(() -> new RuntimeException("Product not found"));
-//
-//        if (!existingProduct.getSeller().getSellerId().equals(seller.getSellerId())) {
-//            throw new RuntimeException("Unauthorized to update this product");
-//        }
-//
-//        // =========================
-//        // BASIC FIELDS
-//        // =========================
-//        existingProduct.setProductName(dto.getProductName());
-//        existingProduct.setWarningsPrecautions(dto.getWarningsPrecautions());
-//        existingProduct.setProductDescription(dto.getProductDescription());
-//        existingProduct.setProductMarketingUrl(dto.getProductMarketingUrl());
-//        existingProduct.setModifiedBy(String.valueOf(userId));
-//
-//        // =========================
-//        // CATEGORY
-//        // =========================
-//        if (dto.getCategoryId() != null) {
-//            Category category = categoryRepo.findById(dto.getCategoryId())
-//                    .orElseThrow(() -> new RuntimeException("Category not found"));
-//            existingProduct.setCategory(category);
-//        }
-//
-//        // =========================
-//        // PACKAGING (OneToOne)
-//        // =========================
-//        if (dto.getPackagingDetails() != null) {
-//
-//            PackagingDetails existingPackaging = existingProduct.getPackagingDetails();
-//
-//            if (existingPackaging == null) {
-//                PackagingDetails newPackaging =
-//                        packagingDetailsMapper.toEntity(dto.getPackagingDetails());
-//
-//                newPackaging.setProductDetails(existingProduct);
-//                existingProduct.setPackagingDetails(newPackaging);
-//
-//            } else {
-//                PackagingDetailsDto pd = dto.getPackagingDetails();
-//
-//                existingPackaging.setPackagingUnit(pd.getPackagingUnit());
-//                existingPackaging.setNumberOfUnits(pd.getNumberOfUnits());
-//                existingPackaging.setPackSize(pd.getPackSize());
-//                existingPackaging.setMinimumOrderQuantity(pd.getMinimumOrderQuantity());
-//                existingPackaging.setMaximumOrderQuantity(pd.getMaximumOrderQuantity());
-//                existingPackaging.setModifiedBy(pd.getModifiedBy());
-//                existingPackaging.setModifiedDate(pd.getModifiedDate());
-//            }
-//        }
-//
-//        // =========================
-//        // PRICING (OneToMany)
-//        // =========================
-//        if (dto.getPricingDetails() != null) {
-//
-//            existingProduct.getPricingDetails().clear();
-//
-//            Set<PricingDetails> pricingSet = dto.getPricingDetails().stream()
-//                    .map(p -> {
-//                        PricingDetails pricing = pricingDetailsMapper.toEntity(p);
-//                        pricing.setProductDetails(existingProduct);
-//                        return pricing;
-//                    })
-//                    .collect(Collectors.toSet());
-//
-//            existingProduct.getPricingDetails().addAll(pricingSet);
-//        }
-//
-//        // =========================
-//        // PRODUCT ATTRIBUTE DRUG
-//        // =========================
-//        if (dto.getProductAttributeDrugs() != null) {
-//
-//            existingProduct.getProductAttributeDrugs().clear();
-//
-//            Set<ProductAttributeDrug> attrSet = dto.getProductAttributeDrugs().stream()
-//                    .map(a -> {
-//                        ProductAttributeDrug attr = productAttributeDrugMapper.toEntity(a);
-//                        attr.setProductDetails(existingProduct);
-//                        return attr;
-//                    })
-//                    .collect(Collectors.toSet());
-//
-//            existingProduct.getProductAttributeDrugs().addAll(attrSet);
-//        }
-//
-//        // =========================
-//        // PRODUCT IMAGES
-//        // =========================
-//        if (dto.getProductImages() != null) {
-//
-//            existingProduct.getProductImages().clear();
-//
-//            Set<ProductImage> images = dto.getProductImages().stream()
-//                    .map(img -> {
-//                        ProductImage image = productImageMapper.toEntity(img);
-//                        image.setProductDetails(existingProduct);
-//                        return image;
-//                    })
-//                    .collect(Collectors.toSet());
-//
-//            existingProduct.getProductImages().addAll(images);
-//        }
-//
-//        ProductDetails updatedProduct = productRepo.save(existingProduct);
-//
-//        return productMapper.toDto(updatedProduct);
-//    }
+    @Override
+    @Transactional
+    public ProductDetailsDto updateProduct(String productId, ProductDetailsDto dto, Long userId) {
+
+        Seller seller = sellerRepo.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Seller not found"));
+
+        ProductDetails existingProduct = productRepo.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        if (!existingProduct.getSeller().getSellerId().equals(seller.getSellerId())) {
+            throw new RuntimeException("Unauthorized to update this product");
+        }
+
+
+        existingProduct.setProductName(dto.getProductName());
+        existingProduct.setWarningsPrecautions(dto.getWarningsPrecautions());
+        existingProduct.setProductDescription(dto.getProductDescription());
+        existingProduct.setProductMarketingUrl(dto.getProductMarketingUrl());
+        existingProduct.setModifiedBy(seller.getSellerId());
+        existingProduct.setModifiedDate(LocalDateTime.now());
+
+        if (dto.getCategoryId() != null) {
+            Category category = categoryRepo.findById(dto.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Category not found"));
+            existingProduct.setCategory(category);
+        }
+
+
+        if (dto.getPackagingDetails() != null) {
+
+            PackagingDetails existingPackaging = existingProduct.getPackagingDetails();
+
+            if (existingPackaging == null) {
+                PackagingDetails newPackaging =
+                        packagingDetailsMapper.toEntity(dto.getPackagingDetails());
+
+                newPackaging.setProductDetails(existingProduct);
+                existingProduct.setPackagingDetails(newPackaging);
+
+            } else {
+                PackagingDetailsDto pd = dto.getPackagingDetails();
+
+                existingPackaging.setPackagingUnit(pd.getPackagingUnit());
+                existingPackaging.setNumberOfUnits(pd.getNumberOfUnits());
+                existingPackaging.setPackSize(pd.getPackSize());
+                existingPackaging.setMinimumOrderQuantity(pd.getMinimumOrderQuantity());
+                existingPackaging.setMaximumOrderQuantity(pd.getMaximumOrderQuantity());
+                existingPackaging.setModifiedBy(seller.getSellerId());
+                existingPackaging.setModifiedDate(LocalDateTime.now());
+            }
+        }
+
+
+        if (dto.getPricingDetails() != null) {
+
+            Set<PricingDetails> existingPricing = existingProduct.getPricingDetails();
+
+            Map<String, PricingDetails> existingMap = existingPricing.stream()
+                    .collect(Collectors.toMap(PricingDetails::getPricingId, p -> p));
+
+            for (PricingDetailsDto dtoPricing : dto.getPricingDetails()) {
+
+                if (dtoPricing.getPricingId() != null &&
+                        existingMap.containsKey(dtoPricing.getPricingId())) {
+
+                    PricingDetails existing = existingMap.get(dtoPricing.getPricingId());
+
+                    existing.setBatchLotNumber(dtoPricing.getBatchLotNumber());
+                    existing.setManufacturerName(dtoPricing.getManufacturerName());
+                    existing.setManufacturingDate(dtoPricing.getManufacturingDate());
+                    existing.setExpiryDate(dtoPricing.getExpiryDate());
+                    existing.setStorageCondition(dtoPricing.getStorageCondition());
+                    existing.setStockQuantity(dtoPricing.getStockQuantity());
+                    existing.setPricePerUnit(dtoPricing.getPricePerUnit());
+                    existing.setMrp(dtoPricing.getMrp());
+                    existing.setDiscountPercentage(dtoPricing.getDiscountPercentage());
+                    existing.setGstPercentage(dtoPricing.getGstPercentage());
+                    existing.setMinimumPurchaseQuantity(dtoPricing.getMinimumPurchaseQuantity());
+                    existing.setAdditionalDiscount(dtoPricing.getAdditionalDiscount());
+                    existing.setFinalPrice(dtoPricing.getFinalPrice());
+                    existing.setHsnCode(dtoPricing.getHsnCode());
+                    existing.setShelfLifeMonths(dtoPricing.getShelfLifeMonths());
+
+                    existing.setModifiedBy(seller.getSellerId());
+                    existing.setModifiedDate(LocalDateTime.now());
+
+                } else {
+
+                    PricingDetails newPricing = pricingDetailsMapper.toEntity(dtoPricing);
+
+                    newPricing.setPricingId(generatePricingId(seller.getSellerName()));
+                    newPricing.setCreatedBy(seller.getSellerId());
+                    newPricing.setCreatedDate(LocalDateTime.now());
+
+                    newPricing.setProductDetails(existingProduct);
+
+                    existingPricing.add(newPricing);
+                }
+            }
+        }
+
+
+        if (dto.getProductAttributeDrugs() != null) {
+
+            Set<ProductAttributeDrug> existingAttrs = existingProduct.getProductAttributeDrugs();
+
+            Map<String, ProductAttributeDrug> existingMap = existingAttrs.stream()
+                    .collect(Collectors.toMap(ProductAttributeDrug::getProductAttributeId, a -> a));
+
+            for (ProductAttributeDrugDto dtoAttr : dto.getProductAttributeDrugs()) {
+
+                if (dtoAttr.getProductAttributeId() != null &&
+                        existingMap.containsKey(dtoAttr.getProductAttributeId())) {
+
+                    ProductAttributeDrug existingAttr =
+                            existingMap.get(dtoAttr.getProductAttributeId());
+
+                    existingAttr.setTherapeuticCategoryId(dtoAttr.getTherapeuticCategoryId());
+                    existingAttr.setTherapeuticSubcategoryId(dtoAttr.getTherapeuticSubcategoryId());
+                    existingAttr.setDosageForm(dtoAttr.getDosageForm());
+                    existingAttr.setStrength(dtoAttr.getStrength());
+                    existingAttr.setModifiedBy(seller.getSellerId());
+                    existingAttr.setModifiedDate(LocalDateTime.now());
+
+                }
+            }
+        }
+
+
+        if (dto.getProductImages() != null) {
+
+            existingProduct.getProductImages().clear();
+
+            Set<ProductImage> images = dto.getProductImages().stream()
+                    .map(img -> {
+                        ProductImage image = productImageMapper.toEntity(img);
+                        image.setProductDetails(existingProduct);
+                        return image;
+                    })
+                    .collect(Collectors.toSet());
+
+            existingProduct.getProductImages().addAll(images);
+        }
+
+        ProductDetails updatedProduct = productRepo.save(existingProduct);
+
+        return productMapper.toDto(updatedProduct);
+    }
 
     @Override
     public List<TherapeuticSubcategoryDto> getSubcategories(String categoryId) {

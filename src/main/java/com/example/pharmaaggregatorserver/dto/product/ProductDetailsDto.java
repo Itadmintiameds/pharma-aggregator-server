@@ -23,9 +23,9 @@ public class ProductDetailsDto {
     private LocalDateTime modifiedDate;
     private Long categoryId;
     private Set<MoleculeDto> molecules;
-    private PackagingDetails packagingDetails;
-    private Set<PricingDetails> pricingDetails;
-    private Set<ProductAttributeDrug> productAttributeDrugs;
-    private Set<ProductImage> productImages;
+    private PackagingDetailsDto  packagingDetails;
+    private Set<PricingDetailsDto> pricingDetails;
+    private Set<ProductAttributeDrugDto> productAttributeDrugs;
+    private Set<ProductImageDto> productImages;
 
 }
