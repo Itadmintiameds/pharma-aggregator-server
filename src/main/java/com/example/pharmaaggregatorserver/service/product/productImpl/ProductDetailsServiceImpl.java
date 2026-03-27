@@ -49,6 +49,8 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
 
         ProductDetails product = productMapper.toEntity(dto);
 
+        product.setProductImages(null);
+
         product.setProductId(
                 generateProductId(dto.getProductName(), seller.getSellerName())
         );
@@ -59,7 +61,7 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
 
         setChildRelationships(product, seller.getSellerName(), seller.getSellerId());
 
-        ProductDetails saved = productRepo.saveAndFlush(product);
+        ProductDetails saved = productRepo.save(product);
 
         if (dto.getMolecules() != null && !dto.getMolecules().isEmpty()) {
 
@@ -71,7 +73,7 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
 
             saved.setMolecules(molecules);
 
-            saved = productRepo.save(saved);
+//            saved = productRepo.save(saved);
         }
 
         return productMapper.toDto(saved);
@@ -107,12 +109,6 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
             });
         }
 
-        if (product.getProductImages() != null) {
-            product.getProductImages().forEach(img -> {
-                img.setProductImageId(UUID.randomUUID().toString());
-                img.setProductDetails(product);
-            });
-        }
     }
 
 
@@ -375,20 +371,20 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
         }
 
 
-        if (dto.getProductImages() != null) {
-
-            existingProduct.getProductImages().clear();
-
-            Set<ProductImage> images = dto.getProductImages().stream()
-                    .map(img -> {
-                        ProductImage image = productImageMapper.toEntity(img);
-                        image.setProductDetails(existingProduct);
-                        return image;
-                    })
-                    .collect(Collectors.toSet());
-
-            existingProduct.getProductImages().addAll(images);
-        }
+//        if (dto.getProductImages() != null) {
+//
+//            existingProduct.getProductImages().clear();
+//
+//            Set<ProductImage> images = dto.getProductImages().stream()
+//                    .map(img -> {
+//                        ProductImage image = productImageMapper.toEntity(img);
+//                        image.setProductDetails(existingProduct);
+//                        return image;
+//                    })
+//                    .collect(Collectors.toSet());
+//
+//            existingProduct.getProductImages().addAll(images);
+//        }
 
         ProductDetails updatedProduct = productRepo.save(existingProduct);
 
