@@ -17,6 +17,7 @@ import lombok.Setter;
 public class ProductImage {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "product_image_id")
     private String productImageId;
 
