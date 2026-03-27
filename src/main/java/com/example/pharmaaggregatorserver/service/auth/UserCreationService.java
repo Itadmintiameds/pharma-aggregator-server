@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 
 @Slf4j
@@ -26,7 +27,7 @@ public class UserCreationService {
      * Creates a User for a seller.
      * Called during TempSeller → Seller approval.
      *
-     * @param coordinatorEmail  used as username
+     * @param coordinatorEmail used as username
      * @return plain text temp password (to be emailed — NOT stored anywhere)
      */
     public UserCreationResult createSellerUser(String coordinatorEmail) {
@@ -68,7 +69,69 @@ public class UserCreationService {
         //    Plain password is returned ONLY to be emailed — never logged or stored
         return new UserCreationResult(savedUser, plainTempPassword);
     }
+// =========================================================================
+    // Rotate credentials when the coordinator e-mail changes
+    // Called during UPDATE-type approval when coordinator email has changed.
+    // =========================================================================
+
+    /**
+     * Rotates the username and password for an existing seller {@link User}
+     * when the coordinator's e-mail address is updated through an approved
+     * profile change request.
+     * <p>
+     * What this method does:
+     * <ol>
+     *   <li>Looks up the User by {@code oldEmail} (their current username).</li>
+     *   <li>Updates {@code username} to {@code newEmail}.</li>
+     *   <li>Generates a new random temporary password, BCrypt-hashes it, stores the hash.</li>
+     *   <li>Sets {@code isPasswordTemporary = true} so the coordinator is forced to
+     *       change it on their very next login.</li>
+     * </ol>
+     * <p>
+     * The plain-text password is returned so the caller
+     * ({@link com.example.pharmaaggregatorserver.service.seller.history.SellerHistoryService})
+     * can e-mail it to the new coordinator address. It is NEVER logged or stored.
+     *
+     * @param oldEmail the coordinator's previous e-mail (current value of tbl_user.username)
+     * @param newEmail the coordinator's new e-mail    (new value of tbl_user.username)
+     * @return {@link CredentialRotationResult} with the updated User and plain password
+     * @throws IllegalStateException if no user record exists for {@code oldEmail}
+     */
+    public CredentialRotationResult rotateCoordinatorCredentials(String oldEmail, String newEmail) {
+
+        // 1. Find the user by their current username (= old coordinator email)
+        User user = userRepository.findByUsername(oldEmail)
+                .orElseThrow(() -> new IllegalStateException(
+                        "No user account found for coordinator email: " + oldEmail));
+
+        // 2. Generate a new temporary password (plain — never stored)
+        String plainTempPassword = passwordGeneratorUtils.generateTemporaryPassword();
+
+        // 3. Hash for storage
+        String hashedPassword = passwordEncoder.encode(plainTempPassword);
+
+        // 4. Update user record
+        user.setUsername(newEmail);               // new login username
+        user.setPasswordHash(hashedPassword);     // new BCrypt hash
+        user.setPasswordTemporary(true);          // force change on first login
+        user.setUpdatedAt(LocalDateTime.now());
+
+        // 5. Persist
+        User savedUser = userRepository.save(user);
+        log.info("Credentials rotated: userId={}, username [{}] → [{}]",
+                savedUser.getUserId(), oldEmail, newEmail);
+
+        // 6. Return saved entity + plain password for e-mailing
+        return new CredentialRotationResult(savedUser, plainTempPassword);
+    }
 
     // Simple result holder — keeps method return clean
-    public record UserCreationResult(User user, String plainTempPassword) {}
+    public record UserCreationResult(User user, String plainTempPassword) {
+    }
+
+    /**
+     * Returned by {@link #rotateCoordinatorCredentials}.
+     */
+    public record CredentialRotationResult(User user, String plainTempPassword) {
+    }
 }

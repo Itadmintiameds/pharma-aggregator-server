@@ -24,6 +24,7 @@ import com.example.pharmaaggregatorserver.service.temp.seller.TempSellerService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
@@ -41,7 +42,9 @@ import java.util.List;
 public class SellerApprovalServiceImpl implements SellerApprovalService {
 
     public static final String SUPPORT_TIAMEDS_COM = "support@tiameds.com";
-    public static final String LOGIN_URL = "https://pharma-aggregator-test.tiameds.ai/";
+
+    @Value("${app.frontend-url}")
+    public String LOGIN_URL;
 
     private final TempSellerRepository tempSellerRepo;
     private final SellerRepository sellerRepo;
