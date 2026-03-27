@@ -9,6 +9,7 @@ import com.example.pharmaaggregatorserver.service.EmailService;
 import com.example.pharmaaggregatorserver.service.auth.UserCreationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,7 +37,9 @@ public class SellerHistoryService {
     private final EmailService emailService;
 
     private static final String SUPPORT_EMAIL = "support@tiameds.com";
-    private static final String LOGIN_URL = "https://pharma-aggregator-test.tiameds.ai/";
+
+    @Value("${app.frontend-url}")
+    private String LOGIN_URL;
 
     // =========================================================================
     // 1. Snapshot
