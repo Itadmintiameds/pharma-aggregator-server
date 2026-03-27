@@ -3,6 +3,7 @@ package com.example.pharmaaggregatorserver.service.product.productImpl;
 import com.example.pharmaaggregatorserver.entity.product.ProductDetails;
 import com.example.pharmaaggregatorserver.entity.product.ProductImage;
 import com.example.pharmaaggregatorserver.repository.product.ProductDetailsRepository;
+import com.example.pharmaaggregatorserver.repository.product.ProductImageRepository;
 import com.example.pharmaaggregatorserver.service.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -11,6 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +20,7 @@ import java.util.List;
 public class ProductImageService {
 
     private final ProductDetailsRepository productRepo;
+    private final ProductImageRepository productImageRepository;
     private final S3Service s3Service;
 
     public List<String> uploadImages(String productId, List<MultipartFile> files) {
@@ -58,6 +61,22 @@ public class ProductImageService {
         productRepo.save(product);
 
         return uploadedUrls;
+    }
+
+
+    public List<String> getImagesByProductId(String productId) {
+
+        // ✅ Optional validation (good practice)
+        if (!productRepo.existsById(productId)) {
+            throw new RuntimeException("Product not found");
+        }
+
+        List<ProductImage> images =
+                productImageRepository.findByProductDetails_ProductId(productId);
+
+        return images.stream()
+                .map(ProductImage::getProductImage)
+                .collect(Collectors.toList());
     }
 
 }

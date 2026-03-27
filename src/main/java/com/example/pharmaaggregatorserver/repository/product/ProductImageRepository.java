@@ -5,6 +5,8 @@ import com.example.pharmaaggregatorserver.entity.product.ProductImage;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.List;
+
 public interface ProductImageRepository extends JpaRepository<ProductImage, String>{
 
     @Query(value = """
@@ -12,5 +14,8 @@ public interface ProductImageRepository extends JpaRepository<ProductImage, Stri
     FROM tm_product_image
 """, nativeQuery = true)
     Integer findMaxPackagingNumber();
+
+
+    List<ProductImage> findByProductDetails_ProductId(String productId);
 
 }

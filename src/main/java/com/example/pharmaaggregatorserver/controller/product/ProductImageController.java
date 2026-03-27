@@ -23,5 +23,15 @@ public class ProductImageController {
         ) {
             return ResponseEntity.ok(productImageService.uploadImages(productId, files));
         }
+
+
+    @GetMapping("/getImg/{productId}")
+    public ResponseEntity<?> getImages(@PathVariable String productId) {
+
+        List<String> imageUrls =
+                productImageService.getImagesByProductId(productId);
+
+        return ResponseEntity.ok(imageUrls);
+    }
     }
 
