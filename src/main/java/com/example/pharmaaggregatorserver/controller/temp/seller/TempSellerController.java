@@ -90,6 +90,17 @@ public class TempSellerController {
         return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Bank document verification updated successfully", null));
     }
 
+    // PATCH /api/admin/temp-sellers/{id}/verify/company-registration-certificate
+    // { "isCompanyRegistrationCertificateVerified": true }
+    @PatchMapping("/{id}/verify/company-registration-certificate")
+    public ResponseEntity<ApiResponse<Void>> verifyCompanyRegistrationCertificate(
+            @PathVariable Long id,
+            @RequestBody CompanyRegistrationCertificateVerificationRequestDTO requestDTO) {
+
+        tempSellerService.updateCompanyRegistrationCertificateVerification(id, requestDTO.isCompanyRegistrationCertificateVerified());
+        return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Company registration certificate verification updated successfully", null));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteByID(@PathVariable Long id) {
         tempSellerService.deleteTempSeller(id);
@@ -124,6 +135,7 @@ public class TempSellerController {
             @RequestPart(value = "sellerImage", required = false) MultipartFile sellerImage,
             @RequestPart(value = "gstFile", required = false) MultipartFile gstFile,
             @RequestPart(value = "bankFile", required = false) MultipartFile bankFile,
+            @RequestPart(value = "companyRegistrationCertificate", required = false) MultipartFile companyRegistrationCertificate,
             @RequestPart(value = "licenseFiles", required = false) List<MultipartFile> licenseFiles,
             @RequestParam(value = "licenseNames", required = false) List<String> licenseNames,
             @RequestParam(value = "documentIds", required = false) List<Long> documentIds) {
@@ -132,6 +144,7 @@ public class TempSellerController {
         request.setSellerImage(sellerImage);
         request.setGstFile(gstFile);
         request.setBankFile(bankFile);
+        request.setCompanyRegistrationCertificate(companyRegistrationCertificate);
         request.setLicenseFiles(licenseFiles);
         request.setLicenseNames(licenseNames);
         request.setDocumentIds(documentIds);

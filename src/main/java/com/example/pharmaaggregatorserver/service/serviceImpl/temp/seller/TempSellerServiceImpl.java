@@ -85,6 +85,7 @@ public class TempSellerServiceImpl implements TempSellerService {
         seller.setGstNumber(requestDTO.getGstNumber());
         seller.setGstFileUrl(requestDTO.getGstFileUrl());
         seller.setTermsAccepted(requestDTO.isTermsAccepted());
+        seller.setCompanyRegistrationCertificateUrl(requestDTO.getCompanyRegistrationCertificateUrl());
         seller.setCreatedBy("SYSTEM");
         seller.setUpdatedBy("SYSTEM");
 
@@ -409,6 +410,18 @@ public class TempSellerServiceImpl implements TempSellerService {
 
     @Override
     @Transactional
+    public void updateCompanyRegistrationCertificateVerification(Long tempSellerId, boolean isCompanyRegistrationCertificateVerified) {
+        TempSeller seller = tempSellerRepository.findById(tempSellerId)
+                .orElseThrow(() -> new NotFoundException("TempSeller not found for id: " + tempSellerId));
+
+        seller.setCompanyRegistrationCertificateVerified(isCompanyRegistrationCertificateVerified);
+        log.info("Company Registration Certificate verified: " + seller.isCompanyRegistrationCertificateVerified());
+        log.info("From API Company Registration Certificate verified: " + isCompanyRegistrationCertificateVerified);
+        tempSellerRepository.save(seller);
+    }
+
+    @Override
+    @Transactional
     public void updateDocumentVerification(Long tempSellerId, Long documentId, boolean isDocumentVerified) {
         // Confirm seller exists
         if (!tempSellerRepository.existsById(tempSellerId)) {
@@ -473,6 +486,7 @@ public class TempSellerServiceImpl implements TempSellerService {
     private void deleteTempSellerS3Files(TempSeller tempSeller) {
         deleteS3File(tempSeller.getSellerImageUrl());
         deleteS3File(tempSeller.getGstFileUrl());
+        deleteS3File(tempSeller.getCompanyRegistrationCertificateUrl());
 
         if (tempSeller.getBankDetails() != null) {
             deleteS3File(tempSeller.getBankDetails().getBankDocumentFileUrl());

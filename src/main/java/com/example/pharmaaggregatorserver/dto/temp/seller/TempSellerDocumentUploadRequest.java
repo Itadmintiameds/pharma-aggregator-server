@@ -38,6 +38,12 @@ public class TempSellerDocumentUploadRequest {
     private MultipartFile bankFile;
 
     /**
+     * Company Registration Certificate file.
+     * Stored at: tempsellers/{REQ_ID}/companyregistrationcertificate/COMPANY_REGISTRATION_CERTIFICATE_{timestamp}.{ext}
+     */
+    private MultipartFile companyRegistrationCertificate;
+
+    /**
      * License/document files — one per existing TempSellerDocument record.
      * These must match the order (and count) of {@code licenseNames}.
      * Stored at: tempsellers/{REQ_ID}/licenses/{LICENSE_NAME}_{timestamp}.{ext}
