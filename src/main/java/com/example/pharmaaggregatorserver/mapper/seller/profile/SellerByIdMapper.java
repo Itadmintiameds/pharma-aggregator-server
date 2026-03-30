@@ -33,6 +33,7 @@ public class SellerByIdMapper {
         dto.setEmail(seller.getEmail());
         dto.setWebsite(seller.getWebsite());
         dto.setTermsAccepted(seller.isTermsAccepted());
+        dto.setCompanyRegistrationCertificateUrl(seller.getCompanyRegistrationCertificateUrl());
         dto.setCreatedAt(seller.getCreatedAt());
         dto.setUpdatedAt(seller.getUpdatedAt());
 

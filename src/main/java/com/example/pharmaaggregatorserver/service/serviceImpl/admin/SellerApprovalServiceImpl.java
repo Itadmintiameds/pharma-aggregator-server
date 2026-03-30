@@ -507,6 +507,8 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
         seller.setEmailVerified(temp.isEmailVerified());
         seller.setWebsite(temp.getWebsite());
         seller.setTermsAccepted(temp.isTermsAccepted());
+        seller.setCompanyRegistrationCertificateUrl(temp.getCompanyRegistrationCertificateUrl());
+        seller.setCompanyRegistrationCertificateVerified(temp.isCompanyRegistrationCertificateVerified());
         seller.setCompanyType(temp.getCompanyType());
         seller.setSellerType(temp.getSellerType());
         seller.setProductTypes(productTypes);
@@ -727,6 +729,21 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 }
             }
             sellerRepo.save(seller);
+        }
+
+        // ── 5. Company Registration Certificate ──────────────────────────────────────
+        if (hasUrl(temp.getCompanyRegistrationCertificateUrl())) {
+            String newUrl = copyToSellerFolder(
+                    temp.getCompanyRegistrationCertificateUrl(),
+                    sellerId,
+                    "companyregistrationcertificate"
+            );
+            if (newUrl != null) {
+                seller.setCompanyRegistrationCertificateUrl(newUrl);
+                sellerRepo.save(seller);
+                deleteOldFile(temp.getCompanyRegistrationCertificateUrl());
+                log.info("✅ Company Registration Certificate migrated for sellerId={}", sellerId);
+            }
         }
 
         log.info("✅ Phase 2 complete — All S3 images migrated for sellerId={}", sellerId);

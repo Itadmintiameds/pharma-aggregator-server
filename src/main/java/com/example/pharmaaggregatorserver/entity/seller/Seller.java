@@ -93,6 +93,12 @@ public class Seller {
     @Column(name = "terms_accepted", nullable = false, columnDefinition = "boolean default false")
     private boolean termsAccepted = false;
 
+    @Column(name = "company_registration_certificate_url", nullable = false, columnDefinition = "VARCHAR(255) DEFAULT 'PENDING'")
+    private String companyRegistrationCertificateUrl;
+
+    @Column(name = "is_company_registration_certificate_verified", columnDefinition = "boolean default false", nullable = false)
+    private boolean isCompanyRegistrationCertificateVerified = false;
+
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
