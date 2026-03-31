@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-public interface PackTypeRepository extends JpaRepository<PackType, List> {
+public interface PackTypeRepository extends JpaRepository<PackType, Long> {
 
     List<PackType> findByDosageForm_DosageId(Long dosageId);
 

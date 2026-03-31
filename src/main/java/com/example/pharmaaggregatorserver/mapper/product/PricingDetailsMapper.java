@@ -1,11 +1,21 @@
 package com.example.pharmaaggregatorserver.mapper.product;
 
+import com.example.pharmaaggregatorserver.dto.product.AdditionalDiscountDto;
 import com.example.pharmaaggregatorserver.dto.product.PricingDetailsDto;
+import com.example.pharmaaggregatorserver.entity.product.AdditionalDiscount;
+
 import com.example.pharmaaggregatorserver.entity.product.PricingDetails;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
 @Component
+@RequiredArgsConstructor
 public class PricingDetailsMapper {
+
+    private final AdditionalDiscountMapper additionalDiscountMapper;
 
     public PricingDetails toEntity(PricingDetailsDto dto) {
         if (dto == null) return null;
@@ -22,8 +32,6 @@ public class PricingDetailsMapper {
         entity.setMrp(dto.getMrp());
         entity.setDiscountPercentage(dto.getDiscountPercentage());
         entity.setGstPercentage(dto.getGstPercentage());
-        entity.setMinimumPurchaseQuantity(dto.getMinimumPurchaseQuantity());
-        entity.setAdditionalDiscount(dto.getAdditionalDiscount());
         entity.setFinalPrice(dto.getFinalPrice());
         entity.setHsnCode(dto.getHsnCode());
         entity.setShelfLifeMonths(dto.getShelfLifeMonths());
@@ -31,6 +39,18 @@ public class PricingDetailsMapper {
         entity.setModifiedBy(dto.getModifiedBy());
         entity.setCreatedDate(dto.getCreatedDate());
         entity.setModifiedDate(dto.getModifiedDate());
+
+        if (dto.getAdditionalDiscounts() != null) {
+            Set<AdditionalDiscount> discounts = dto.getAdditionalDiscounts()
+                    .stream()
+                    .map(additionalDiscountMapper::toEntity)
+                    .collect(Collectors.toSet());
+
+            discounts.forEach(d -> d.setPricingDetails(entity));
+
+            entity.setAdditionalDiscounts(discounts);
+        }
+
         return entity;
     }
 
@@ -49,8 +69,6 @@ public class PricingDetailsMapper {
         dto.setMrp(entity.getMrp());
         dto.setDiscountPercentage(entity.getDiscountPercentage());
         dto.setGstPercentage(entity.getGstPercentage());
-        dto.setMinimumPurchaseQuantity(entity.getMinimumPurchaseQuantity());
-        dto.setAdditionalDiscount(entity.getAdditionalDiscount());
         dto.setFinalPrice(entity.getFinalPrice());
         dto.setHsnCode(entity.getHsnCode());
         dto.setShelfLifeMonths(entity.getShelfLifeMonths());
@@ -58,6 +76,16 @@ public class PricingDetailsMapper {
         dto.setModifiedBy(entity.getModifiedBy());
         dto.setCreatedDate(entity.getCreatedDate());
         dto.setModifiedDate(entity.getModifiedDate());
+
+        if (entity.getAdditionalDiscounts() != null) {
+            Set<AdditionalDiscountDto> discounts = entity.getAdditionalDiscounts()
+                    .stream()
+                    .map(additionalDiscountMapper::toDTO)
+                    .collect(Collectors.toSet());
+
+            dto.setAdditionalDiscounts(discounts);
+        }
+
         return dto;
     }
 }

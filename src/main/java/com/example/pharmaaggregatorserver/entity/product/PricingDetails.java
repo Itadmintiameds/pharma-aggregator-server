@@ -1,6 +1,5 @@
 package com.example.pharmaaggregatorserver.entity.product;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -9,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -52,12 +52,6 @@ public class PricingDetails {
     @Column(name = "gst_percentage")
     private Long gstPercentage;
 
-    @Column(name = "minimum_purchase_quantity")
-    private Long minimumPurchaseQuantity;
-
-    @Column(name = "additional_discount")
-    private Long additionalDiscount;
-
     @Column(name = "final_price")
     private Long finalPrice;
 
@@ -83,5 +77,9 @@ public class PricingDetails {
     @JoinColumn(name = "product_id", nullable = false)
     @JsonIgnore
     private ProductDetails productDetails;
+
+    @OneToMany(mappedBy = "pricingDetails", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private Set<AdditionalDiscount> additionalDiscounts;
 
 }

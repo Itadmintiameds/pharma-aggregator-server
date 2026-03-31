@@ -1,8 +1,10 @@
 package com.example.pharmaaggregatorserver.dto.product;
 
+import com.example.pharmaaggregatorserver.entity.product.AdditionalDiscount;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Data
 public class PricingDetailsDto {
@@ -27,4 +29,6 @@ public class PricingDetailsDto {
     private String modifiedBy;
     private LocalDateTime createdDate;
     private LocalDateTime modifiedDate;
+    private Set<AdditionalDiscountDto> additionalDiscounts;
+
 }

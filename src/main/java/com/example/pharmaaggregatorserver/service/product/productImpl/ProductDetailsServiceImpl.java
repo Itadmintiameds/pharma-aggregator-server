@@ -35,6 +35,7 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
     private final PricingDetailsMapper pricingDetailsMapper;
     private final ProductAttributeDrugMapper productAttributeDrugMapper;
     private final ProductImageMapper productImageMapper;
+    private final PackTypeRepository packTypeRepository;
 
 
     @Override
@@ -82,12 +83,23 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
     private void setChildRelationships(ProductDetails product, String sellerName, String sellerId) {
 
         if (product.getPackagingDetails() != null) {
-            product.getPackagingDetails().setPackagingId(
-                    generatePackagingId(sellerName)
-            );
-            product.getPackagingDetails().setProductDetails(product);
-            product.getPackagingDetails().setCreatedBy(sellerId);
-            product.getPackagingDetails().setCreatedDate(LocalDateTime.now());
+
+            PackagingDetails packaging = product.getPackagingDetails();
+
+            packaging.setPackagingId(generatePackagingId(sellerName));
+            packaging.setProductDetails(product);
+            packaging.setCreatedBy(sellerId);
+            packaging.setCreatedDate(LocalDateTime.now());
+
+            // 🔥 ADD THIS BLOCK (YOUR FIX)
+            if (packaging.getPackType() == null || packaging.getPackType().getPackId() == null) {
+                throw new RuntimeException("PackType (packId) is required");
+            }
+
+            PackType packType = packTypeRepository.findById(packaging.getPackType().getPackId())
+                    .orElseThrow(() -> new RuntimeException("Invalid packId"));
+
+            packaging.setPackType(packType);
         }
 
         if (product.getPricingDetails() != null) {
@@ -319,8 +331,8 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
                     existing.setMrp(dtoPricing.getMrp());
                     existing.setDiscountPercentage(dtoPricing.getDiscountPercentage());
                     existing.setGstPercentage(dtoPricing.getGstPercentage());
-                    existing.setMinimumPurchaseQuantity(dtoPricing.getMinimumPurchaseQuantity());
-                    existing.setAdditionalDiscount(dtoPricing.getAdditionalDiscount());
+//                    existing.setMinimumPurchaseQuantity(dtoPricing.getMinimumPurchaseQuantity());
+//                    existing.setAdditionalDiscount(dtoPricing.getAdditionalDiscount());
                     existing.setFinalPrice(dtoPricing.getFinalPrice());
                     existing.setHsnCode(dtoPricing.getHsnCode());
                     existing.setShelfLifeMonths(dtoPricing.getShelfLifeMonths());
