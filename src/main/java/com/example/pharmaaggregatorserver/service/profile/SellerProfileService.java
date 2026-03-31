@@ -20,6 +20,7 @@ import com.example.pharmaaggregatorserver.repository.seller.profile.PendingSelle
 import com.example.pharmaaggregatorserver.repository.seller.profile.PendingSellerRepository;
 import com.example.pharmaaggregatorserver.service.EmailService;
 import com.example.pharmaaggregatorserver.service.S3Service;
+import com.example.pharmaaggregatorserver.service.seller.history.SellerHistoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -47,6 +48,8 @@ public class SellerProfileService {
     private final ProductTypeMasterRepository productTypeRepository;
     private final EmailService emailService;  // Inject EmailService
     private final S3Service s3Service;
+    private final SellerHistoryService sellerHistoryService;
+
     private static final DateTimeFormatter TS_FORMATTER =
             DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
@@ -220,12 +223,26 @@ public class SellerProfileService {
 
                 sellerId = seller.getSellerId();
 
-                // Move files from pendingsellers/ → sellers/ and update URLs before applying to seller
+                // ── Step 1: Snapshot the CURRENT live state before anything changes ──
+                sellerHistoryService.snapshotBeforeUpdate(seller, approvedBy);
+
+                // ── Step 2: Capture old coordinator email before it is overwritten ──
+                String oldCoordinatorEmail = (seller.getCoordinator() != null)
+                        ? seller.getCoordinator().getEmail()
+                        : null;
+
+                // ── Step 3: Move files from pendingsellers/ → sellers/ and update URLs before applying to seller
                 movePendingFilesToSeller(pendingSeller, sellerId, now);
 
+                // ── Step 4: Apply pending data to live Seller and persist ──────────
                 updateSellerFromPending(seller, pendingSeller);
                 sellerRepository.save(seller);
                 log.info("Updated existing seller with ID: {}", sellerId);
+
+                // ── Step 5: Rotate credentials if coordinator email changed ────────
+                // Called AFTER save so the new coordinator email is already in DB.
+                sellerHistoryService.rotateCoordinatorCredentialsIfEmailChanged(
+                        seller, oldCoordinatorEmail);
 
             } else if ("CREATE".equals(pendingSeller.getRequestType())) {
                 sellerId = generateSellerId();
@@ -300,6 +317,7 @@ public class SellerProfileService {
             }
             coordinator.setName(pending.getCoordinatorName());
             coordinator.setDesignation(pending.getCoordinatorDesignation());
+        // If coordinator email is different/changes update the username and send mail to new coordinator
             coordinator.setEmail(pending.getCoordinatorEmail());
             coordinator.setMobile(pending.getCoordinatorMobile());
             coordinator.setUpdatedBy("system");
@@ -363,7 +381,8 @@ public class SellerProfileService {
 
         // Update Product Types
         if (pending.getProductTypes() != null) {
-            seller.setProductTypes(pending.getProductTypes());
+            seller.getProductTypes().clear();
+            seller.getProductTypes().addAll(pending.getProductTypes());
         }
 
         seller.setUpdatedBy("system");
@@ -458,7 +477,8 @@ public class SellerProfileService {
 
         // Set Product Types
         if (pending.getProductTypes() != null) {
-            seller.setProductTypes(pending.getProductTypes());
+            seller.getProductTypes().clear();
+            seller.getProductTypes().addAll(pending.getProductTypes());
         }
 
         return seller;

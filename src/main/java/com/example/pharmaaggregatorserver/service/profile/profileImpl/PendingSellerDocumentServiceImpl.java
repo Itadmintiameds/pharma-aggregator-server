@@ -203,12 +203,18 @@ public class PendingSellerDocumentServiceImpl implements PendingSellerDocumentSe
     }
 
     /**
-     * Deletes an existing S3 object only when {@code url} is a real S3 URL.
-     * Skips deletion when the value is null, blank, or the {@code "PENDING"}
-     * placeholder that may have been set during Step 1.
+     * Deletes a previously uploaded pending S3 file before replacing it with a new one.
+     * Skips deletion if the URL is null, blank, "PENDING", or belongs to the live sellers/ area.
      */
     private void deleteIfRealUrl(String url) {
         if (url == null || url.isBlank() || PENDING.equalsIgnoreCase(url.trim())) return;
+
+        // ✅ Never delete files from the live sellers/ area — those belong to the approved seller
+        if (!url.contains("/pendingsellers/")) {
+            log.debug("Skipping deletion — not a pending S3 URL: {}", url);
+            return;
+        }
+
         try {
             s3Service.deleteFile(s3Service.extractKeyFromUrl(url));
         } catch (Exception e) {
