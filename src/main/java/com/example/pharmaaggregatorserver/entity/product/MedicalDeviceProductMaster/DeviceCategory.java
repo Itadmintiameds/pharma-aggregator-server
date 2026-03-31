@@ -20,6 +20,10 @@ public class DeviceCategory {
     @Column(name = "device_name", nullable = false, length = 255)
     private String deviceName;
 
+
+    @Column(name = "device_category_type", length = 100)
+    private String deviceCategoryType;
+
     @Column(name = "is_active")
     private Boolean isActive = true;
 
