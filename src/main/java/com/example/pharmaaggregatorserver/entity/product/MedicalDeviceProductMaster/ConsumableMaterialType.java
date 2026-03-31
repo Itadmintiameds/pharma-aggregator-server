@@ -1,4 +1,4 @@
-package com.example.pharmaaggregatorserver.entity.master.consumableProductMaster;
+package com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster;
 
 import jakarta.persistence.*;
 import lombok.*;
