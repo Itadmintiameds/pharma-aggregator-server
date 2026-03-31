@@ -20,8 +20,5 @@ public interface ProductDetailsService {
 
     List<TherapeuticSubcategoryDto> getSubcategories(String categoryId);
 
-    List<DosageDto> getAllDosage();
-
-
 
 }

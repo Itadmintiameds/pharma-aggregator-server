@@ -8,8 +8,9 @@ import java.time.LocalDateTime;
 public class PackagingDetailsDto {
 
     private String packagingId;
-    private String packagingUnit;
-    private Long numberOfUnits;
+    private Long packId;
+    private String unitPerPack;
+    private Long numberOfPacks;
     private Long packSize;
     private Long minimumOrderQuantity;
     private Long maximumOrderQuantity;

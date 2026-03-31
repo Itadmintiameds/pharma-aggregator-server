@@ -284,8 +284,8 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
             } else {
                 PackagingDetailsDto pd = dto.getPackagingDetails();
 
-                existingPackaging.setPackagingUnit(pd.getPackagingUnit());
-                existingPackaging.setNumberOfUnits(pd.getNumberOfUnits());
+                existingPackaging.setUnitPerPack(pd.getUnitPerPack());
+                existingPackaging.setNumberOfPacks(pd.getNumberOfPacks());
                 existingPackaging.setPackSize(pd.getPackSize());
                 existingPackaging.setMinimumOrderQuantity(pd.getMinimumOrderQuantity());
                 existingPackaging.setMaximumOrderQuantity(pd.getMaximumOrderQuantity());
@@ -397,10 +397,4 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
 
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<DosageDto> getAllDosage() {
-
-        return productRepo.getAllDosageNames();
-    }
 }

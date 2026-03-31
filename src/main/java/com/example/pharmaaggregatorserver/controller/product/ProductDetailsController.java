@@ -103,10 +103,4 @@ public class ProductDetailsController {
     }
 
 
-    @GetMapping("/dosage")
-    public ResponseEntity<List<DosageDto>> getAllDosage() {
-
-        List<DosageDto> response = productService.getAllDosage();
-        return ResponseEntity.ok(response);
-    }
 }

@@ -32,7 +32,4 @@ public interface ProductDetailsRepository extends JpaRepository<ProductDetails, 
     )
     List<TherapeuticSubcategoryDto> findByCategoryId(String categoryId);
 
-
-    @Query(value = "SELECT dosage_name AS dosageName FROM tbl_dosage_form_master", nativeQuery = true)
-    List<DosageDto> getAllDosageNames();
 }

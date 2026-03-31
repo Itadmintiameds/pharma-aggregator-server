@@ -12,8 +12,8 @@ public class PackagingDetailsMapper {
 
         PackagingDetails entity = new PackagingDetails();
         entity.setPackagingId(dto.getPackagingId());
-        entity.setPackagingUnit(dto.getPackagingUnit());
-        entity.setNumberOfUnits(dto.getNumberOfUnits());
+        entity.setUnitPerPack(dto.getUnitPerPack());
+        entity.setNumberOfPacks(dto.getNumberOfPacks());
         entity.setPackSize(dto.getPackSize());
         entity.setMinimumOrderQuantity(dto.getMinimumOrderQuantity());
         entity.setMaximumOrderQuantity(dto.getMaximumOrderQuantity());
@@ -31,8 +31,8 @@ public class PackagingDetailsMapper {
 
         PackagingDetailsDto dto = new PackagingDetailsDto();
         dto.setPackagingId(entity.getPackagingId());
-        dto.setPackagingUnit(entity.getPackagingUnit());
-        dto.setNumberOfUnits(entity.getNumberOfUnits());
+        dto.setUnitPerPack(entity.getUnitPerPack());
+        dto.setNumberOfPacks(entity.getNumberOfPacks());
         dto.setPackSize(entity.getPackSize());
         dto.setMinimumOrderQuantity(entity.getMinimumOrderQuantity());
         dto.setMaximumOrderQuantity(entity.getMaximumOrderQuantity());
@@ -40,6 +40,9 @@ public class PackagingDetailsMapper {
         dto.setModifiedBy(entity.getModifiedBy());
         dto.setCreatedDate(entity.getCreatedDate());
         dto.setModifiedDate(entity.getModifiedDate());
+        dto.setPackId(
+                entity.getPackType() != null ? entity.getPackType().getPackId() : null
+        );
         return dto;
     }
 

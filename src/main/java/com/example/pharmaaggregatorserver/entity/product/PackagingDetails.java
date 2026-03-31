@@ -22,11 +22,16 @@ public class PackagingDetails {
     @Column(name = "packaging_id")
     private String packagingId;
 
-    @Column(name = "packaging_unit")
-    private String packagingUnit;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pack_id", nullable = false)
+    @JsonIgnore
+    private PackType packType;
 
-    @Column(name = "number_of_units")
-    private Long numberOfUnits;
+    @Column(name = "unit_per_pack")
+    private String unitPerPack;
+
+    @Column(name = "number_of_packs")
+    private Long numberOfPacks;
 
     @Column(name = "pack_size")
     private Long packSize;
