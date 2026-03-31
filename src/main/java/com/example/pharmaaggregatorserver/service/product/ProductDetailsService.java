@@ -1,6 +1,5 @@
 package com.example.pharmaaggregatorserver.service.product;
 
-import com.example.pharmaaggregatorserver.dto.product.DosageDto;
 import com.example.pharmaaggregatorserver.dto.product.ProductDetailsDto;
 import com.example.pharmaaggregatorserver.dto.product.TherapeuticSubcategoryDto;
 

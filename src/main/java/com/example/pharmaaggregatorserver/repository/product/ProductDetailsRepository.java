@@ -1,6 +1,5 @@
 package com.example.pharmaaggregatorserver.repository.product;
 
-import com.example.pharmaaggregatorserver.dto.product.DosageDto;
 import com.example.pharmaaggregatorserver.dto.product.TherapeuticSubcategoryDto;
 import com.example.pharmaaggregatorserver.entity.product.ProductDetails;
 import org.springframework.data.jpa.repository.JpaRepository;

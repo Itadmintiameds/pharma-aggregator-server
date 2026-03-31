@@ -2,6 +2,7 @@ package com.example.pharmaaggregatorserver.mapper.product;
 
 import com.example.pharmaaggregatorserver.dto.product.PackagingDetailsDto;
 import com.example.pharmaaggregatorserver.entity.product.PackagingDetails;
+import com.example.pharmaaggregatorserver.entity.product.PackType;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -21,6 +22,13 @@ public class PackagingDetailsMapper {
         entity.setModifiedBy(dto.getModifiedBy());
         entity.setCreatedDate(dto.getCreatedDate());
         entity.setModifiedDate(dto.getModifiedDate());
+
+        if (dto.getPackId() != null) {
+            PackType packType = new PackType();
+            packType.setPackId(dto.getPackId());
+            entity.setPackType(packType);
+        }
+
         return entity;
 
     }
