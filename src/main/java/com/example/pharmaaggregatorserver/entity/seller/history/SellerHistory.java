@@ -9,17 +9,17 @@ import java.time.LocalDateTime;
 /**
  * Immutable audit snapshot of a Seller captured immediately BEFORE each
  * admin-approved update overwrites the live row.
- *
+ * <p>
  * Design decisions:
- *  - pendingSellerId is NOT stored — PendingSeller is deleted on approval,
- *    so any reference would immediately be a dangling pointer with no value.
- *  - Master-data IDs (state, district, taluka, companyType, sellerType,
- *    productTypes) are stored alongside their human-readable names frozen at
- *    snapshot time. IDs alone are not safe — master rows can be renamed,
- *    merged, or re-seeded in the future.
- *  - S3 files are NEVER deleted or moved. Old URLs stored here remain valid
- *    inside sellers/{sellerId}/... indefinitely as a file audit trail.
- *  - This row is written once and never updated.
+ * - pendingSellerId is NOT stored — PendingSeller is deleted on approval,
+ * so any reference would immediately be a dangling pointer with no value.
+ * - Master-data IDs (state, district, taluka, companyType, sellerType,
+ * productTypes) are stored alongside their human-readable names frozen at
+ * snapshot time. IDs alone are not safe — master rows can be renamed,
+ * merged, or re-seeded in the future.
+ * - S3 files are NEVER deleted or moved. Old URLs stored here remain valid
+ * inside sellers/{sellerId}/... indefinitely as a file audit trail.
+ * - This row is written once and never updated.
  */
 @Entity
 @Getter
@@ -159,7 +159,9 @@ public class SellerHistory {
     @Column(name = "bank_account_holder_name", length = 100)
     private String bankAccountHolderName;
 
-    /** Old S3 URL — file stays in sellers/{sellerId}/bankdocument/ forever */
+    /**
+     * Old S3 URL — file stays in sellers/{sellerId}/bankdocument/ forever
+     */
     @Column(name = "bank_document_file_url", columnDefinition = "TEXT")
     private String bankDocumentFileUrl;
 
@@ -173,12 +175,27 @@ public class SellerHistory {
     @Column(name = "gst_number", length = 100)
     private String gstNumber;
 
-    /** Old S3 URL — file stays in sellers/{sellerId}/gst/ forever */
+    /**
+     * Old S3 URL — file stays in sellers/{sellerId}/gst/ forever
+     */
     @Column(name = "gst_file_url", columnDefinition = "TEXT")
     private String gstFileUrl;
 
     @Column(name = "is_gst_verified")
     private boolean isGstVerified;
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Company Registration Certificate snapshot
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Old S3 URL — file stays in sellers/{sellerId}/companyregistrationcertificate/ forever
+     */
+    @Column(name = "company_registration_certificate_url", columnDefinition = "TEXT")
+    private String companyRegistrationCertificateUrl;
+
+    @Column(name = "is_company_registration_certificate_verified")
+    private boolean isCompanyRegistrationCertificateVerified;
 
     // ═══════════════════════════════════════════════════════════════════════
     // Product types snapshot

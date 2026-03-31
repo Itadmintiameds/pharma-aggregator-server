@@ -124,6 +124,9 @@ public class PendingSeller {
     @Column(name = "terms_accepted")
     private boolean termsAccepted;
 
+    @Column(name = "company_registration_certificate_url")
+    private String companyRegistrationCertificateUrl;
+
     @Column(name = "request_type", nullable = false)
     private String requestType; // "CREATE" or "UPDATE"
 

@@ -181,7 +181,7 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
 
     /**
      * tempsellers/{REQ_ID}/companyregistrationcertificate/COMPANY_REGISTRATION_CERTIFICATE_{timestamp}.{ext}
-     * e.g. tempsellers/REQ_001/gst/GST_IMAGE_20250101123045.jpg
+     * e.g. tempsellers/REQ_001/companyregistrationcertificate/COMPANY_REGISTRATION_CERTIFICATE__20250101123045.jpg
      */
     private String buildCompanyRegistrationCertificateKey(String reqId, String timestamp, MultipartFile file) {
         return String.format("tempsellers/%s/companyregistrationcertificate/COMPANY_REGISTRATION_CERTIFICATE_%s.%s",

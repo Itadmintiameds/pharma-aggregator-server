@@ -72,7 +72,9 @@ public class SellerHistoryService {
                 .email(seller.getEmail())
                 .website(seller.getWebsite())
                 .status(seller.getStatus())
-                .termsAccepted(seller.isTermsAccepted());
+                .termsAccepted(seller.isTermsAccepted())
+                .companyRegistrationCertificateUrl(seller.getCompanyRegistrationCertificateUrl())
+                .isCompanyRegistrationCertificateVerified(seller.isCompanyRegistrationCertificateVerified());
 
         // Company type — freeze both ID and name
         if (seller.getCompanyType() != null) {

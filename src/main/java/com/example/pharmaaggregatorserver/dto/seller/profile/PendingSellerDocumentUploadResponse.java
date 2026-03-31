@@ -21,6 +21,9 @@ public class PendingSellerDocumentUploadResponse {
     /** Uploaded bank document URL (null if no file was sent) */
     private String bankDocumentFileUrl;
 
+    /** Uploaded Company Registration certificate URL (null if no file was sent) */
+    private String companyRegistrationCertificateUrl;
+
     /** One entry per license file that was uploaded */
     private List<LicenseUploadResult> licenseResults;
 
