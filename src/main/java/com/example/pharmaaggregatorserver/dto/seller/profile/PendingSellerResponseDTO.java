@@ -39,6 +39,9 @@ public class PendingSellerResponseDTO {
     private String gstNumber;
     private String gstFileUrl;
 
+    // Company Registration Certificate
+    private String companyRegistrationCertificateUrl;
+
     // Product Types
     private List<ProductTypeDTO> productTypes;
 

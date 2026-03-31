@@ -10,6 +10,7 @@ public class PendingSellerDocumentUploadRequest {
 
     private MultipartFile gstFile;
     private MultipartFile bankFile;
+    private MultipartFile companyRegistrationCertificate;
 
     /** One file per license document row */
     private List<MultipartFile> licenseFiles;

@@ -40,6 +40,9 @@ public class TempSellerRequestDTO {
     @AssertTrue(message = "Terms Acceptance is required")
     private boolean termsAccepted;
 
+    @NotBlank(message = "Company Registration Certificate file URL is required")
+    private String companyRegistrationCertificateUrl;
+
     private String website;
 
     @NotBlank(message = "GST number is required")

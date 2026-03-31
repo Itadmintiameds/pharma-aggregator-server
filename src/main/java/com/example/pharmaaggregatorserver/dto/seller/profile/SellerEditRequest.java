@@ -42,6 +42,9 @@ public class SellerEditRequest {
     private String gstNumber;
     private String gstFileUrl;
 
+    // Company Registration Certificate
+    private String companyRegistrationCertificateUrl;
+
     // Documents
     private List<DocumentDTO> documents;
 

@@ -52,6 +52,7 @@ public class PendingSellerDocumentServiceImpl implements PendingSellerDocumentSe
 
         String gstUrl = null;
         String bankUrl = null;
+        String companyRegistrationCertificateUrl = null;
         List<PendingSellerDocumentUploadResponse.LicenseUploadResult> licenseResults = new ArrayList<>();
 
         // ── 1. GST file ────────────────────────────────────────────────────────
@@ -76,7 +77,18 @@ public class PendingSellerDocumentServiceImpl implements PendingSellerDocumentSe
             log.info("Bank document uploaded → {}", bankUrl);
         }
 
-        // ── 3. License / document files ────────────────────────────────────────
+        // ── 3. Company Registration Certificate ────────────────────────────────────────────────────────
+        if (hasFile(request.getCompanyRegistrationCertificate())) {
+            deleteIfRealUrl(pendingSeller.getCompanyRegistrationCertificateUrl());
+
+            String key = buildCompanyRegistrationCertificateKey(sellerId, now, request.getCompanyRegistrationCertificate());
+            companyRegistrationCertificateUrl = s3Service.uploadFile(key, request.getCompanyRegistrationCertificate());
+
+            pendingSeller.setCompanyRegistrationCertificateUrl(companyRegistrationCertificateUrl);
+            log.info("GST file uploaded → {}", companyRegistrationCertificateUrl);
+        }
+
+        // ── 4. License / document files ────────────────────────────────────────
         List<MultipartFile> licenseFiles = request.getLicenseFiles();
         List<String> licenseNames = request.getLicenseNames();
         List<Long> documentIds = request.getDocumentIds();
@@ -127,6 +139,7 @@ public class PendingSellerDocumentServiceImpl implements PendingSellerDocumentSe
                 .pendingSellerId(pendingSellerId)
                 .gstFileUrl(gstUrl)
                 .bankDocumentFileUrl(bankUrl)
+                .companyRegistrationCertificateUrl(companyRegistrationCertificateUrl)
                 .licenseResults(licenseResults)
                 .build();
     }
@@ -139,6 +152,15 @@ public class PendingSellerDocumentServiceImpl implements PendingSellerDocumentSe
      */
     private String buildGstKey(String sellerId, String timestamp, MultipartFile file) {
         return String.format("pendingsellers/%s/gst/GST_IMAGE_%s.%s",
+                sellerId, timestamp, extension(file));
+    }
+
+    /**
+     * pendingsellers/{sellerId}/companyregistrationcertificate/COMPANY_REGISTRATION_CERTIFICATE_{timestamp}.{ext}
+     * e.g. pendingsellers/SELL_001/companyregistrationcertificate/COMPANY_REGISTRATION_CERTIFICATE_20250101123045.jpg
+     */
+    private String buildCompanyRegistrationCertificateKey(String sellerId, String timestamp, MultipartFile file) {
+        return String.format("pendingsellers/%s/companyregistrationcertificate/COMPANY_REGISTRATION_CERTIFICATE_%s.%s",
                 sellerId, timestamp, extension(file));
     }
 

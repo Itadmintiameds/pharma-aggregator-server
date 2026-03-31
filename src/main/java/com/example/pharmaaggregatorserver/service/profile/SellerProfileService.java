@@ -189,6 +189,9 @@ public class SellerProfileService {
         pendingSeller.setGstNumber(request.getGstNumber());
         pendingSeller.setGstFileUrl(request.getGstFileUrl());
 
+        // Company Registration Certificate
+        pendingSeller.setCompanyRegistrationCertificateUrl(request.getCompanyRegistrationCertificateUrl());
+
         // Product Types
         if (request.getProductTypeId() != null && !request.getProductTypeId().isEmpty()) {
             List<ProductTypeMaster> productTypes = productTypeRepository.findAllById(request.getProductTypeId());
@@ -283,6 +286,7 @@ public class SellerProfileService {
         seller.setTermsAccepted(pending.isTermsAccepted());
         seller.setCompanyType(pending.getCompanyType());
         seller.setSellerType(pending.getSellerType());
+        seller.setCompanyRegistrationCertificateUrl(pending.getCompanyRegistrationCertificateUrl());
 
         // Update or create Address - CHECK FOR EXISTING FIRST
         if (pending.getState() != null) {
@@ -400,6 +404,7 @@ public class SellerProfileService {
         seller.setTermsAccepted(pending.isTermsAccepted());
         seller.setCompanyType(pending.getCompanyType());
         seller.setSellerType(pending.getSellerType());
+        seller.setCompanyRegistrationCertificateUrl(pending.getCompanyRegistrationCertificateUrl());
         seller.setCreatedBy("system");
         seller.setCreatedAt(LocalDateTime.now());
         seller.setStatus("ACTIVE");
@@ -774,6 +779,9 @@ public class SellerProfileService {
         dto.setGstNumber(pendingSeller.getGstNumber());
         dto.setGstFileUrl(pendingSeller.getGstFileUrl());
 
+        // Company Registration Certificate
+        dto.setCompanyRegistrationCertificateUrl(pendingSeller.getCompanyRegistrationCertificateUrl());
+
         // Product Types
         if (pendingSeller.getProductTypes() != null && !pendingSeller.getProductTypes().isEmpty()) {
             List<PendingSellerResponseDTO.ProductTypeDTO> productTypeDTOs = pendingSeller.getProductTypes().stream()
@@ -829,6 +837,7 @@ public class SellerProfileService {
         response.setGstNumber(savedPending.getGstNumber());
         response.setGstFileUrl(savedPending.getGstFileUrl());
         response.setTermsAccepted(savedPending.isTermsAccepted());
+        response.setCompanyRegistrationCertificateUrl(savedPending.getCompanyRegistrationCertificateUrl());
 
         if (savedPending.getCompanyType() != null) {
             response.setCompanyTypeId(savedPending.getCompanyType().getCompanyTypeId());
@@ -987,6 +996,16 @@ public class SellerProfileService {
             s3Service.deleteFile(s3Service.extractKeyFromUrl(pending.getBankDocumentFileUrl()));
             pending.setBankDocumentFileUrl(newUrl);
             log.info("Bank document moved → {}", newUrl);
+        }
+
+        // ── Company Registration Certificate ──────────────────────────────────────────────────────────
+        if (isRealUrl(pending.getCompanyRegistrationCertificateUrl()) && isPendingUrl(pending.getCompanyRegistrationCertificateUrl())) {
+            String ext       = extractExtension(pending.getCompanyRegistrationCertificateUrl());
+            String targetKey = String.format("sellers/%s/companyregistrationcertificate/COMPANY_REGISTRATION_CERTIFICATE_%s.%s", sellerId, now, ext);
+            String newUrl    = s3Service.copyFile(s3Service.extractKeyFromUrl(pending.getCompanyRegistrationCertificateUrl()), targetKey);
+            s3Service.deleteFile(s3Service.extractKeyFromUrl(pending.getCompanyRegistrationCertificateUrl()));
+            pending.setCompanyRegistrationCertificateUrl(newUrl);
+            log.info("Company Registration Certificate moved → {}", newUrl);
         }
 
         // ── License / document files ──────────────────────────────────────────

@@ -53,6 +53,7 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
         String sellerImageUrl = null;
         String gstUrl = null;
         String bankUrl = null;
+        String companyRegistrationCertificateUrl = null;
         List<TempSellerDocumentUploadResponse.LicenseUploadResult> licenseResults = new ArrayList<>();
 
         // ── 0. Seller Image / Logo ─────────────────────────────────────────────
@@ -95,7 +96,20 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
             log.info("Bank document uploaded → {}", bankUrl);
         }
 
-        // ── 3. License / document files ────────────────────────────────────────
+        // ── 3. Company Registration Certificate ───────────────────────────────────────────────────
+        if (hasFile(request.getCompanyRegistrationCertificate())) {
+
+            // delete old S3 object only if it's a real URL, not "PENDING"
+            deleteIfRealUrl(seller.getCompanyRegistrationCertificateUrl());
+
+            String key = buildCompanyRegistrationCertificateKey(reqId, now, request.getCompanyRegistrationCertificate());
+            companyRegistrationCertificateUrl = s3Service.uploadFile(key, request.getCompanyRegistrationCertificate());
+
+            seller.setCompanyRegistrationCertificateUrl(companyRegistrationCertificateUrl);
+            log.info("Company Registration Certificate file uploaded → {}", companyRegistrationCertificateUrl);
+        }
+
+        // ── 4. License / document files ────────────────────────────────────────
         List<MultipartFile> licenseFiles = request.getLicenseFiles();
         List<String> licenseNames = request.getLicenseNames();
         List<Long> documentIds = request.getDocumentIds();
@@ -149,6 +163,7 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
                 .sellerImageUrl(sellerImageUrl)
                 .gstFileUrl(gstUrl)
                 .bankDocumentFileUrl(bankUrl)
+                .companyRegistrationCertificateUrl(companyRegistrationCertificateUrl)
                 .licenseResults(licenseResults)
                 .build();
     }
@@ -161,6 +176,15 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
      */
     private String buildGstKey(String reqId, String timestamp, MultipartFile file) {
         return String.format("tempsellers/%s/gst/GST_IMAGE_%s.%s",
+                reqId, timestamp, extension(file));
+    }
+
+    /**
+     * tempsellers/{REQ_ID}/companyregistrationcertificate/COMPANY_REGISTRATION_CERTIFICATE_{timestamp}.{ext}
+     * e.g. tempsellers/REQ_001/companyregistrationcertificate/COMPANY_REGISTRATION_CERTIFICATE__20250101123045.jpg
+     */
+    private String buildCompanyRegistrationCertificateKey(String reqId, String timestamp, MultipartFile file) {
+        return String.format("tempsellers/%s/companyregistrationcertificate/COMPANY_REGISTRATION_CERTIFICATE_%s.%s",
                 reqId, timestamp, extension(file));
     }
 

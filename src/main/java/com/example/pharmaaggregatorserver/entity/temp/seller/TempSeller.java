@@ -109,6 +109,12 @@ public class TempSeller {
     @Column(name = "terms_accepted", nullable = false, columnDefinition = "boolean default false")
     private boolean termsAccepted = false;
 
+    @Column(name = "company_registration_certificate_url", nullable = false, columnDefinition = "VARCHAR(255) DEFAULT 'PENDING'")
+    private String companyRegistrationCertificateUrl;
+
+    @Column(name = "is_company_registration_certificate_verified", columnDefinition = "boolean default false", nullable = false)
+    private boolean isCompanyRegistrationCertificateVerified = false;
+
     @Column(name = "created_by", length = 100)
     private String createdBy;
 

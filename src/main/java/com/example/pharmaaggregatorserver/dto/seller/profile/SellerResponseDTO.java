@@ -37,6 +37,9 @@ public class SellerResponseDTO {
     private String gstNumber;
     private String gstFileUrl;
 
+    // Company Registration Certificate
+    private String companyRegistrationCertificateUrl;
+
     // Product Types
     private List<Long> productTypeId;
     private List<ProductTypeDTO> productTypes;

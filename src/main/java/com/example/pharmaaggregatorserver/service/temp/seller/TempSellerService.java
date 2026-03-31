@@ -17,8 +17,12 @@ public interface TempSellerService {
     TempSeller findById(Long id);
 
     void updateGstVerification(Long tempSellerId, boolean isGstVerified);
+
     void updateDocumentVerification(Long tempSellerId, Long documentId, boolean isDocumentVerified);
+
     void updateBankDocumentVerification(Long tempSellerId, boolean isBankDocumentVerified);
+
+    void updateCompanyRegistrationCertificateVerification(Long tempSellerId, boolean isCompanyRegistrationCertificateVerified);
 
     void deleteTempSeller(Long tempSellerId);
 

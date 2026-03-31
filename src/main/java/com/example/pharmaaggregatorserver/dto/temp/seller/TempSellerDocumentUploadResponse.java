@@ -33,6 +33,11 @@ public class TempSellerDocumentUploadResponse {
     private String bankDocumentFileUrl;
 
     /**
+     * S3 URL of the uploaded Company Registration Certificate (null if not uploaded).
+     */
+    private String companyRegistrationCertificateUrl;
+
+    /**
      * S3 URLs for each uploaded license document, in request order.
      */
     private List<LicenseUploadResult> licenseResults;
