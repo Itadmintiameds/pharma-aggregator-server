@@ -340,12 +340,13 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
                     PricingDetails existing = existingMap.get(dtoPricing.getPricingId());
 
                     existing.setBatchLotNumber(dtoPricing.getBatchLotNumber());
-                    existing.setManufacturerName(dtoPricing.getManufacturerName());
+//                    existing.setManufacturerName(dtoPricing.getManufacturerName());
                     existing.setManufacturingDate(dtoPricing.getManufacturingDate());
                     existing.setExpiryDate(dtoPricing.getExpiryDate());
                     existing.setStorageCondition(dtoPricing.getStorageCondition());
                     existing.setStockQuantity(dtoPricing.getStockQuantity());
-                    existing.setPricePerUnit(dtoPricing.getPricePerUnit());
+                    existing.setDateOfStockEntry(dtoPricing.getDateOfStockEntry());
+                    existing.setSellingPrice(dtoPricing.getSellingPrice());
                     existing.setMrp(dtoPricing.getMrp());
                     existing.setDiscountPercentage(dtoPricing.getDiscountPercentage());
                     existing.setGstPercentage(dtoPricing.getGstPercentage());
