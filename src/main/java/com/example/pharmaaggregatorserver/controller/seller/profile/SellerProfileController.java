@@ -1,11 +1,13 @@
 package com.example.pharmaaggregatorserver.controller.seller.profile;
 
+import com.example.pharmaaggregatorserver.dto.product.ProductTypeResponseDto;
 import com.example.pharmaaggregatorserver.dto.seller.profile.PendingSellerDocumentUploadRequest;
 import com.example.pharmaaggregatorserver.dto.seller.profile.PendingSellerDocumentUploadResponse;
 import com.example.pharmaaggregatorserver.dto.seller.profile.SellerEditRequest;
 import com.example.pharmaaggregatorserver.dto.seller.profile.SellerResponseDTO;
 import com.example.pharmaaggregatorserver.entity.seller.Seller;
 import com.example.pharmaaggregatorserver.response.ApiResponse;
+import com.example.pharmaaggregatorserver.security.UserDetailsImpl;
 import com.example.pharmaaggregatorserver.service.profile.PendingSellerDocumentService;
 import com.example.pharmaaggregatorserver.service.profile.SellerProfileService;
 import com.example.pharmaaggregatorserver.service.seller.SellerService;
@@ -14,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -90,5 +93,18 @@ public class SellerProfileController {
 
         sellerprofileService.deletePendingSeller(pendingSellerId);
         return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Pending seller request cancelled successfully", null));
+    }
+
+    @GetMapping("/product-types")
+    public ResponseEntity<ProductTypeResponseDto> getProductTypes(
+            Authentication authentication
+    ) {
+
+        UserDetailsImpl user = (UserDetailsImpl) authentication.getPrincipal();
+        Long userId = user.getId();
+
+        return ResponseEntity.ok(
+                sellerService.getProductTypesForLoggedInUser(userId)
+        );
     }
 }
