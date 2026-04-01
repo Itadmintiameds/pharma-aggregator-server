@@ -1,5 +1,6 @@
 package com.example.pharmaaggregatorserver.service.seller;
 
+import com.example.pharmaaggregatorserver.dto.product.ProductTypeResponseDto;
 import com.example.pharmaaggregatorserver.dto.seller.SellerDTO;
 import com.example.pharmaaggregatorserver.entity.seller.Seller;
 
@@ -20,4 +21,6 @@ public interface SellerService {
     void resetPassword(String username, String currentPassword, String newPassword);
 
     Seller findSellerByUserId(Long userId);
+
+    ProductTypeResponseDto getProductTypesForLoggedInUser(Long userId);
 }

@@ -3,6 +3,7 @@ package com.example.pharmaaggregatorserver.repository.seller;
 import com.example.pharmaaggregatorserver.entity.seller.Seller;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -54,4 +55,15 @@ public interface SellerRepository extends JpaRepository<Seller, String> {
     Optional<Seller> findByUserId(Long userId);
 
     Optional<Seller> findBySellerId(String sellerId);
+
+    @Query(
+            value = """
+        SELECT pt.product_type_name
+        FROM tbl_seller_product_types spt
+        JOIN tbl_product_type_master pt ON spt.product_type_id = pt.product_type_id
+        WHERE spt.seller_id = :sellerId
+    """,
+            nativeQuery = true
+    )
+    List<String> findProductTypeNamesBySellerId(String sellerId);
 }
