@@ -1,5 +1,6 @@
 package com.example.pharmaaggregatorserver.service.seller.sellerImpl;
 
+import com.example.pharmaaggregatorserver.dto.product.ProductTypeResponseDto;
 import com.example.pharmaaggregatorserver.dto.seller.SellerDTO;
 import com.example.pharmaaggregatorserver.dto.seller.SellerDocumentDto;
 import com.example.pharmaaggregatorserver.entity.master.CompanyTypeMaster;
@@ -347,5 +348,25 @@ public class SellerServiceImpl implements SellerService {
     public Seller findSellerByUserId(Long userId) {
         return sellerRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Seller not found for user id: " + userId));
+    }
+
+    @Override
+    @Transactional
+    public ProductTypeResponseDto getProductTypesForLoggedInUser(Long userId) {
+
+        Seller seller = sellerRepository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Seller not found"));
+
+        System.out.println("🔥 SELLER ID: " + seller.getSellerId());
+
+        List<String> productTypeNames =
+                sellerRepository.findProductTypeNamesBySellerId(seller.getSellerId());
+
+        System.out.println("🔥 TYPES FROM DB: " + productTypeNames);
+
+        return new ProductTypeResponseDto(
+                seller.getSellerId(),
+                productTypeNames
+        );
     }
 }
