@@ -86,6 +86,10 @@ public class ProductDetails {
 
     @OneToMany(mappedBy = "productDetails", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
+    private Set<ProductAttributeNonConsumableMedical> productAttributeNonConsumableMedicals;
+
+    @OneToMany(mappedBy = "productDetails", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private Set<ProductImage> productImages;
 
     @OneToMany(mappedBy = "productDetails", cascade = CascadeType.ALL, orphanRemoval = true)

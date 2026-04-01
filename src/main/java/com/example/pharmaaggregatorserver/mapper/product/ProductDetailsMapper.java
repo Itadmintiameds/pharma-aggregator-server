@@ -16,6 +16,7 @@ public class ProductDetailsMapper {
     private final PackagingDetailsMapper packagingMapper;
     private final PricingDetailsMapper pricingMapper;
     private final ProductAttributeDrugMapper attributeMapper;
+    private final ProductAttributeNonConsumableMedicalMapper attributeNonConsumableMapper;
     private final ProductImageMapper imageMapper;
     private final MoleculeMapper moleculeMapper;
 
@@ -66,6 +67,15 @@ public class ProductDetailsMapper {
                     .collect(Collectors.toSet());
 
             entity.setProductAttributeDrugs(attrSet);
+        }
+
+        if (dto.getProductAttributeNonConsumableMedicals() != null) {
+            Set<ProductAttributeNonConsumableMedical> attrSet = dto.getProductAttributeNonConsumableMedicals().stream()
+                    .map(attributeNonConsumableMapper::toEntity)
+                    .peek(a -> a.setProductDetails(entity))
+                    .collect(Collectors.toSet());
+
+            entity.setProductAttributeNonConsumableMedicals(attrSet);
         }
 
         if (dto.getProductImages() != null) {

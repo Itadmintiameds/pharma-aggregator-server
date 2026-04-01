@@ -121,6 +121,24 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
             });
         }
 
+        if (product.getProductAttributeNonConsumableMedicals() != null) {
+            product.getProductAttributeNonConsumableMedicals().forEach(a -> {
+
+                // Validate mandatory FK fields are resolved
+                if (a.getDeviceCategory() == null) {
+                    throw new RuntimeException("deviceCategoryId is required for non-consumable medical attribute");
+                }
+                if (a.getCertification() == null) {
+                    throw new RuntimeException("certificationId is required for non-consumable medical attribute");
+                }
+
+                a.setProductAttributeId(UUID.randomUUID().toString());
+                a.setProductDetails(product);
+                a.setCreatedBy(sellerId);
+                a.setCreatedDate(LocalDateTime.now());
+            });
+        }
+
     }
 
 

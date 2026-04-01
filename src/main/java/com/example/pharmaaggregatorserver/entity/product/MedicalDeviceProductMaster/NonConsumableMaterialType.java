@@ -1,28 +1,26 @@
 package com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "tbl_device_category_master")
-@Getter
-@Setter
-public class DeviceCategory {
+@Table(name = "tbl_non_consumable_material_type_master")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class NonConsumableMaterialType {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "device_cat_id")
-    private Long deviceCatId;
+    @Column(name = "material_type_id")
+    private Long materialTypeId;
 
-    @Column(name = "device_name", nullable = false, length = 255)
-    private String deviceName;
-
-
-    @Column(name = "device_category_type", length = 100)
-    private String deviceCategoryType;  // consumable, non-consumable
+    @Column(name = "material_type_name", nullable = false)
+    private String materialTypeName;
 
     @Column(name = "is_active")
     private Boolean isActive = true;
@@ -33,16 +31,14 @@ public class DeviceCategory {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // Automatically set timestamps
     @PrePersist
-    protected void onCreate() {
+    void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
 
     @PreUpdate
-    protected void onUpdate() {
+    void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
-
 }
