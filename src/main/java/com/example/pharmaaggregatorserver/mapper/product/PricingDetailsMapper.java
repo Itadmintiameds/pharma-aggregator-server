@@ -23,7 +23,6 @@ public class PricingDetailsMapper {
         PricingDetails entity = new PricingDetails();
         entity.setPricingId(dto.getPricingId());
         entity.setBatchLotNumber(dto.getBatchLotNumber());
-//        entity.setManufacturerName(dto.getManufacturerName());
         entity.setManufacturingDate(dto.getManufacturingDate());
         entity.setExpiryDate(dto.getExpiryDate());
         entity.setStorageCondition(dto.getStorageCondition());
@@ -61,7 +60,6 @@ public class PricingDetailsMapper {
         PricingDetailsDto dto = new PricingDetailsDto();
         dto.setPricingId(entity.getPricingId());
         dto.setBatchLotNumber(entity.getBatchLotNumber());
-//        dto.setManufacturerName(entity.getManufacturerName());
         dto.setManufacturingDate(entity.getManufacturingDate());
         dto.setExpiryDate(entity.getExpiryDate());
         dto.setStorageCondition(entity.getStorageCondition());

@@ -12,7 +12,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "pm_molecule")
+@Table(name = "tbl_molecules_master")
 public class Molecule {
 
     @Id
@@ -23,7 +23,7 @@ public class Molecule {
     @Column(name = "molecule_name")
     private String moleculeName;
 
-    @Column(name = "mechanism_of_ction")
+    @Column(name = "mechanism_of_action")
     private String mechanismOfAction;
 
     @Column(name = "primary_use")

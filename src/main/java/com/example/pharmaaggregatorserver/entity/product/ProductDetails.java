@@ -39,6 +39,9 @@ public class ProductDetails {
     @Column(name = "product_marketing_url")
     private String productMarketingUrl;
 
+    @Column(name = "manufacturer_name")
+    private String manufacturerName;
+
     @Column(name = "created_by")
     private String createdBy;
 
@@ -60,17 +63,6 @@ public class ProductDetails {
     @JoinColumn(name = "seller_id", nullable = false)
     @JsonIgnore
     private Seller seller;
-
-    @ManyToMany(
-            fetch = FetchType.LAZY,
-            cascade = { CascadeType.PERSIST, CascadeType.MERGE }
-    )
-    @JoinTable(
-            name = "pm_product_molecule",
-            joinColumns = @JoinColumn(name = "product_id"),
-            inverseJoinColumns = @JoinColumn(name = "molecule_id")
-    )
-    private Set<Molecule> molecules;
 
     @OneToOne(mappedBy = "productDetails", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore

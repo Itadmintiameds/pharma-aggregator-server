@@ -36,6 +36,7 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
     private final ProductAttributeDrugMapper productAttributeDrugMapper;
     private final ProductImageMapper productImageMapper;
     private final PackTypeRepository packTypeRepository;
+    private final MoleculeRepository moleculeRepository;
 
 
     @Override
@@ -66,18 +67,6 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
 
         ProductDetails saved = productRepo.save(product);
 
-        if (dto.getMolecules() != null && !dto.getMolecules().isEmpty()) {
-
-            Set<Molecule> molecules = dto.getMolecules().stream()
-                    .map(moleculeDto -> moleculeRepo.findById(moleculeDto.getMoleculeId())
-                            .orElseThrow(() -> new RuntimeException(
-                                    "Molecule not found: " + moleculeDto.getMoleculeId())))
-                    .collect(Collectors.toSet());
-
-            saved.setMolecules(molecules);
-
-//            saved = productRepo.save(saved);
-        }
 
         return productMapper.toDto(saved);
     }
@@ -93,7 +82,6 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
             packaging.setCreatedBy(sellerId);
             packaging.setCreatedDate(LocalDateTime.now());
 
-            // 🔥 ADD THIS BLOCK (YOUR FIX)
             if (packaging.getPackType() == null || packaging.getPackType().getPackId() == null) {
                 throw new RuntimeException("PackType (packId) is required");
             }
@@ -113,13 +101,33 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
             });
         }
 
-
         if (product.getProductAttributeDrugs() != null) {
             product.getProductAttributeDrugs().forEach(a -> {
+
                 a.setProductAttributeId(UUID.randomUUID().toString());
                 a.setProductDetails(product);
                 a.setCreatedBy(sellerId);
                 a.setCreatedDate(LocalDateTime.now());
+
+                if (a.getProductMolecules() != null) {
+
+                    a.getProductMolecules().forEach(pm -> {
+
+                        Molecule molecule = moleculeRepository.findById(
+                                pm.getMolecule().getMoleculeId()
+                        ).orElseThrow(() -> new RuntimeException("Molecule not found"));
+
+                        pm.setProductAttributeDrug(a);
+                        pm.setMolecule(molecule);
+
+                        ProductMoleculeId id = new ProductMoleculeId(
+                                a.getProductAttributeId(),
+                                molecule.getMoleculeId()
+                        );
+
+                        pm.setId(id);
+                    });
+                }
             });
         }
 
@@ -413,7 +421,6 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
                     existingAttr.setTherapeuticCategoryId(dtoAttr.getTherapeuticCategoryId());
                     existingAttr.setTherapeuticSubcategoryId(dtoAttr.getTherapeuticSubcategoryId());
                     existingAttr.setDosageForm(dtoAttr.getDosageForm());
-                    existingAttr.setStrength(dtoAttr.getStrength());
                     existingAttr.setModifiedBy(seller.getSellerId());
                     existingAttr.setModifiedDate(LocalDateTime.now());
 
