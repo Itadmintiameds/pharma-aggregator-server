@@ -140,6 +140,14 @@ public class ProductDetailsMapper {
             );
         }
 
+        if (entity.getProductAttributeNonConsumableMedicals() != null) {
+            dto.setProductAttributeNonConsumableMedicals(
+                    entity.getProductAttributeNonConsumableMedicals().stream()
+                            .map(attributeNonConsumableMapper::toDto)
+                            .collect(Collectors.toSet())
+            );
+        }
+
         if (entity.getProductImages() != null) {
             dto.setProductImages(
                     entity.getProductImages().stream()
