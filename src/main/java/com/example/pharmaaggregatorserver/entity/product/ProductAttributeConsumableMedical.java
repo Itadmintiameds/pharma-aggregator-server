@@ -8,13 +8,13 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
-
-@Entity
-@Table(name = "tm_product_attribute_consumable_medical")
-@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Getter
+@Setter
+@Entity
+@Table(name = "tm_product_attribute_consumable_medical")
 public class ProductAttributeConsumableMedical {
 
     @Id
@@ -60,13 +60,14 @@ public class ProductAttributeConsumableMedical {
     @Column(name = "safety_instructions", columnDefinition = "TEXT")
     private String safetyInstructions;
 
-
-
     // FK → tbl_certification_master
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "certification_id")
     @JsonIgnoreProperties
     private Certification certification;
+
+    @Column(name = "compliance_certificate_url")
+    private String complianceCertificateUrl;
 
     // FK → tbl_certification_master
     @ManyToOne(fetch = FetchType.LAZY)

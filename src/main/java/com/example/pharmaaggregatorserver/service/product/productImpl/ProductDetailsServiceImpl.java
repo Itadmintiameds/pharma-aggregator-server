@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ProductDetailsServiceImpl implements ProductDetailsService {
-
+    private final DeviceCategoryRepository DeviceCategoryRepository;
     private final ProductDetailsRepository productRepo;
     private final CategoryRepository categoryRepo;
     private final SellerRepository sellerRepo;
@@ -49,6 +49,8 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
                 .orElseThrow(() -> new RuntimeException("Category not found"));
 
         ProductDetails product = productMapper.toEntity(dto);
+
+
 
         product.setProductImages(null);
 
@@ -130,6 +132,24 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
                 }
                 if (a.getCertification() == null) {
                     throw new RuntimeException("certificationId is required for non-consumable medical attribute");
+                }
+
+                a.setProductAttributeId(UUID.randomUUID().toString());
+                a.setProductDetails(product);
+                a.setCreatedBy(sellerId);
+                a.setCreatedDate(LocalDateTime.now());
+            });
+        }
+        // ================= CONSUMABLE MEDICAL =================
+        if (product.getProductAttributeConsumables() != null) {
+            product.getProductAttributeConsumables().forEach(a -> {
+
+                if (a.getDeviceCategory() == null) {
+                    throw new RuntimeException("deviceCategoryId is required for consumable medical attribute");
+                }
+
+                if (a.getCertification() == null ) {
+                    throw new RuntimeException("At least one certification is required");
                 }
 
                 a.setProductAttributeId(UUID.randomUUID().toString());
