@@ -17,12 +17,12 @@ public class ProductDetailsDto {
     private String warningsPrecautions;
     private String productDescription;
     private String productMarketingUrl;
+    private String manufacturerName;
     private String createdBy;
     private String modifiedBy;
     private LocalDateTime createdDate;
     private LocalDateTime modifiedDate;
     private Long categoryId;
-    private Set<MoleculeDto> molecules;
     private PackagingDetailsDto  packagingDetails;
     private Set<PricingDetailsDto> pricingDetails;
     private Set<ProductAttributeDrugDto> productAttributeDrugs;

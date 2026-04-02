@@ -11,6 +11,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -33,9 +35,6 @@ public class ProductAttributeDrug {
     @Column(name = "dosage_form")
     private String dosageForm;
 
-    @Column(name = "strength")
-    private String strength;
-
     @Column(name = "created_by")
     private String createdBy;
 
@@ -55,4 +54,7 @@ public class ProductAttributeDrug {
     @JsonIgnore
     private ProductDetails productDetails;
 
+    @OneToMany(mappedBy = "productAttributeDrug", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private Set<ProductMolecule> productMolecules = new HashSet<>();
 }

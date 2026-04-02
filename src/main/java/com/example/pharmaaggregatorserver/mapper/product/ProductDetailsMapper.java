@@ -31,18 +31,12 @@ public class ProductDetailsMapper {
         entity.setWarningsPrecautions(dto.getWarningsPrecautions());
         entity.setProductDescription(dto.getProductDescription());
         entity.setProductMarketingUrl(dto.getProductMarketingUrl());
+        entity.setManufacturerName(dto.getManufacturerName());
         entity.setCreatedBy(dto.getCreatedBy());
         entity.setModifiedBy(dto.getModifiedBy());
         entity.setCreatedDate(dto.getCreatedDate());
         entity.setModifiedDate(dto.getModifiedDate());
 
-        if (dto.getMolecules() != null) {
-            entity.setMolecules(
-                    dto.getMolecules().stream()
-                            .map(m -> moleculeMapper.fromId(m.getMoleculeId()))
-                            .collect(Collectors.toSet())
-            );
-        }
 
         if (dto.getPackagingDetails() != null) {
             PackagingDetails packaging =
@@ -101,22 +95,12 @@ public class ProductDetailsMapper {
         dto.setWarningsPrecautions(entity.getWarningsPrecautions());
         dto.setProductDescription(entity.getProductDescription());
         dto.setProductMarketingUrl(entity.getProductMarketingUrl());
+        dto.setManufacturerName(entity.getManufacturerName());
         dto.setCreatedBy(entity.getCreatedBy());
         dto.setModifiedBy(entity.getModifiedBy());
         dto.setCreatedDate(entity.getCreatedDate());
         dto.setModifiedDate(entity.getModifiedDate());
 
-        if (entity.getMolecules() != null) {
-            dto.setMolecules(
-                    entity.getMolecules().stream()
-                            .map(m -> {
-                                MoleculeDto mDto = new MoleculeDto();
-                                mDto.setMoleculeId(m.getMoleculeId());
-                                return mDto;
-                            })
-                            .collect(Collectors.toSet())
-            );
-        }
 
         if (entity.getPackagingDetails() != null) {
             dto.setPackagingDetails(

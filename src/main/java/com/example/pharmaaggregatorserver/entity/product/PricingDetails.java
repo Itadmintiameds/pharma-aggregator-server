@@ -26,9 +26,6 @@ public class PricingDetails {
     @Column(name = "batch_lot_number")
     private String batchLotNumber;
 
-//    @Column(name = "manufacturer_name")
-//    private String manufacturerName;
-
     @Column(name = "manufacturing_date")
     private LocalDateTime manufacturingDate;
 
