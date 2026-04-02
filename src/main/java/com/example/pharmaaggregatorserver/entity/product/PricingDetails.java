@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
 
@@ -25,8 +26,8 @@ public class PricingDetails {
     @Column(name = "batch_lot_number")
     private String batchLotNumber;
 
-    @Column(name = "manufacturer_name")
-    private String manufacturerName;
+//    @Column(name = "manufacturer_name")
+//    private String manufacturerName;
 
     @Column(name = "manufacturing_date")
     private LocalDateTime manufacturingDate;
@@ -40,8 +41,11 @@ public class PricingDetails {
     @Column(name = "stock_quantity")
     private Long stockQuantity;
 
-    @Column(name = "price_per_unit")
-    private Long pricePerUnit;
+    @Column(name = "date_of_stock_entry")
+    private LocalDate dateOfStockEntry;
+
+    @Column(name = "selling_price")
+    private Long sellingPrice;
 
     @Column(name = "mrp")
     private Long mrp;
