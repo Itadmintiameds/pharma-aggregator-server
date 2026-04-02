@@ -1,6 +1,5 @@
 package com.example.pharmaaggregatorserver.repository.product;
 
-import com.example.pharmaaggregatorserver.entity.product.PricingDetailsDrug;
 import com.example.pharmaaggregatorserver.entity.product.ProductDetails;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
