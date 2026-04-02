@@ -3,6 +3,7 @@ package com.example.pharmaaggregatorserver.dto.product;
 import com.example.pharmaaggregatorserver.entity.product.AdditionalDiscount;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
 
@@ -11,17 +12,16 @@ public class PricingDetailsDto {
 
     private String pricingId;
     private String batchLotNumber;
-    private String manufacturerName;
+//    private String manufacturerName;
     private LocalDateTime manufacturingDate;
     private LocalDateTime expiryDate;
     private String storageCondition;
     private Long stockQuantity;
-    private Long pricePerUnit;
+    private LocalDate dateOfStockEntry;
+    private Long sellingPrice;
     private Long mrp;
     private Long discountPercentage;
     private Long gstPercentage;
-    private Long minimumPurchaseQuantity;
-    private Long additionalDiscount;
     private Long finalPrice;
     private Long hsnCode;
     private Long shelfLifeMonths;
