@@ -1,0 +1,51 @@
+package com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster;
+
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "tbl_storage_condition_master")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class StorageConditionMaster {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "storage_condition_id")
+    private Long storageConditionId;
+
+    @Column(name = "condition_name", nullable = false, unique = true, length = 100)
+    private String conditionName;
+
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "temperature_range")
+    private String temperatureRange;
+
+    @Column(name = "display_order")
+    private Integer displayOrder;
+
+    @Column(name = "is_active")
+    private Boolean isActive = true;
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @Column(name = "created_by", length = 50)
+    private String createdBy;
+
+    @Column(name = "updated_by", length = 50)
+    private String updatedBy;
+}

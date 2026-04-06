@@ -1,12 +1,13 @@
 package com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster;
 
+import com.example.pharmaaggregatorserver.entity.product.ProductAttributeConsumableMedical;
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "tbl_consumable_material_type_master")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class ConsumableMaterialType {
@@ -19,23 +20,11 @@ public class ConsumableMaterialType {
     @Column(name = "material_type_name", nullable = false)
     private String materialTypeName;
 
-    @Column(name = "is_active")
-    private Boolean isActive = true;
+    @Column(name = "description")
+    private String description;
 
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
-    @PrePersist
-    void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
+    // Bi-directional mapping (optional but recommended)
+    @ManyToMany(mappedBy = "materialTypes")
+    @ToString.Exclude
+    private java.util.List<ProductAttributeConsumableMedical> productAttributes;
 }

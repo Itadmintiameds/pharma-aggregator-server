@@ -8,6 +8,9 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -27,20 +30,38 @@ public class ProductAttributeConsumableMedical {
     @JsonIgnoreProperties
     private DeviceCategory deviceCategory;
 
+    // FK → tbl_device_category_master
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "device_sub_cat_id" ,nullable = false)
+    @JsonIgnoreProperties
+    private DeviceSubCategory deviceSubCategory;
+
     @Column(name = "brand_name")
     private String brandName;
 
-    // FK → tbl_consumable_material_type_master
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "material_type_id")
-    @JsonIgnoreProperties
-    private ConsumableMaterialType materialType;
+//    // FK → tbl_consumable_material_type_master
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "material_type_id")
+//    @JsonIgnoreProperties
+//    private ConsumableMaterialType materialType;
+
+    // MANY-TO-MANY with ConsumableMaterialType (changed from @ManyToOne)
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "tm_product_consumable_material_mapping",
+            joinColumns = @JoinColumn(name = "product_attribute_id"),
+            inverseJoinColumns = @JoinColumn(name = "material_type_id")
+    )
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "productAttributes"})
+    private List<ConsumableMaterialType> materialTypes = new ArrayList<>();
 
     // FK → tbl_diamension_size_master
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "diamension_id")
-    @JsonIgnoreProperties
-    private DimensionSize dimensionSize;
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "diamension_id")
+//    @JsonIgnoreProperties
+//    private DimensionSize dimensionSize;
+    @Column(name = "dimension_Size")
+    private String dimensionSize;
 
     @Column(name = "sterile_or_non_sterile")
     private String sterileOrNonSterile;
@@ -78,14 +99,26 @@ public class ProductAttributeConsumableMedical {
     @Column(name = "certification_document_path")
     private String certificationDocumentPath;
 
-    @Column(name = "country_of_origin")
-    private String countryOfOrigin;
+//    @Column(name = "country_of_origin")
+//    private String countryOfOrigin;
+
+    // FK → tbl_device_category_master
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "country_id" ,nullable = false)
+    @JsonIgnoreProperties
+    private CountryMaster countryMaster;
 
     @Column(name = "manufacturer_name")
     private String manufacturerName;
 
-    @Column(name = "storage_condition")
-    private String storageCondition;
+//    @Column(name = "storage_condition")
+//    private String storageCondition;
+
+    // FK → tbl_storage_condition_master
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "storage_condition_id" ,nullable = false)
+    @JsonIgnoreProperties
+    private StorageConditionMaster storageConditionMaster;
 
     @Column(name = "brochure_type")
     private String brochureType;
