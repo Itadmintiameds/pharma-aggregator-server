@@ -26,6 +26,7 @@ public class ProductDetailsDto {
     private PackagingDetailsDto  packagingDetails;
     private Set<PricingDetailsDto> pricingDetails;
     private Set<ProductAttributeDrugDto> productAttributeDrugs;
+    private Set<ConsumableProductAttributeDTO> productAttributeConsumableMedicals;
     private Set<ProductAttributeNonConsumableMedicalDto> productAttributeNonConsumableMedicals;
     private Set<ProductImageDto> productImages;
 

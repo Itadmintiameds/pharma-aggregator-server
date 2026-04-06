@@ -16,7 +16,6 @@ import java.util.Set;
 @Entity
 @Table(name = "tbl_dosage_form_master")
 public class DosageForm {
-
     @Id
     @Column(name = "dosage_id")
     private Long dosageId;
