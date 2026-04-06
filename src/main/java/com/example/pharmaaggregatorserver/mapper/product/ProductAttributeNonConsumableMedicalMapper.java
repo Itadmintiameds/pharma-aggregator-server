@@ -1,15 +1,20 @@
 package com.example.pharmaaggregatorserver.mapper.product;
 
 import com.example.pharmaaggregatorserver.dto.product.ProductAttributeNonConsumableMedicalDto;
+import com.example.pharmaaggregatorserver.dto.product.ProductCertificateDocumentDto;
 import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.Certification;
 import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.DeviceCategory;
 import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.NonConsumableMaterialType;
 import com.example.pharmaaggregatorserver.entity.product.ProductAttributeNonConsumableMedical;
+import com.example.pharmaaggregatorserver.entity.product.ProductCertificateDocument;
 import com.example.pharmaaggregatorserver.repository.product.CertificationRepository;
 import com.example.pharmaaggregatorserver.repository.product.DeviceCategoryRepository;
 import com.example.pharmaaggregatorserver.repository.product.NonConsumableMaterialTypeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -31,7 +36,7 @@ public class ProductAttributeNonConsumableMedicalMapper {
         entity.setUdiNumber(dto.getUdiNumber());
         entity.setPurpose(dto.getPurpose());
         entity.setKeyFeaturesSpecifications(dto.getKeyFeaturesSpecifications());
-        entity.setComplianceCertificateUrl(dto.getComplianceCertificateUrl());
+//        entity.setComplianceCertificateUrl(dto.getComplianceCertificateUrl());
         entity.setWarrantyPeriod(dto.getWarrantyPeriod());
         entity.setServiceAvailability(dto.isServiceAvailability());
         entity.setCountryOfOrigin(dto.getCountryOfOrigin());
@@ -46,18 +51,43 @@ public class ProductAttributeNonConsumableMedicalMapper {
             entity.setDeviceCategory(deviceCategory);
         }
 
-        if (dto.getCertificationId() != null) {
-            Certification certification = certificationRepo.findById(dto.getCertificationId())
-                    .orElseThrow(() -> new RuntimeException(
-                            "Certification not found: " + dto.getCertificationId()));
-            entity.setCertification(certification);
-        }
+//        if (dto.getCertificationId() != null) {
+//            Certification certification = certificationRepo.findById(dto.getCertificationId())
+//                    .orElseThrow(() -> new RuntimeException(
+//                            "Certification not found: " + dto.getCertificationId()));
+//            entity.setCertification(certification);
+//        }
 
         if (dto.getMaterialTypeId() != null) {
             NonConsumableMaterialType materialType = materialTypeRepo.findById(dto.getMaterialTypeId())
                     .orElseThrow(() -> new RuntimeException(
                             "MaterialType not found: " + dto.getMaterialTypeId()));
             entity.setMaterialType(materialType);
+        }
+
+        // Map multiple certificate documents
+        if (dto.getCertificateDocuments() != null && !dto.getCertificateDocuments().isEmpty()) {
+            List<Certification> certifications = new ArrayList<>();
+            List<ProductCertificateDocument> documents = new ArrayList<>();
+
+            for (ProductCertificateDocumentDto certDto : dto.getCertificateDocuments()) {
+                Certification certification = certificationRepo.findById(certDto.getCertificationId())
+                        .orElseThrow(() -> new RuntimeException(
+                                "Certification not found: " + certDto.getCertificationId()));
+
+                certifications.add(certification);
+
+                ProductCertificateDocument doc = ProductCertificateDocument.builder()
+                        .certification(certification)
+                        .certificateUrl(certDto.getCertificateUrl())
+                        .nonConsumableMedical(entity)
+                        .build();
+
+                documents.add(doc);
+            }
+
+            entity.setCertifications(certifications);
+            entity.setCertificateDocuments(documents);
         }
 
         return entity;
@@ -81,12 +111,29 @@ public class ProductAttributeNonConsumableMedicalMapper {
         dto.setPurpose(entity.getPurpose());
         dto.setKeyFeaturesSpecifications(entity.getKeyFeaturesSpecifications());
 
-        if (entity.getCertification() != null) {
-            dto.setCertificationId(entity.getCertification().getCertificationId());
-            dto.setCertificationName(entity.getCertification().getCertificationName());
-        }
+//        if (entity.getCertification() != null) {
+//            dto.setCertificationId(entity.getCertification().getCertificationId());
+//            dto.setCertificationName(entity.getCertification().getCertificationName());
+//        }
+//
+//        dto.setComplianceCertificateUrl(entity.getComplianceCertificateUrl());
 
-        dto.setComplianceCertificateUrl(entity.getComplianceCertificateUrl());
+        // Map certificate documents back to DTOs
+        if (entity.getCertificateDocuments() != null) {
+            List<ProductCertificateDocumentDto> certDtos = entity.getCertificateDocuments().stream()
+                    .map(doc -> {
+                        ProductCertificateDocumentDto certDto = new ProductCertificateDocumentDto();
+                        if (doc.getCertification() != null) {
+                            certDto.setProductCertificateDocumentId(doc.getProductCertificateDocumentId());
+                            certDto.setCertificationId(doc.getCertification().getCertificationId());
+                            certDto.setCertificationName(doc.getCertification().getCertificationName());
+                        }
+                        certDto.setCertificateUrl(doc.getCertificateUrl());
+                        return certDto;
+                    })
+                    .toList();
+            dto.setCertificateDocuments(certDtos);
+        }
 
         if (entity.getMaterialType() != null) {
             dto.setMaterialTypeId(entity.getMaterialType().getMaterialTypeId());

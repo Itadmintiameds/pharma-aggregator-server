@@ -4,6 +4,7 @@ import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMas
 import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.DeviceCategory;
 import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.NonConsumableMaterialType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -13,6 +14,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -52,13 +55,26 @@ public class ProductAttributeNonConsumableMedical {
     @Column(name = "key_features_specifications", columnDefinition = "TEXT", nullable = false)
     private String keyFeaturesSpecifications;  // Key Features / Technical Specifications*
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "certification_id", nullable = false)
-    @JsonIgnore
-    private Certification certification;        // Compliance Certificate* (anyone from the (CDSCO License No. (if required), ISO, CE, BIS))
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "certification_id", nullable = false)
+//    @JsonIgnore
+//    private Certification certification;        // Compliance Certificate* (anyone from the (CDSCO License No. (if required), ISO, CE, BIS))
 
-    @Column(name = "compliance_certificate_url")  // TODO : Does seller need to upload document for this?
-    private String complianceCertificateUrl;   // Upload Compliance Certificate*
+    // Multiple certification types (CDSCO / ISO / CE / BIS)
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "tm_non_consumable_medical_certifications",
+            joinColumns = @JoinColumn(name = "product_attribute_id"),
+            inverseJoinColumns = @JoinColumn(name = "certification_id")
+    )
+    @JsonIgnore
+    private List<Certification> certifications = new ArrayList<>();
+
+    @OneToMany(mappedBy = "nonConsumableMedical", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProductCertificateDocument> certificateDocuments = new ArrayList<>();
+
+//    @Column(name = "compliance_certificate_url")  // TODO : Does seller send multiple documents?
+//    private String complianceCertificateUrl;   // Upload Compliance Certificate*
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "material_type_id")
