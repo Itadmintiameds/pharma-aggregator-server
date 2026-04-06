@@ -1,5 +1,6 @@
 package com.example.pharmaaggregatorserver.dto.product;
 
+import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.NonConsumableMaterialType;
 import lombok.Data;
 
 import java.util.List;
@@ -10,6 +11,8 @@ public class ProductAttributeNonConsumableMedicalDto {
     private String productAttributeId;
     private Long deviceCategoryId;
     private String deviceName;
+    private Long deviceSubCategoryId;
+    private String deviceSubCategoryName;
     private String brandName;
     private String modelName;
     private String modelNumber;
@@ -24,12 +27,18 @@ public class ProductAttributeNonConsumableMedicalDto {
     // Replaces single certificationId + certificationName + complianceCertificateUrl
     private List<ProductCertificateDocumentDto> certificateDocuments;
 
-    private Long materialTypeId;
-    private String materialTypeName;
+    private List<Long> materialTypeIds;
+    private List<NonConsumableMaterialTypeDto> materialTypes;
+    private Long powerSourceId;
+    private String powerSourceName;
     private String warrantyPeriod;
     private boolean serviceAvailability;
-    private String countryOfOrigin;
+//    private String countryOfOrigin;
+    private Long countryId;
+    private String countryName;
     private String manufacturerName;
-    private String storageCondition;
+    //    private String storageCondition;
+    private Long storageConditionId;
+    private String storageConditionName;
     private String brochurePath;
 }
