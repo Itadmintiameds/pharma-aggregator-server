@@ -1,6 +1,7 @@
 package com.example.pharmaaggregatorserver.entity.product;
 
 import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
@@ -81,14 +82,27 @@ public class ProductAttributeConsumableMedical {
     @Column(name = "safety_instructions", columnDefinition = "TEXT")
     private String safetyInstructions;
 
-    // FK → tbl_certification_master
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "certification_id")
-    @JsonIgnoreProperties
-    private Certification certification;
+//    // FK → tbl_certification_master
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "certification_id")
+//    @JsonIgnoreProperties
+//    private Certification certification;
+//
+//    @Column(name = "compliance_certificate_url")
+//    private String complianceCertificateUrl;
 
-    @Column(name = "compliance_certificate_url")
-    private String complianceCertificateUrl;
+    // Multiple certification types (CDSCO / ISO / CE / BIS)
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "tm_consumable_medical_certifications",
+            joinColumns = @JoinColumn(name = "product_attribute_id"),
+            inverseJoinColumns = @JoinColumn(name = "certification_id")
+    )
+    @JsonIgnore
+    private List<Certification> certifications = new ArrayList<>();
+
+    @OneToMany(mappedBy = "consumableMedical", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProductCertificateDocument> certificateDocuments = new ArrayList<>();
 
     // FK → tbl_certification_master
     @ManyToOne(fetch = FetchType.LAZY)
@@ -96,8 +110,8 @@ public class ProductAttributeConsumableMedical {
     @JsonIgnoreProperties
     private MedicalDeviceType MedicalDeviceType;
 
-    @Column(name = "certification_document_path")
-    private String certificationDocumentPath;
+//    @Column(name = "certification_document_path")
+//    private String certificationDocumentPath;
 
 //    @Column(name = "country_of_origin")
 //    private String countryOfOrigin;
