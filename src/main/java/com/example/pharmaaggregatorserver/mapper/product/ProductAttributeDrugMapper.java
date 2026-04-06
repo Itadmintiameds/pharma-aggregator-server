@@ -36,7 +36,7 @@ public class ProductAttributeDrugMapper {
                 ProductMolecule pm = new ProductMolecule();
 
                 Molecule molecule = moleculeRepository.findById(mDto.getMoleculeId())
-                        .orElseThrow(() -> new RuntimeException("Molecule not found"));
+                        .orElseThrow(() -> new RuntimeException("Molecule not found with Id: " + mDto.getMoleculeId()));
 
                 ProductMoleculeId id = new ProductMoleculeId(
                         dto.getProductAttributeId(),

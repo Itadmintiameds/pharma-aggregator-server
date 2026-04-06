@@ -2,6 +2,8 @@ package com.example.pharmaaggregatorserver.dto.product;
 
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class ProductAttributeNonConsumableMedicalDto {
 
@@ -15,9 +17,13 @@ public class ProductAttributeNonConsumableMedicalDto {
     private String udiNumber;
     private String purpose;
     private String keyFeaturesSpecifications;
-    private Long certificationId;
-    private String certificationName;
-    private String complianceCertificateUrl;
+//    private Long certificationId;
+//    private String certificationName;
+//    private String complianceCertificateUrl;
+
+    // Replaces single certificationId + certificationName + complianceCertificateUrl
+    private List<ProductCertificateDocumentDto> certificateDocuments;
+
     private Long materialTypeId;
     private String materialTypeName;
     private String warrantyPeriod;
