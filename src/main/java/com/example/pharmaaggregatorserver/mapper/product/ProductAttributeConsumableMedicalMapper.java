@@ -1,8 +1,10 @@
 package com.example.pharmaaggregatorserver.mapper.product;
 
 import com.example.pharmaaggregatorserver.dto.product.ConsumableProductAttributeDTO;
+import com.example.pharmaaggregatorserver.dto.product.ProductCertificateDocumentDto;
 import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.*;
 import com.example.pharmaaggregatorserver.entity.product.ProductAttributeConsumableMedical;
+import com.example.pharmaaggregatorserver.entity.product.ProductCertificateDocument;
 import com.example.pharmaaggregatorserver.repository.product.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -37,13 +39,9 @@ public class ProductAttributeConsumableMedicalMapper {
         entity.setPurpose(dto.getPurpose());
         entity.setKeyFeaturesSpecifications(dto.getKeyFeaturesSpecifications());
         entity.setSafetyInstructions(dto.getSafetyInstructions());
-//        entity.set(dto.getCountryOfOrigin());
-//        entity.setCountryOfOrigin(dto.getCountryOfOrigin());
         entity.setManufacturerName(dto.getManufacturerName());
-        //entity.setStorageCondition(dto.getStorageCondition());
         entity.setBrochureType(dto.getBrochureType());
         entity.setBrochurePath(dto.getBrochurePath());
-        entity.setComplianceCertificateUrl(dto.getComplianceCertificateUrl());
 
         // Device Category
         if (dto.getDeviceCatId() != null) {
@@ -61,19 +59,36 @@ public class ProductAttributeConsumableMedicalMapper {
             entity.setDeviceSubCategory(deviceSubCategory);
         }
 
-        // Certification (SINGLE - as per your DTO)
-        if (dto.getCertificationId() != null) {
-            Certification certification = certificationRepo.findById(dto.getCertificationId())
-                    .orElseThrow(() -> new RuntimeException(
-                            "Certification not found: " + dto.getCertificationId()));
-            entity.setCertification(certification);
+        // Certification Documents
+        if (dto.getCertificateDocuments() != null && !dto.getCertificateDocuments().isEmpty()) {
+            List<Certification> certifications = new ArrayList<>();
+            List<ProductCertificateDocument> documents = new ArrayList<>();
+
+            for (ProductCertificateDocumentDto certDto : dto.getCertificateDocuments()) {
+                Certification certification = certificationRepo.findById(certDto.getCertificationId())
+                        .orElseThrow(() -> new RuntimeException(
+                                "Certification not found: " + certDto.getCertificationId()));
+
+                certifications.add(certification);
+
+                ProductCertificateDocument doc = ProductCertificateDocument.builder()
+                        .certification(certification)
+                        .certificateUrl(certDto.getCertificateUrl())
+                        .consumableMedical(entity)
+                        .build();
+
+                documents.add(doc);
+            }
+
+            entity.setCertifications(certifications);
+            entity.setCertificateDocuments(documents);
         }
 
         // Country of origin
         if (dto.getCountryId() != null) {
             CountryMaster countryMaster = countryMasterRepo.findById(dto.getCountryId())
                     .orElseThrow(() -> new RuntimeException(
-                            "DeviceCategory not found: " + dto.getDeviceCatId()));
+                            "Country not found: " + dto.getCountryId()));
             entity.setCountryMaster(countryMaster);
         }
 
@@ -81,15 +96,14 @@ public class ProductAttributeConsumableMedicalMapper {
         if (dto.getStorageConditionId() != null) {
             StorageConditionMaster storageConditionMaster = storageConditionMasterRepo.findById(dto.getStorageConditionId())
                     .orElseThrow(() -> new RuntimeException(
-                            "DeviceCategory not found: " + dto.getStorageConditionId()));
+                            "StorageCondition not found: " + dto.getStorageConditionId()));
             entity.setStorageConditionMaster(storageConditionMaster);
         }
 
-        // MATERIAL TYPES - Many-to-Many (Changed from single to list)
+        // MATERIAL TYPES - Many-to-Many
         if (dto.getMaterialTypeId() != null && !dto.getMaterialTypeId().isEmpty()) {
             List<ConsumableMaterialType> materialTypes = materialTypeRepo.findAllById(dto.getMaterialTypeId());
 
-            // Validate all IDs were found
             if (materialTypes.size() != dto.getMaterialTypeId().size()) {
                 List<Long> foundIds = materialTypes.stream()
                         .map(ConsumableMaterialType::getMaterialTypeId)
@@ -123,12 +137,9 @@ public class ProductAttributeConsumableMedicalMapper {
         dto.setPurpose(entity.getPurpose());
         dto.setKeyFeaturesSpecifications(entity.getKeyFeaturesSpecifications());
         dto.setSafetyInstructions(entity.getSafetyInstructions());
-        //dto.setCountryOfOrigin(entity.getCountryOfOrigin());
         dto.setManufacturerName(entity.getManufacturerName());
-        //dto.setStorageCondition(entity.getStorageCondition());
         dto.setBrochureType(entity.getBrochureType());
         dto.setBrochurePath(entity.getBrochurePath());
-        dto.setComplianceCertificateUrl(entity.getComplianceCertificateUrl());
 
         // Device Category
         if (entity.getDeviceCategory() != null) {
@@ -150,21 +161,30 @@ public class ProductAttributeConsumableMedicalMapper {
             dto.setStorageConditionId(entity.getStorageConditionMaster().getStorageConditionId());
         }
 
-        // Certification
-        if (entity.getCertification() != null) {
-            dto.setCertificationId(entity.getCertification().getCertificationId());
-            dto.setCertificationName(entity.getCertification().getCertificationName());
+        // Certification - Map certificate documents back to DTOs (REMOVED DUPLICATE)
+        if (entity.getCertificateDocuments() != null && !entity.getCertificateDocuments().isEmpty()) {
+            List<ProductCertificateDocumentDto> certDtos = entity.getCertificateDocuments().stream()
+                    .map(doc -> {
+                        ProductCertificateDocumentDto certDto = new ProductCertificateDocumentDto();
+                        if (doc.getCertification() != null) {
+                            certDto.setProductCertificateDocumentId(doc.getProductCertificateDocumentId());
+                            certDto.setCertificationId(doc.getCertification().getCertificationId());
+                            certDto.setCertificationName(doc.getCertification().getCertificationName());
+                        }
+                        certDto.setCertificateUrl(doc.getCertificateUrl());
+                        return certDto;
+                    })
+                    .collect(Collectors.toList());
+            dto.setCertificateDocuments(certDtos);
         }
 
-        // MATERIAL TYPES - Many-to-Many (Changed from single to list)
+        // MATERIAL TYPES - Many-to-Many
         if (entity.getMaterialTypes() != null && !entity.getMaterialTypes().isEmpty()) {
-            // Set IDs list
             List<Long> materialTypeIds = entity.getMaterialTypes().stream()
                     .map(ConsumableMaterialType::getMaterialTypeId)
                     .collect(Collectors.toList());
             dto.setMaterialTypeId(materialTypeIds);
 
-            // Set detailed info for response
             List<ConsumableProductAttributeDTO.MaterialTypeInfo> materialTypeInfos =
                     entity.getMaterialTypes().stream()
                             .map(mt -> {
@@ -194,12 +214,9 @@ public class ProductAttributeConsumableMedicalMapper {
         entity.setPurpose(dto.getPurpose());
         entity.setKeyFeaturesSpecifications(dto.getKeyFeaturesSpecifications());
         entity.setSafetyInstructions(dto.getSafetyInstructions());
-        //entity.setCountryOfOrigin(dto.getCountryOfOrigin());
         entity.setManufacturerName(dto.getManufacturerName());
-       // entity.setStorageCondition(dto.getStorageCondition());
         entity.setBrochureType(dto.getBrochureType());
         entity.setBrochurePath(dto.getBrochurePath());
-        entity.setComplianceCertificateUrl(dto.getComplianceCertificateUrl());
 
         // Update relationships
         if (dto.getDeviceCatId() != null) {
@@ -219,25 +236,18 @@ public class ProductAttributeConsumableMedicalMapper {
         if (dto.getCountryId() != null) {
             CountryMaster countryMaster = countryMasterRepo.findById(dto.getCountryId())
                     .orElseThrow(() -> new RuntimeException(
-                            "DeviceCategory not found: " + dto.getCountryId()));
+                            "Country not found: " + dto.getCountryId()));
             entity.setCountryMaster(countryMaster);
         }
 
         if (dto.getStorageConditionId() != null) {
             StorageConditionMaster storageConditionMaster = storageConditionMasterRepo.findById(dto.getStorageConditionId())
                     .orElseThrow(() -> new RuntimeException(
-                            "DeviceCategory not found: " + dto.getStorageConditionId()));
+                            "StorageCondition not found: " + dto.getStorageConditionId()));
             entity.setStorageConditionMaster(storageConditionMaster);
         }
 
-        if (dto.getCertificationId() != null) {
-            Certification certification = certificationRepo.findById(dto.getCertificationId())
-                    .orElseThrow(() -> new RuntimeException(
-                            "Certification not found: " + dto.getCertificationId()));
-            entity.setCertification(certification);
-        }
-
-        // Update material types (clear and add new)
+        // Update material types
         if (dto.getMaterialTypeId() != null) {
             List<ConsumableMaterialType> materialTypes = materialTypeRepo.findAllById(dto.getMaterialTypeId());
             if (materialTypes.size() != dto.getMaterialTypeId().size()) {
