@@ -29,9 +29,11 @@ public class ConsumableProductAttributeDTO {
     private String purpose;
     private String keyFeaturesSpecifications;
     private String safetyInstructions;
-    private Long certificationId;
-    private String certificationName;
-    private String complianceCertificateUrl;
+//    private Long certificationId;
+//    private String certificationName;
+//    private String complianceCertificateUrl;
+// Replaces single certificationId + certificationName + complianceCertificateUrl
+    private List<ProductCertificateDocumentDto> certificateDocuments;
 
     private Long countryId;
     //private String countryOfOrigin;

@@ -183,14 +183,23 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
                     throw new RuntimeException("deviceCategoryId is required for consumable medical attribute");
                 }
 
-                if (a.getCertification() == null) {
-                    throw new RuntimeException("At least one certification is required");
-                }
+//                if (a.getCertification() == null) {
+//                    throw new RuntimeException("At least one certification is required");
+//                }
 
                 a.setProductAttributeId(UUID.randomUUID().toString());
                 a.setProductDetails(product);
                 a.setCreatedBy(sellerId);
                 a.setCreatedDate(LocalDateTime.now());
+
+                // Bind certificate documents back to the entity
+                if (a.getCertificateDocuments() != null) {
+                    a.getCertificateDocuments().forEach(doc -> {
+                        doc.setConsumableMedical(a);
+                        doc.setCreatedBy(sellerId);
+                        doc.setCreatedDate(LocalDateTime.now());
+                    });
+                }
             });
         }
 

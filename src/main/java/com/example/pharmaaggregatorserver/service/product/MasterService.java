@@ -1,0 +1,121 @@
+package com.example.pharmaaggregatorserver.service.product;
+
+import com.example.pharmaaggregatorserver.dto.product.*;
+import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.*;
+import com.example.pharmaaggregatorserver.repository.product.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class MasterService {
+
+    private final CountryMasterRepository countryRepository;
+    private final StorageConditionMasterRepository storageConditionRepository;
+    private final MaterialTypeRepository materialTypeRepository;
+    private final DeviceCategoryRepository deviceCategoryRepository;
+    private final DeviceSubCategoryRepository deviceSubCategoryRepository;
+
+    public List<CountryResponseDTO> getAllCountries() {
+        return countryRepository.findAll()
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    private CountryResponseDTO convertToDTO(CountryMaster country) {
+        return CountryResponseDTO.builder()
+                .countryId(country.getCountryId())
+                .countryName(country.getCountryName())
+                .countryCode(country.getCountryCode())
+                .phoneCode(country.getPhoneCode())
+                .isActive(country.getIsActive())
+                .build();
+    }
+    //storagecondition
+    public List<StorageConditionResponseDTO> getAllStorageConditions() {
+        return storageConditionRepository.findAll()
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    private StorageConditionResponseDTO convertToDTO(StorageConditionMaster storageCondition) {
+        return StorageConditionResponseDTO.builder()
+                .storageConditionId(storageCondition.getStorageConditionId())
+                .conditionName(storageCondition.getConditionName())
+                .description(storageCondition.getDescription())
+                .temperatureRange(storageCondition.getTemperatureRange())
+                .displayOrder(storageCondition.getDisplayOrder())
+                .isActive(storageCondition.getIsActive())
+                .build();
+    }
+    //Material Type
+    public List<ConsumableMaterialTypeResponseDTO> getAllMaterialTypes() {
+        return materialTypeRepository.findAll()
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    private ConsumableMaterialTypeResponseDTO convertToDTO(ConsumableMaterialType materialType) {
+        return ConsumableMaterialTypeResponseDTO.builder()
+                .materialTypeId(materialType.getMaterialTypeId())
+                .materialTypeName(materialType.getMaterialTypeName())
+                .description(materialType.getDescription())
+                .build();
+    }
+
+
+
+    public List<DeviceCategoryResponseDTO> getAllDeviceCategories() {
+        List<DeviceCategory> categories = deviceCategoryRepository.findAll();
+        return categories.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    private DeviceCategoryResponseDTO convertToDTO(DeviceCategory category) {
+        DeviceCategoryResponseDTO dto = new DeviceCategoryResponseDTO();
+        dto.setDeviceCatId(category.getDeviceCatId());
+        dto.setDeviceName(category.getDeviceName());
+        dto.setDeviceCategoryType(category.getDeviceCategoryType());
+        dto.setIsActive(category.getIsActive());
+        dto.setCreatedAt(category.getCreatedAt());
+        dto.setUpdatedAt(category.getUpdatedAt());
+        return dto;
+    }
+
+    // GET ALL Device Sub Categories
+    public List<DeviceSubCategoryResponseDTO> getAllDeviceSubCategories() {
+        List<DeviceSubCategory> subCategories = deviceSubCategoryRepository.findAll();
+        return subCategories.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    // GET BY ID Device Sub Category
+    // GET BY CATEGORY ID - Get all sub categories for a specific category
+    public List<DeviceSubCategoryResponseDTO> getDeviceSubCategoriesByCategoryId(Long categoryId) {
+        List<DeviceSubCategory> subCategories = deviceSubCategoryRepository.findByDeviceCategory_DeviceCatId(categoryId);
+        System.out.println("Sub categories found for category " + categoryId + ": " + subCategories.size()); // Debug log
+        return subCategories.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    private DeviceSubCategoryResponseDTO convertToDTO(DeviceSubCategory subCategory) {
+        return DeviceSubCategoryResponseDTO.builder()
+                .deviceSubCatId(subCategory.getDeviceSubCatId())
+                .deviceCatId(subCategory.getDeviceCategory().getDeviceCatId())
+                .deviceCategoryName(subCategory.getDeviceCategory().getDeviceName())
+                .subCategoryName(subCategory.getSubCategoryName())
+                .description(subCategory.getDescription())
+                .isActive(subCategory.getIsActive())
+                .createdAt(subCategory.getCreatedAt())
+                .updatedAt(subCategory.getUpdatedAt())
+                .build();
+    }
+}
