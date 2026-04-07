@@ -1,5 +1,6 @@
 package com.example.pharmaaggregatorserver.service.profile;
 
+import com.example.pharmaaggregatorserver.dto.seller.profile.CoordinatorEmailDTO;
 import com.example.pharmaaggregatorserver.dto.seller.profile.PendingSellerResponseDTO;
 import com.example.pharmaaggregatorserver.dto.seller.profile.SellerEditRequest;
 import com.example.pharmaaggregatorserver.dto.seller.profile.SellerResponseDTO;
@@ -21,11 +22,15 @@ import com.example.pharmaaggregatorserver.repository.seller.profile.PendingSelle
 import com.example.pharmaaggregatorserver.service.EmailService;
 import com.example.pharmaaggregatorserver.service.S3Service;
 import com.example.pharmaaggregatorserver.service.seller.history.SellerHistoryService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -46,9 +51,19 @@ public class SellerProfileService {
     private final DistrictMasterRepository districtRepository;
     private final TalukaMasterRepository talukaRepository;
     private final ProductTypeMasterRepository productTypeRepository;
-    private final EmailService emailService;  // Inject EmailService
+    private final EmailService emailService;
+    private final CoordinatorEmailService coordinatorEmailService;
     private final S3Service s3Service;
     private final SellerHistoryService sellerHistoryService;
+
+    @Value("${app.support.email:support@tiameds.com}")
+    private String supportEmail;
+
+    @Value("${app.login.url:https://marketplace.tiameds.com/login}")
+    private String loginUrl;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     private static final DateTimeFormatter TS_FORMATTER =
             DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
@@ -56,34 +71,529 @@ public class SellerProfileService {
     @Transactional
     public SellerResponseDTO requestSellerUpdate(String sellerId, SellerEditRequest request, String requestedBy) {
 
+        // Fetch existing seller to validate it exists and check for changes
+        Seller existingSeller = sellerRepository.findById(sellerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Seller not found with id: " + sellerId));
+
         // Check if there's already a pending request for this seller
         List<PendingSeller> pendingRequests = pendingSellerRepository.findBySellerIdAndStatus(sellerId, "PENDING");
         if (!pendingRequests.isEmpty()) {
             throw new IllegalStateException("A pending update request already exists for this seller");
         }
 
-        // Fetch existing seller to validate it exists
-        sellerRepository.findById(sellerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Seller not found with id: " + sellerId));
+        // Determine if admin approval is required based on the changes
+        boolean requiresAdminApproval = requiresAdminApproval(existingSeller, request);
 
-        // Create pending seller entity
-        PendingSeller pendingSeller = createPendingSellerFromRequest(request, requestedBy);
-        pendingSeller.setSellerId(sellerId);
-        pendingSeller.setRequestType("UPDATE");
+        if (!requiresAdminApproval) {
+            // Auto-approve - update seller directly
+            return autoApproveUpdate(existingSeller, request, requestedBy);
+        } else {
+            // Create pending seller entity for admin approval
+            PendingSeller pendingSeller = createPendingSellerFromRequest(request, requestedBy);
+            pendingSeller.setSellerId(sellerId);
+            pendingSeller.setRequestType("UPDATE");
 
-        PendingSeller savedPending = pendingSellerRepository.save(pendingSeller);
+            PendingSeller savedPending = pendingSellerRepository.save(pendingSeller);
 
-        // Save documents separately
-        if (request.getDocuments() != null && !request.getDocuments().isEmpty()) {
-            saveDocuments(savedPending, request.getDocuments());
+            // Save documents separately
+            if (request.getDocuments() != null && !request.getDocuments().isEmpty()) {
+                saveDocuments(savedPending, request.getDocuments());
+            }
+
+            // Refresh to load documents
+            savedPending = pendingSellerRepository.findById(savedPending.getPendingSellerId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Pending seller not found"));
+
+            // Return response
+            return mapToResponseDTO(savedPending);
+        }
+    }
+
+    /**
+     * Determines if admin approval is required based on which fields were updated
+     */
+    private boolean requiresAdminApproval(Seller existingSeller, SellerEditRequest request) {
+        // Company Details - Admin approval required for:
+        // 1. Seller Name change (requires updated registration certificate)
+        if (request.getSellerName() != null && !request.getSellerName().equals(existingSeller.getSellerName())) {
+            log.info("Admin approval required: Seller name changed from '{}' to '{}'",
+                    existingSeller.getSellerName(), request.getSellerName());
+            return true;
         }
 
-        // Refresh to load documents
-        savedPending = pendingSellerRepository.findById(savedPending.getPendingSellerId())
-                .orElseThrow(() -> new ResourceNotFoundException("Pending seller not found"));
+        // 2. Address change (requires updated registration certificate with new address)
+        if (isAddressChanged(existingSeller, request)) {
+            log.info("Admin approval required: Address changed");
+            return true;
+        }
 
-        // Return response
-        return mapToResponseDTO(savedPending);
+        // Statutory Documents - Admin approval required for:
+        // 1. License details change (documents updated)
+        if (areLicenseDetailsChanged(existingSeller, request)) {
+            log.info("Admin approval required: License details changed");
+            return true;
+        }
+
+        // 2. GST Number change (requires updated GST certificate)
+        String existingGstNumber = existingSeller.getSellerGST() != null ?
+                existingSeller.getSellerGST().getGstNumber() : null;
+        if (request.getGstNumber() != null && !request.getGstNumber().equals(existingGstNumber)) {
+            log.info("Admin approval required: GST number changed from '{}' to '{}'",
+                    existingGstNumber, request.getGstNumber());
+            return true;
+        }
+
+        // Bank Account Details - Admin approval required for any bank info change
+        if (areBankDetailsChanged(existingSeller, request)) {
+            log.info("Admin approval required: Bank details changed");
+            return true;
+        }
+
+        // No admin approval required for:
+        // - Seller Type (frozen - should not be updated)
+        // - Company Type
+        // - Phone Number
+        // - Email ID
+        // - Website
+        // - Coordinator Name, Designation, Email, Mobile
+        return false;
+    }
+
+    /**
+     * Checks if address fields have changed
+     */
+    private boolean isAddressChanged(Seller existingSeller, SellerEditRequest request) {
+        if (request.getAddress() == null) {
+            return false;
+        }
+
+        SellerAddress existingAddress = existingSeller.getAddress();
+        if (existingAddress == null && request.getAddress() != null) {
+            return true;
+        }
+
+        SellerEditRequest.AddressDTO newAddress = request.getAddress();
+
+        Long existingStateId = existingAddress.getState() != null ? existingAddress.getState().getStateId() : null;
+        Long existingDistrictId = existingAddress.getDistrict() != null ? existingAddress.getDistrict().getDistrictId() : null;
+        Long existingTalukaId = existingAddress.getTaluka() != null ? existingAddress.getTaluka().getTalukaId() : null;
+
+        return !equalsOrBothNull(existingStateId, newAddress.getStateId()) ||
+                !equalsOrBothNull(existingDistrictId, newAddress.getDistrictId()) ||
+                !equalsOrBothNull(existingTalukaId, newAddress.getTalukaId()) ||
+                !equalsOrBothNull(existingAddress.getCity(), newAddress.getCity()) ||
+                !equalsOrBothNull(existingAddress.getStreet(), newAddress.getStreet()) ||
+                !equalsOrBothNull(existingAddress.getBuildingNo(), newAddress.getBuildingNo()) ||
+                !equalsOrBothNull(existingAddress.getLandmark(), newAddress.getLandmark()) ||
+                !equalsOrBothNull(existingAddress.getPinCode(), newAddress.getPinCode());
+    }
+
+    /**
+     * Checks if license details have changed (documents)
+     */
+    private boolean areLicenseDetailsChanged(Seller existingSeller, SellerEditRequest request) {
+        if (request.getDocuments() == null || request.getDocuments().isEmpty()) {
+            return false;
+        }
+
+        List<SellerDocument> existingDocuments = existingSeller.getDocuments();
+
+        // Check if number of documents changed
+        if (existingDocuments.size() != request.getDocuments().size()) {
+            return true;
+        }
+
+        // Check each document for changes
+        for (int i = 0; i < existingDocuments.size(); i++) {
+            SellerDocument existingDoc = existingDocuments.get(i);
+            SellerEditRequest.DocumentDTO newDoc = request.getDocuments().get(i);
+
+            Long existingProductTypeId = existingDoc.getProductTypes() != null ?
+                    existingDoc.getProductTypes().getProductTypeId() : null;
+
+            if (!equalsOrBothNull(existingProductTypeId, newDoc.getProductTypeId())) {
+                return true;
+            }
+
+            if (!equalsOrBothNull(existingDoc.getDocumentNumber(), newDoc.getDocumentNumber())) {
+                return true;
+            }
+
+            if (!equalsOrBothNull(existingDoc.getDocumentFileUrl(), newDoc.getDocumentFileUrl())) {
+                return true;
+            }
+
+            if (!equalsDateOrBothNull(existingDoc.getLicenseIssueDate(), newDoc.getLicenseIssueDate())) {
+                return true;
+            }
+
+            if (!equalsDateOrBothNull(existingDoc.getLicenseExpiryDate(), newDoc.getLicenseExpiryDate())) {
+                return true;
+            }
+
+            if (!equalsOrBothNull(existingDoc.getLicenseIssuingAuthority(), newDoc.getLicenseIssuingAuthority())) {
+                return true;
+            }
+
+            if (!equalsOrBothNull(existingDoc.getLicenseStatus(), newDoc.getLicenseStatus())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Checks if bank details have changed (any change requires admin approval)
+     */
+    private boolean areBankDetailsChanged(Seller existingSeller, SellerEditRequest request) {
+        if (request.getBankDetails() == null) {
+            return false;
+        }
+
+        SellerBankDetails existingBank = existingSeller.getBankDetails();
+        if (existingBank == null && request.getBankDetails() != null) {
+            return true;
+        }
+
+        SellerEditRequest.BankDetailsDTO newBank = request.getBankDetails();
+
+        return !equalsOrBothNull(existingBank.getBankName(), newBank.getBankName()) ||
+                !equalsOrBothNull(existingBank.getBranch(), newBank.getBranch()) ||
+                !equalsOrBothNull(existingBank.getIfscCode(), newBank.getIfscCode()) ||
+                !equalsOrBothNull(existingBank.getAccountNumber(), newBank.getAccountNumber()) ||
+                !equalsOrBothNull(existingBank.getAccountHolderName(), newBank.getAccountHolderName()) ||
+                !equalsOrBothNull(existingBank.getBankDocumentFileUrl(), newBank.getBankDocumentFileUrl());
+    }
+
+    /**
+     * Auto-approve update - directly update seller without admin approval
+     */
+    @Transactional
+    private SellerResponseDTO autoApproveUpdate(Seller seller, SellerEditRequest request, String requestedBy) {
+        // Capture old coordinator before any changes
+        SellerCoordinator oldCoordinator = null;
+        if (seller.getCoordinator() != null) {
+            oldCoordinator = new SellerCoordinator();
+            oldCoordinator.setName(seller.getCoordinator().getName());
+            oldCoordinator.setDesignation(seller.getCoordinator().getDesignation());
+            oldCoordinator.setEmail(seller.getCoordinator().getEmail());
+            oldCoordinator.setMobile(seller.getCoordinator().getMobile());
+        }
+
+        // Capture old coordinator email for rotation
+        String oldCoordinatorEmail = (seller.getCoordinator() != null)
+                ? seller.getCoordinator().getEmail()
+                : null;
+
+        // Snapshot before update for history
+        sellerHistoryService.snapshotBeforeUpdate(seller, requestedBy);
+
+        // Update fields using EntityManager partial updates
+        boolean hasUpdates = false;
+        boolean coordinatorEmailChanged = false;
+
+        // Update coordinator if provided (auto-approved)
+        if (request.getCoordinator() != null) {
+            coordinatorEmailChanged = updateCoordinatorOnly(seller.getSellerId(), request.getCoordinator(), oldCoordinatorEmail);
+            hasUpdates = true;
+        }
+
+        // Update company type if provided (auto-approved)
+        if (request.getCompanyTypeId() != null) {
+            updateCompanyTypeOnly(seller.getSellerId(), request.getCompanyTypeId());
+            hasUpdates = true;
+        }
+
+        // Update phone if provided (auto-approved)
+        if (request.getPhone() != null && !request.getPhone().equals(seller.getPhone())) {
+            updatePhoneOnly(seller.getSellerId(), request.getPhone());
+            hasUpdates = true;
+        }
+
+        // Update email if provided (auto-approved)
+        if (request.getEmail() != null && !request.getEmail().equals(seller.getEmail())) {
+            updateEmailOnly(seller.getSellerId(), request.getEmail());
+            hasUpdates = true;
+        }
+
+        // Update website if provided (auto-approved)
+        if (request.getWebsite() != null && !request.getWebsite().equals(seller.getWebsite())) {
+            updateWebsiteOnly(seller.getSellerId(), request.getWebsite());
+            hasUpdates = true;
+        }
+
+        // Update terms accepted if provided
+        if (request.getTermsAccepted() != null && request.getTermsAccepted() != seller.isTermsAccepted()) {
+            updateTermsAcceptedOnly(seller.getSellerId(), request.getTermsAccepted());
+            hasUpdates = true;
+        }
+
+        // Update timestamp if any updates were made
+        if (hasUpdates) {
+            updateTimestampOnly(seller.getSellerId());
+        }
+
+        // Refresh the seller entity to get updated values
+        entityManager.flush();
+        entityManager.clear();
+        Seller updatedSeller = sellerRepository.findById(seller.getSellerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Seller not found after update"));
+
+        // Send coordinator email notifications if coordinator details changed
+        if (request.getCoordinator() != null && oldCoordinator != null) {
+            String temporaryPassword = null;
+            if (coordinatorEmailChanged) {
+                temporaryPassword = generateTemporaryPassword();
+            }
+            sendCoordinatorEmailNotificationsWithOldCoordinator(updatedSeller, oldCoordinator, temporaryPassword);
+        }
+
+        // Rotate credentials if coordinator email changed
+        if (coordinatorEmailChanged) {
+            sellerHistoryService.rotateCoordinatorCredentialsIfEmailChanged(updatedSeller, oldCoordinatorEmail);
+        }
+
+        // Send notification email about auto-approval
+        sendAutoApprovalEmail(updatedSeller, requestedBy);
+
+        log.info("Auto-approved update for seller ID: {} by: {}", updatedSeller.getSellerId(), requestedBy);
+
+        // Return response indicating auto-approval
+        SellerResponseDTO response = sellerByIdMapper.toResponseDTO(updatedSeller);
+        response.setMessage("Your changes have been auto-approved and applied successfully");
+        return response;
+    }
+
+    private boolean updateCoordinatorOnly(String sellerId, SellerEditRequest.CoordinatorDTO coord, String oldEmail) {
+        boolean emailChanged = false;
+
+        // First check if coordinator exists
+        String findCoordinatorIdQuery = "SELECT s.coordinator.id FROM Seller s WHERE s.sellerId = :sellerId";
+        Long coordinatorId = null;
+        try {
+            coordinatorId = (Long) entityManager.createQuery(findCoordinatorIdQuery)
+                    .setParameter("sellerId", sellerId)
+                    .getSingleResult();
+        } catch (Exception e) {
+            // Coordinator doesn't exist yet
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        if (coordinatorId == null) {
+            // Create new coordinator
+            String createCoordinatorQuery = "INSERT INTO tbl_seller_coordinator " +
+                    "(seller_id, name, designation, email, mobile, created_by, created_at, updated_by, updated_at) " +
+                    "VALUES (:sellerId, :name, :designation, :email, :mobile, :createdBy, :createdAt, :updatedBy, :updatedAt)";
+
+            entityManager.createNativeQuery(createCoordinatorQuery)
+                    .setParameter("sellerId", sellerId)
+                    .setParameter("name", coord.getName())
+                    .setParameter("designation", coord.getDesignation())
+                    .setParameter("email", coord.getEmail())
+                    .setParameter("mobile", coord.getMobile())
+                    .setParameter("createdBy", "system")
+                    .setParameter("createdAt", now)
+                    .setParameter("updatedBy", "system")
+                    .setParameter("updatedAt", now)
+                    .executeUpdate();
+
+            emailChanged = (oldEmail != null && !oldEmail.equals(coord.getEmail()));
+        } else {
+            // Check if email is changing
+            String findCurrentEmail = "SELECT s.coordinator.email FROM Seller s WHERE s.sellerId = :sellerId";
+            String currentEmail = null;
+            try {
+                currentEmail = (String) entityManager.createQuery(findCurrentEmail)
+                        .setParameter("sellerId", sellerId)
+                        .getSingleResult();
+            } catch (Exception e) {
+                // Ignore
+            }
+            emailChanged = (currentEmail != null && !currentEmail.equals(coord.getEmail()));
+
+            // Update existing coordinator
+            StringBuilder updateQuery = new StringBuilder("UPDATE tbl_seller_coordinator SET ");
+            boolean first = true;
+
+            if (coord.getName() != null) {
+                updateQuery.append("name = :name");
+                first = false;
+            }
+            if (coord.getDesignation() != null) {
+                if (!first) updateQuery.append(", ");
+                updateQuery.append("designation = :designation");
+                first = false;
+            }
+            if (coord.getEmail() != null) {
+                if (!first) updateQuery.append(", ");
+                updateQuery.append("email = :email");
+                first = false;
+            }
+            if (coord.getMobile() != null) {
+                if (!first) updateQuery.append(", ");
+                updateQuery.append("mobile = :mobile");
+                first = false;
+            }
+            updateQuery.append(", updated_by = :updatedBy, updated_at = :updatedAt");
+            updateQuery.append(" WHERE seller_id = :sellerId");
+
+            var query = entityManager.createNativeQuery(updateQuery.toString());
+            query.setParameter("sellerId", sellerId);
+            query.setParameter("updatedBy", "system");
+            query.setParameter("updatedAt", now);
+
+            if (coord.getName() != null) query.setParameter("name", coord.getName());
+            if (coord.getDesignation() != null) query.setParameter("designation", coord.getDesignation());
+            if (coord.getEmail() != null) query.setParameter("email", coord.getEmail());
+            if (coord.getMobile() != null) query.setParameter("mobile", coord.getMobile());
+
+            query.executeUpdate();
+        }
+
+        return emailChanged;
+    }
+
+    private void sendCoordinatorEmailNotificationsWithOldCoordinator(Seller updatedSeller, SellerCoordinator oldCoordinator, String temporaryPassword) {
+        SellerCoordinator newCoordinator = updatedSeller.getCoordinator();
+
+        if (newCoordinator == null) return;
+
+        boolean emailChanged = !oldCoordinator.getEmail().equals(newCoordinator.getEmail());
+        boolean nameChanged = !oldCoordinator.getName().equals(newCoordinator.getName());
+        boolean designationChanged = !oldCoordinator.getDesignation().equals(newCoordinator.getDesignation());
+        boolean mobileChanged = !oldCoordinator.getMobile().equals(newCoordinator.getMobile());
+
+        // If nothing changed, don't send any emails
+        if (!nameChanged && !designationChanged && !mobileChanged && !emailChanged) {
+            return;
+        }
+
+        CoordinatorEmailDTO.CoordinatorEmailDTOBuilder builder = CoordinatorEmailDTO.builder()
+                .coordinatorName(newCoordinator.getName())
+                .sellerCompanyName(updatedSeller.getSellerName())
+                .oldName(oldCoordinator.getName())
+                .newName(newCoordinator.getName())
+                .oldDesignation(oldCoordinator.getDesignation())
+                .newDesignation(newCoordinator.getDesignation())
+                .oldMobile(oldCoordinator.getMobile())
+                .newMobile(newCoordinator.getMobile())
+                .oldEmail(oldCoordinator.getEmail())
+                .newEmail(newCoordinator.getEmail())
+                .supportEmail(supportEmail)
+                .loginUrl(loginUrl);
+
+        if (emailChanged) {
+            // Send security alert to OLD email
+            CoordinatorEmailDTO alertDto = builder
+                    .temporaryPassword(temporaryPassword)
+                    .build();
+            coordinatorEmailService.sendCoordinatorEmailChangeSecurityAlert(alertDto);
+
+            // Send update notification to NEW email with credentials
+            CoordinatorEmailDTO updateDto = builder
+                    .temporaryPassword(temporaryPassword)
+                    .build();
+            coordinatorEmailService.sendCoordinatorDetailsUpdateWithEmailChange(updateDto);
+        } else {
+            // Email not changed - send update notification to existing email
+            CoordinatorEmailDTO updateDto = builder.build();
+            coordinatorEmailService.sendCoordinatorDetailsUpdateWithoutEmailChange(updateDto);
+        }
+    }
+
+    private String generateTemporaryPassword() {
+        // Generate a random temporary password
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 12; i++) {
+            int index = (int) (Math.random() * chars.length());
+            sb.append(chars.charAt(index));
+        }
+        return sb.toString();
+    }
+
+    private void updateCompanyTypeOnly(String sellerId, Long companyTypeId) {
+        String query = "UPDATE tbl_seller SET company_type_id = :companyTypeId WHERE seller_id = :sellerId";
+        entityManager.createNativeQuery(query)
+                .setParameter("companyTypeId", companyTypeId)
+                .setParameter("sellerId", sellerId)
+                .executeUpdate();
+    }
+
+    private void updatePhoneOnly(String sellerId, String phone) {
+        String query = "UPDATE tbl_seller SET phone = :phone WHERE seller_id = :sellerId";
+        entityManager.createNativeQuery(query)
+                .setParameter("phone", phone)
+                .setParameter("sellerId", sellerId)
+                .executeUpdate();
+    }
+
+    private void updateEmailOnly(String sellerId, String email) {
+        String query = "UPDATE tbl_seller SET email = :email WHERE seller_id = :sellerId";
+        entityManager.createNativeQuery(query)
+                .setParameter("email", email)
+                .setParameter("sellerId", sellerId)
+                .executeUpdate();
+    }
+
+    private void updateWebsiteOnly(String sellerId, String website) {
+        String query = "UPDATE tbl_seller SET website = :website WHERE seller_id = :sellerId";
+        entityManager.createNativeQuery(query)
+                .setParameter("website", website)
+                .setParameter("sellerId", sellerId)
+                .executeUpdate();
+    }
+
+    private void updateTermsAcceptedOnly(String sellerId, Boolean termsAccepted) {
+        String query = "UPDATE tbl_seller SET terms_accepted = :termsAccepted WHERE seller_id = :sellerId";
+        entityManager.createNativeQuery(query)
+                .setParameter("termsAccepted", termsAccepted)
+                .setParameter("sellerId", sellerId)
+                .executeUpdate();
+    }
+
+    private void updateTimestampOnly(String sellerId) {
+        String query = "UPDATE tbl_seller SET updated_at = :updatedAt, updated_by = :updatedBy WHERE seller_id = :sellerId";
+        entityManager.createNativeQuery(query)
+                .setParameter("updatedAt", LocalDateTime.now())
+                .setParameter("updatedBy", "system")
+                .setParameter("sellerId", sellerId)
+                .executeUpdate();
+    }
+
+    /**
+     * Send auto-approval notification email
+     */
+    private void sendAutoApprovalEmail(Seller seller, String approvedBy) {
+        String coordinatorEmail = seller.getCoordinator() != null ? seller.getCoordinator().getEmail() : null;
+        String coordinatorName = seller.getCoordinator() != null ? seller.getCoordinator().getName() : "Coordinator";
+
+        if (coordinatorEmail == null || coordinatorEmail.isEmpty()) {
+            log.warn("No coordinator email found for seller ID: {}", seller.getSellerId());
+            return;
+        }
+
+        coordinatorEmailService.sendAutoApprovalEmail(
+                coordinatorEmail,
+                coordinatorName,
+                seller.getSellerId(),
+                seller.getSellerName(),
+                approvedBy
+        );
+    }
+
+    private boolean equalsOrBothNull(Object a, Object b) {
+        if (a == null && b == null) return true;
+        if (a == null || b == null) return false;
+        return a.equals(b);
+    }
+
+    private boolean equalsDateOrBothNull(LocalDate a, LocalDate b) {
+        if (a == null && b == null) return true;
+        if (a == null || b == null) return false;
+        return a.equals(b);
     }
 
     @Transactional
@@ -243,7 +753,6 @@ public class SellerProfileService {
                 log.info("Updated existing seller with ID: {}", sellerId);
 
                 // ── Step 5: Rotate credentials if coordinator email changed ────────
-                // Called AFTER save so the new coordinator email is already in DB.
                 sellerHistoryService.rotateCoordinatorCredentialsIfEmailChanged(
                         seller, oldCoordinatorEmail);
 
@@ -321,7 +830,6 @@ public class SellerProfileService {
             }
             coordinator.setName(pending.getCoordinatorName());
             coordinator.setDesignation(pending.getCoordinatorDesignation());
-        // If coordinator email is different/changes update the username and send mail to new coordinator
             coordinator.setEmail(pending.getCoordinatorEmail());
             coordinator.setMobile(pending.getCoordinatorMobile());
             coordinator.setUpdatedBy("system");
@@ -474,6 +982,10 @@ public class SellerProfileService {
                 document.setProductTypes(pendingDoc.getProductType());
                 document.setDocumentNumber(pendingDoc.getDocumentNumber());
                 document.setDocumentFileUrl(pendingDoc.getDocumentFileUrl());
+                document.setLicenseIssueDate(pendingDoc.getLicenseIssueDate());
+                document.setLicenseExpiryDate(pendingDoc.getLicenseExpiryDate());
+                document.setLicenseIssuingAuthority(pendingDoc.getLicenseIssuingAuthority());
+                document.setLicenseStatus(pendingDoc.getLicenseStatus());
                 document.setCreatedBy("system");
                 document.setCreatedAt(LocalDateTime.now());
                 seller.getDocuments().add(document);
@@ -522,9 +1034,6 @@ public class SellerProfileService {
         }
     }
 
-    /**
-     * Send approval email to coordinator using HTML format
-     */
     private void sendApprovalEmail(PendingSeller pendingSeller, String sellerId, String approvedBy) {
         String coordinatorEmail = pendingSeller.getCoordinatorEmail();
         String coordinatorName = pendingSeller.getCoordinatorName();
@@ -536,74 +1045,16 @@ public class SellerProfileService {
             return;
         }
 
-        String action = "CREATE".equals(requestType) ? "Created" : "Updated";
-        String subject = String.format("Seller Profile %s Approved - %s", action, sellerName);
-
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
-        String approvalTime = LocalDateTime.now().format(formatter);
-
-        String htmlBody = String.format(
-                "<!DOCTYPE html>" +
-                        "<html>" +
-                        "<head>" +
-                        "<style>" +
-                        "body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }" +
-                        ".container { max-width: 600px; margin: 0 auto; padding: 20px; }" +
-                        ".header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }" +
-                        ".content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }" +
-                        ".details { background-color: white; padding: 15px; margin: 15px 0; border-left: 4px solid #4CAF50; }" +
-                        ".footer { background-color: #f1f1f1; padding: 15px; text-align: center; font-size: 12px; color: #666; border-radius: 0 0 5px 5px; }" +
-                        "h2 { margin: 0; }" +
-                        ".label { font-weight: bold; color: #555; }" +
-                        ".value { margin-left: 10px; }" +
-                        "</style>" +
-                        "</head>" +
-                        "<body>" +
-                        "<div class='container'>" +
-                        "<div class='header'>" +
-                        "<h2>Seller Profile %s Approved</h2>" +
-                        "</div>" +
-                        "<div class='content'>" +
-                        "<p>Dear <strong>%s</strong>,</p>" +
-                        "<p>Good news! Your seller profile request has been <strong style='color: #4CAF50;'>APPROVED</strong>.</p>" +
-                        "<div class='details'>" +
-                        "<h3 style='margin-top: 0; color: #4CAF50;'>Seller Details</h3>" +
-                        "<p><span class='label'>Seller ID:</span> <span class='value'>%s</span></p>" +
-                        "<p><span class='label'>Seller Name:</span> <span class='value'>%s</span></p>" +
-                        "<p><span class='label'>Request Type:</span> <span class='value'>%s</span></p>" +
-                        "<p><span class='label'>Status:</span> <span class='value' style='color: #4CAF50; font-weight: bold;'>APPROVED</span></p>" +
-                        "<p><span class='label'>Approved By:</span> <span class='value'>%s</span></p>" +
-                        "<p><span class='label'>Approval Time:</span> <span class='value'>%s</span></p>" +
-                        "</div>" +
-                        "<p>The changes have been successfully applied to your account. You can now log in and continue using our services.</p>" +
-                        "<p>If you have any questions, please contact our support team.</p>" +
-                        "</div>" +
-                        "<div class='footer'>" +
-                        "<p>This is an automated message from Pharma Aggregator. Please do not reply to this email.</p>" +
-                        "<p>&copy; 2026 Pharma Aggregator. All rights reserved.</p>" +
-                        "</div>" +
-                        "</div>" +
-                        "</body>" +
-                        "</html>",
-                action,
-                coordinatorName != null ? coordinatorName : "Coordinator",
-                sellerId != null ? sellerId : "N/A",
+        coordinatorEmailService.sendSellerProfileApproved(
+                coordinatorEmail,
+                coordinatorName,
                 sellerName,
-                requestType,
+                sellerId,
                 approvedBy,
-                approvalTime
+                requestType
         );
-
-        // Send HTML email using the new method
-        emailService.sendHtmlMail(coordinatorEmail, subject, htmlBody);
-
-        // Also send a plain text version as fallback (optional)
-        // emailService.sendMail(coordinatorEmail, subject, "Your request has been approved...");
     }
 
-    /**
-     * Send rejection email to coordinator using HTML format
-     */
     private void sendRejectionEmail(PendingSeller pendingSeller, String rejectionReason, String rejectedBy) {
         String coordinatorEmail = pendingSeller.getCoordinatorEmail();
         String coordinatorName = pendingSeller.getCoordinatorName();
@@ -615,77 +1066,16 @@ public class SellerProfileService {
             return;
         }
 
-        String action = "CREATE".equals(requestType) ? "Creation" : "Update";
-        String subject = String.format("Seller Profile %s Rejected - %s", action, sellerName);
-
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
-        String rejectionTime = LocalDateTime.now().format(formatter);
-
-        String htmlBody = String.format(
-                "<!DOCTYPE html>" +
-                        "<html>" +
-                        "<head>" +
-                        "<style>" +
-                        "body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }" +
-                        ".container { max-width: 600px; margin: 0 auto; padding: 20px; }" +
-                        ".header { background-color: #f44336; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }" +
-                        ".content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }" +
-                        ".details { background-color: white; padding: 15px; margin: 15px 0; border-left: 4px solid #f44336; }" +
-                        ".reason-box { background-color: #fff3f3; padding: 15px; margin: 15px 0; border: 1px solid #ffcdd2; border-radius: 4px; }" +
-                        ".footer { background-color: #f1f1f1; padding: 15px; text-align: center; font-size: 12px; color: #666; border-radius: 0 0 5px 5px; }" +
-                        "h2 { margin: 0; }" +
-                        ".label { font-weight: bold; color: #555; }" +
-                        ".value { margin-left: 10px; }" +
-                        ".rejection-title { color: #f44336; font-weight: bold; margin-top: 0; }" +
-                        "</style>" +
-                        "</head>" +
-                        "<body>" +
-                        "<div class='container'>" +
-                        "<div class='header'>" +
-                        "<h2>Seller Profile %s Rejected</h2>" +
-                        "</div>" +
-                        "<div class='content'>" +
-                        "<p>Dear <strong>%s</strong>,</p>" +
-                        "<p>We regret to inform you that your seller profile request has been <strong style='color: #f44336;'>REJECTED</strong>.</p>" +
-                        "<div class='details'>" +
-                        "<h3 style='margin-top: 0; color: #f44336;'>Rejection Details</h3>" +
-                        "<p><span class='label'>Seller Name:</span> <span class='value'>%s</span></p>" +
-                        "<p><span class='label'>Request Type:</span> <span class='value'>%s</span></p>" +
-                        "<p><span class='label'>Status:</span> <span class='value' style='color: #f44336; font-weight: bold;'>REJECTED</span></p>" +
-                        "<p><span class='label'>Rejected By:</span> <span class='value'>%s</span></p>" +
-                        "<p><span class='label'>Rejection Time:</span> <span class='value'>%s</span></p>" +
-                        "</div>" +
-                        "<div class='reason-box'>" +
-                        "<h4 class='rejection-title'>Rejection Reason:</h4>" +
-                        "<p>%s</p>" +
-                        "</div>" +
-                        "<p>Please review the rejection reason, make the necessary corrections, and submit a new request.</p>" +
-                        "<p>If you need clarification, please contact our support team.</p>" +
-                        "</div>" +
-                        "<div class='footer'>" +
-                        "<p>This is an automated message from Pharma Aggregator. Please do not reply to this email.</p>" +
-                        "<p>&copy; 2026 Pharma Aggregator. All rights reserved.</p>" +
-                        "</div>" +
-                        "</div>" +
-                        "</body>" +
-                        "</html>",
-                action,
-                coordinatorName != null ? coordinatorName : "Coordinator",
+        coordinatorEmailService.sendSellerProfileRejected(
+                coordinatorEmail,
+                coordinatorName,
                 sellerName,
-                requestType,
+                rejectionReason,
                 rejectedBy,
-                rejectionTime,
-                rejectionReason != null ? rejectionReason : "No specific reason provided"
+                requestType
         );
-
-        // Send HTML email using the new method
-        emailService.sendHtmlMail(coordinatorEmail, subject, htmlBody);
     }
 
-    /**
-     * Get all pending seller requests and map to DTO
-     * @return List of PendingSellerResponseDTO
-     */
     public List<PendingSellerResponseDTO> getPendingRequests() {
         List<PendingSeller> pendingSellers = pendingSellerRepository.findByStatus("PENDING");
 
@@ -694,19 +1084,6 @@ public class SellerProfileService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Get pending seller by ID
-     */
-//    public PendingSeller getPendingSellerById(Long pendingSellerId) {
-//        return pendingSellerRepository.findById(pendingSellerId)
-//                .orElseThrow(() -> new ResourceNotFoundException("Pending seller not found with id: " + pendingSellerId));
-//    }
-
-    /**
-     * Map PendingSeller entity to PendingSellerResponseDTO
-     * @param pendingSeller the entity to map
-     * @return populated DTO
-     */
     private PendingSellerResponseDTO mapToPendingResponseDTO(PendingSeller pendingSeller) {
         PendingSellerResponseDTO dto = new PendingSellerResponseDTO();
 
@@ -806,11 +1183,6 @@ public class SellerProfileService {
         return dto;
     }
 
-    /**
-     * Map PendingSellerDocument to DocumentDTO
-     * @param document the document entity to map
-     * @return populated DocumentDTO
-     */
     private PendingSellerResponseDTO.DocumentDTO mapDocumentToDTO(PendingSellerDocument document) {
         PendingSellerResponseDTO.DocumentDTO dto = new PendingSellerResponseDTO.DocumentDTO();
         dto.setProductTypeId(document.getProductType().getProductTypeId());
@@ -822,6 +1194,7 @@ public class SellerProfileService {
         dto.setLicenseExpiryDate(document.getLicenseExpiryDate() != null ?
                 document.getLicenseExpiryDate().atStartOfDay() : null);
         dto.setLicenseIssuingAuthority(document.getLicenseIssuingAuthority());
+        // dto.setLicenseStatus(document.getLicenseStatus());
         return dto;
     }
 
@@ -898,6 +1271,7 @@ public class SellerProfileService {
                         dto.setLicenseIssueDate(doc.getLicenseIssueDate());
                         dto.setLicenseExpiryDate(doc.getLicenseExpiryDate());
                         dto.setLicenseIssuingAuthority(doc.getLicenseIssuingAuthority());
+                        // dto.setLicenseStatus(doc.getLicenseStatus());
                         return dto;
                     })
                     .collect(Collectors.toList());
@@ -906,56 +1280,6 @@ public class SellerProfileService {
 
         return response;
     }
-
-//    private SellerResponseDTO.AddressDTO convertToResponseAddress(SellerEditRequest.AddressDTO requestAddress) {
-//        SellerResponseDTO.AddressDTO responseAddress = new SellerResponseDTO.AddressDTO();
-//        responseAddress.setStateId(requestAddress.getStateId());
-//        responseAddress.setDistrictId(requestAddress.getDistrictId());
-//        responseAddress.setTalukaId(requestAddress.getTalukaId());
-//        responseAddress.setCity(requestAddress.getCity());
-//        responseAddress.setStreet(requestAddress.getStreet());
-//        responseAddress.setBuildingNo(requestAddress.getBuildingNo());
-//        responseAddress.setLandmark(requestAddress.getLandmark());
-//        responseAddress.setPinCode(requestAddress.getPinCode());
-//        return responseAddress;
-//    }
-//
-//    private SellerResponseDTO.CoordinatorDTO convertToResponseCoordinator(SellerEditRequest.CoordinatorDTO requestCoordinator) {
-//        SellerResponseDTO.CoordinatorDTO responseCoordinator = new SellerResponseDTO.CoordinatorDTO();
-//        responseCoordinator.setName(requestCoordinator.getName());
-//        responseCoordinator.setDesignation(requestCoordinator.getDesignation());
-//        responseCoordinator.setEmail(requestCoordinator.getEmail());
-//        responseCoordinator.setMobile(requestCoordinator.getMobile());
-//        return responseCoordinator;
-//    }
-//
-//    private SellerResponseDTO.BankDetailsDTO convertToResponseBankDetails(SellerEditRequest.BankDetailsDTO requestBankDetails) {
-//        SellerResponseDTO.BankDetailsDTO responseBankDetails = new SellerResponseDTO.BankDetailsDTO();
-//        responseBankDetails.setBankName(requestBankDetails.getBankName());
-//        responseBankDetails.setBranch(requestBankDetails.getBranch());
-//        responseBankDetails.setIfscCode(requestBankDetails.getIfscCode());
-//        responseBankDetails.setAccountNumber(requestBankDetails.getAccountNumber());
-//        responseBankDetails.setAccountHolderName(requestBankDetails.getAccountHolderName());
-//        responseBankDetails.setBankDocumentFileUrl(requestBankDetails.getBankDocumentFileUrl());
-//        return responseBankDetails;
-//    }
-//
-//    private List<SellerResponseDTO.DocumentDTO> convertToResponseDocuments(List<SellerEditRequest.DocumentDTO> requestDocuments) {
-//        return requestDocuments.stream()
-//                .map(doc -> {
-//                    SellerResponseDTO.DocumentDTO responseDoc = new SellerResponseDTO.DocumentDTO();
-//                    responseDoc.setProductTypeId(doc.getProductTypeId());
-//                    responseDoc.setProductTypeName(productTypeRepository.findById(doc.getProductTypeId())
-//                            .orElse(new ProductTypeMaster()).getProductTypeName());
-//                    responseDoc.setDocumentNumber(doc.getDocumentNumber());
-//                    responseDoc.setDocumentFileUrl(doc.getDocumentFileUrl());
-//                    responseDoc.setLicenseIssueDate(doc.getLicenseIssueDate());
-//                    responseDoc.setLicenseExpiryDate(doc.getLicenseExpiryDate());
-//                    responseDoc.setLicenseIssuingAuthority(doc.getLicenseIssuingAuthority());
-//                    return responseDoc;
-//                })
-//                .collect(Collectors.toList());
-//    }
 
     @Transactional
     public void deleteOldRejectedRequests(LocalDateTime cutoffDate) {
@@ -969,14 +1293,7 @@ public class SellerProfileService {
         log.info("Deleted {} old rejected requests created before {}", rejectedRequests.size(), cutoffDate);
     }
 
-    /**
-     * Copies files from pendingsellers/{sellerId}/... to sellers/{sellerId}/...
-     * Updates the URL fields on the pendingSeller entity IN PLACE before
-     * updateSellerFromPending/createSellerFromPending reads them.
-     * Old pendingsellers/ objects are deleted from S3 after successful copy.
-     */
     private void movePendingFilesToSeller(PendingSeller pending, String sellerId, String now) {
-
         // ── GST file ──────────────────────────────────────────────────────────
         if (isRealUrl(pending.getGstFileUrl()) && isPendingUrl(pending.getGstFileUrl())) {
             String ext       = extractExtension(pending.getGstFileUrl());
@@ -986,7 +1303,6 @@ public class SellerProfileService {
             pending.setGstFileUrl(newUrl);
             log.info("GST file moved → {}", newUrl);
         }
-        // else: URL is already a sellers/ URL — untouched, copied as-is to main seller table
 
         // ── Bank document ─────────────────────────────────────────────────────
         if (isRealUrl(pending.getBankDocumentFileUrl()) && isPendingUrl(pending.getBankDocumentFileUrl())) {
@@ -998,7 +1314,7 @@ public class SellerProfileService {
             log.info("Bank document moved → {}", newUrl);
         }
 
-        // ── Company Registration Certificate ──────────────────────────────────────────────────────────
+        // ── Company Registration Certificate ──────────────────────────────────
         if (isRealUrl(pending.getCompanyRegistrationCertificateUrl()) && isPendingUrl(pending.getCompanyRegistrationCertificateUrl())) {
             String ext       = extractExtension(pending.getCompanyRegistrationCertificateUrl());
             String targetKey = String.format("sellers/%s/companyregistrationcertificate/COMPANY_REGISTRATION_CERTIFICATE_%s.%s", sellerId, now, ext);
@@ -1023,22 +1339,18 @@ public class SellerProfileService {
                     doc.setDocumentFileUrl(newUrl);
                     log.info("License '{}' moved → {}", safeName, newUrl);
                 }
-                // else: already a sellers/ URL — no move needed
             }
         }
     }
 
-    /** Only move files that were uploaded to the pending area */
     private boolean isPendingUrl(String url) {
         return url != null && url.contains("/pendingsellers/");
     }
 
-    /** Returns true when a URL is a real S3 URL (not null/blank/PENDING) */
     private boolean isRealUrl(String url) {
         return url != null && !url.isBlank() && !"PENDING".equalsIgnoreCase(url.trim());
     }
 
-    /** Extracts extension from a URL. Falls back to "bin". */
     private String extractExtension(String url) {
         int dot = url.lastIndexOf('.');
         int slash = url.lastIndexOf('/');
@@ -1056,11 +1368,6 @@ public class SellerProfileService {
         log.info("Pending seller record deleted (rollback) for pendingSellerId={}", pendingSellerId);
     }
 
-    /**
-     * Get pending seller by ID and map to DTO
-     * @param pendingSellerId the ID of the pending seller
-     * @return PendingSellerResponseDTO with all details
-     */
     public PendingSellerResponseDTO getPendingSellerById(Long pendingSellerId) {
         PendingSeller pendingSeller = pendingSellerRepository.findById(pendingSellerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Pending seller not found with id: " + pendingSellerId));
@@ -1075,5 +1382,4 @@ public class SellerProfileService {
 
         return sellerByIdMapper.toResponseDTO(seller);
     }
-
 }
