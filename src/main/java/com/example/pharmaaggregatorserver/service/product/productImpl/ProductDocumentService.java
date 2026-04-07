@@ -295,7 +295,7 @@ public class ProductDocumentService {
         String safeName = sanitizeCertName(certName);
 
         return String.format("products/%s/%s/%s/certificates/%s_%s.%s",
-                type, productId, attributeId, safeName, timestamp, extension(file));
+                productId, type, attributeId, safeName, timestamp, extension(file));
     }
 
     private String sanitizeCertName(String certName) {
@@ -315,7 +315,7 @@ public class ProductDocumentService {
     private String buildBrochureKey(String type, String productId, String attributeId,
                                     String timestamp, MultipartFile file) {
         return String.format("products/%s/%s/%s/brochure/BROCHURE_%s.%s",
-                type, productId, attributeId, timestamp, extension(file));
+                productId, type, attributeId, timestamp, extension(file));
     }
 
     // ─────────────────────────────────────────────────────────────
