@@ -4,7 +4,11 @@ import com.example.pharmaaggregatorserver.dto.product.*;
 import com.example.pharmaaggregatorserver.service.product.MasterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import java.util.List;
 
 @RestController
@@ -15,23 +19,23 @@ public class MastersController {
     private final MasterService masterService;
 
     @GetMapping("/countries")
-    public List<CountryResponseDTO> getAllCountries() {
-        return masterService.getAllCountries();
+    public ResponseEntity<List<CountryResponseDTO>> getAllCountries() {
+        return ResponseEntity.ok(masterService.getAllCountries());
     }
 
     @GetMapping("/storagecondition")
-    public List<StorageConditionResponseDTO> getAllStorageConditions() {
-        return masterService.getAllStorageConditions();
+    public ResponseEntity<List<StorageConditionResponseDTO>> getAllStorageConditions() {
+        return ResponseEntity.ok(masterService.getAllStorageConditions());
     }
 
-    @GetMapping("/material-types")
-    public List<ConsumableMaterialTypeResponseDTO> getAllMaterialTypes() {
-        return masterService.getAllMaterialTypes();
+    @GetMapping("/consumable-material-types")
+    public ResponseEntity<List<ConsumableMaterialTypeResponseDTO>> getAllConsumableMaterialTypes() {
+        return ResponseEntity.ok(masterService.getAllConsumableMaterialTypes());
     }
 
     @GetMapping("/device-categories")
-    public List<DeviceCategoryResponseDTO> getAllDeviceCategories() {
-        return masterService.getAllDeviceCategories();
+    public ResponseEntity<List<DeviceCategoryResponseDTO>> getAllDeviceCategories() {
+        return ResponseEntity.ok(masterService.getAllDeviceCategories());
     }
 
     // GET ALL Device Sub Categories
@@ -46,5 +50,25 @@ public class MastersController {
     public ResponseEntity<List<DeviceSubCategoryResponseDTO>> getDeviceSubCategoriesByCategoryId(@PathVariable Long categoryId) {
         List<DeviceSubCategoryResponseDTO> subCategories = masterService.getDeviceSubCategoriesByCategoryId(categoryId);
         return ResponseEntity.ok(subCategories);
+    }
+
+    @GetMapping("/non-consumable-material-types")
+    public ResponseEntity<List<NonConsumableMaterialTypeDto>> getAllNonConsumableMaterialTypes() {
+        return ResponseEntity.ok(masterService.getAllNonConsumableMaterialTypes());
+    }
+
+    @GetMapping("/device-categories/{deviceCategoryType}")
+    public ResponseEntity<List<DeviceCategoryResponseDTO>> getDeviceCategoriesByType(@PathVariable String deviceCategoryType) {
+        return ResponseEntity.ok(masterService.getDeviceCategoriesByType(deviceCategoryType));
+    }
+
+    @GetMapping("/certifications")
+    public ResponseEntity<List<CertificationDto>> getAllCertifications() {
+        return ResponseEntity.ok(masterService.getAllCertifications());
+    }
+
+    @GetMapping("/power-sources")
+    public ResponseEntity<List<PowerSourceDto>> getAllPowerSources() {
+        return ResponseEntity.ok(masterService.getAllPowerSources());
     }
 }

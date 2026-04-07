@@ -5,6 +5,7 @@ import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMas
 import com.example.pharmaaggregatorserver.repository.product.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -14,9 +15,12 @@ public class MasterService {
 
     private final CountryMasterRepository countryRepository;
     private final StorageConditionMasterRepository storageConditionRepository;
-    private final MaterialTypeRepository materialTypeRepository;
+    private final ConsumableMaterialTypeRepository consumableMaterialTypeRepository;
     private final DeviceCategoryRepository deviceCategoryRepository;
     private final DeviceSubCategoryRepository deviceSubCategoryRepository;
+    private final NonConsumableMaterialTypeRepository nonConsumableMaterialTypeRepository;
+    private final CertificationRepository certificationRepository;
+    private final PowerSourceMasterRepository powerSourceRepository;
 
     public List<CountryResponseDTO> getAllCountries() {
         return countryRepository.findAll()
@@ -34,6 +38,7 @@ public class MasterService {
                 .isActive(country.getIsActive())
                 .build();
     }
+
     //storagecondition
     public List<StorageConditionResponseDTO> getAllStorageConditions() {
         return storageConditionRepository.findAll()
@@ -52,9 +57,10 @@ public class MasterService {
                 .isActive(storageCondition.getIsActive())
                 .build();
     }
+
     //Material Type
-    public List<ConsumableMaterialTypeResponseDTO> getAllMaterialTypes() {
-        return materialTypeRepository.findAll()
+    public List<ConsumableMaterialTypeResponseDTO> getAllConsumableMaterialTypes() {
+        return consumableMaterialTypeRepository.findAll()
                 .stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
@@ -67,7 +73,6 @@ public class MasterService {
                 .description(materialType.getDescription())
                 .build();
     }
-
 
 
     public List<DeviceCategoryResponseDTO> getAllDeviceCategories() {
@@ -116,6 +121,55 @@ public class MasterService {
                 .isActive(subCategory.getIsActive())
                 .createdAt(subCategory.getCreatedAt())
                 .updatedAt(subCategory.getUpdatedAt())
+                .build();
+    }
+
+    public List<NonConsumableMaterialTypeDto> getAllNonConsumableMaterialTypes() {
+        return nonConsumableMaterialTypeRepository.findAll()
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    private NonConsumableMaterialTypeDto convertToDTO(NonConsumableMaterialType materialType) {
+        NonConsumableMaterialTypeDto nonConsumableMaterialTypeDto = new NonConsumableMaterialTypeDto();
+        nonConsumableMaterialTypeDto.setMaterialTypeId(materialType.getMaterialTypeId());
+        nonConsumableMaterialTypeDto.setMaterialTypeName(materialType.getMaterialTypeName());
+        return nonConsumableMaterialTypeDto;
+    }
+
+    public List<DeviceCategoryResponseDTO> getDeviceCategoriesByType(String deviceCategoryType) {
+        return deviceCategoryRepository.findByDeviceCategoryType(deviceCategoryType)
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<CertificationDto> getAllCertifications() {
+        return certificationRepository.findAll()
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    private CertificationDto convertToDTO(Certification certification) {
+        return CertificationDto.builder()
+                .certificationId(certification.getCertificationId())
+                .certificationName(certification.getCertificationName())
+                .build();
+    }
+
+    public List<PowerSourceDto> getAllPowerSources() {
+        return powerSourceRepository.findAll()
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    private PowerSourceDto convertToDTO(PowerSource powerSource) {
+        return PowerSourceDto.builder()
+                .powerSourceId(powerSource.getPowerSourceId())
+                .powerSourceName(powerSource.getPowerSourceName())
                 .build();
     }
 }
