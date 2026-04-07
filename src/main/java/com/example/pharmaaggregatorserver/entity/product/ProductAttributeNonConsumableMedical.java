@@ -1,8 +1,6 @@
 package com.example.pharmaaggregatorserver.entity.product;
 
-import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.Certification;
-import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.DeviceCategory;
-import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.NonConsumableMaterialType;
+import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
@@ -34,22 +32,27 @@ public class ProductAttributeNonConsumableMedical {
     @JsonIgnore
     private DeviceCategory deviceCategory;   // Device Category (BP Monitor / Glucometer / Thermometer / Nebulizer, etc.)
 
-    @Column(name = "brand_name", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "device_sub_cat_id", nullable = false)
+    @JsonIgnore
+    private DeviceSubCategory deviceSubCategory;
+
+    @Column(name = "brand_name", nullable = false, length = 100)
     private String brandName;       // Brand Name*
 
-    @Column(name = "model_name")
+    @Column(name = "model_name", nullable = false, length = 60)
     private String modelName;
 
-    @Column(name = "model_number", nullable = false)
+    @Column(name = "model_number", nullable = false, length = 60)
     private String modelNumber;     // Model Number*
 
-    @Column(name = "device_classification", nullable = false)
+    @Column(name = "device_classification", nullable = false, length = 100)
     private String deviceClassification;    // Device Classification (Class A/B/C/D)*
 
-    @Column(name = "udi_number")
+    @Column(name = "udi_number", length = 60)
     private String udiNumber;   // UDI (Unique Device Identifier)/ Serial Number  (if applicable)
 
-    @Column(name = "purpose", nullable = false)
+    @Column(name = "purpose", nullable = false, columnDefinition = "TEXT")
     private String purpose;     // Intended Use / Purpose*
 
     @Column(name = "key_features_specifications", columnDefinition = "TEXT", nullable = false)
@@ -76,28 +79,42 @@ public class ProductAttributeNonConsumableMedical {
 //    @Column(name = "compliance_certificate_url")  // TODO : Does seller send multiple documents?
 //    private String complianceCertificateUrl;   // Upload Compliance Certificate*
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "material_type_id")
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "tm_product_non_consumable_material_mapping",
+            joinColumns = @JoinColumn(name = "product_attribute_id"),
+            inverseJoinColumns = @JoinColumn(name = "material_type_id")
+    )
     @JsonIgnore
-    private NonConsumableMaterialType materialType;     // Material / Build Type (Plastic, Metal, Steel)
+    private List<NonConsumableMaterialType> materialTypes = new ArrayList<>();     // Material / Build Type (Plastic, Metal, Steel)
 
-    @Column(name = "warranty_period", nullable = false)
-    private String warrantyPeriod;      // Warranty Period* (6 months / 1 year / 2 years)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "power_source_id")
+    @JsonIgnore
+    private PowerSource powerSource;
+
+    @Column(name = "warranty_period", nullable = false, length = 5)
+    private String warrantyPeriod;      // Only number allowed. • Max 3 chars.
 
     @Column(name = "service_availability", nullable = false)
     private boolean serviceAvailability = true;        // AMC / Service Availability* (Yes/No)
 
-    @Column(name = "country_of_origin", nullable = false)
-    private String countryOfOrigin;     // Country of Origin*
+    // FK → tbl_device_category_master
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "country_id", nullable = false)
+    @JsonIgnore
+    private CountryMaster countryMaster;     // Country of Origin*
 
-    @Column(name = "manufacturer_name", nullable = false)
+    @Column(name = "manufacturer_name", nullable = false, length = 100)
     private String manufacturerName;        // Manufacturer Name*
 
-    @Column(name = "storage_condition")
-    private String storageCondition;        // Storage Condition (If applicable)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "storage_condition_id")
+    @JsonIgnore
+    private StorageConditionMaster storageConditionMaster;       // Storage Condition (If applicable)
 
-    @Column(name = "brochure_path", nullable = false)
-    private String brochurePath;        // Product Brochure / User Manual (PDF/URL)*
+    @Column(name = "brochure_path")
+    private String brochurePath;        // Product Brochure / User Manual (PDF)*
 
     @Column(name = "is_active")
     private Boolean isActive = true;
