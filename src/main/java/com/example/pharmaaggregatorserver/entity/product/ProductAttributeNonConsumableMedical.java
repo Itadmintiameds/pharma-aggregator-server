@@ -2,7 +2,6 @@ package com.example.pharmaaggregatorserver.entity.product;
 
 import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

@@ -1,6 +1,5 @@
 package com.example.pharmaaggregatorserver.dto.product;
 
-import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.NonConsumableMaterialType;
 import lombok.Data;
 
 import java.util.List;
@@ -33,7 +32,7 @@ public class ProductAttributeNonConsumableMedicalDto {
     private String powerSourceName;
     private String warrantyPeriod;
     private boolean serviceAvailability;
-//    private String countryOfOrigin;
+    //    private String countryOfOrigin;
     private Long countryId;
     private String countryName;
     private String manufacturerName;

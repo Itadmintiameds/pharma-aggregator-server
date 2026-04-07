@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface ProductCertificateDocumentRepository extends JpaRepository<ProductCertificateDocument, Long> {
 
-    List<ProductCertificateDocument> findByNonConsumableMedical_ProductAttributeId(String productAttributeId);
-
-    List<ProductCertificateDocument> findByConsumableMedical_ProductAttributeId(String productAttributeId);
+//    List<ProductCertificateDocument> findByNonConsumableMedical_ProductAttributeId(String productAttributeId);
+//
+//    List<ProductCertificateDocument> findByConsumableMedical_ProductAttributeId(String productAttributeId);
 }
