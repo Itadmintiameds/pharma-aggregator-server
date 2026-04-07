@@ -20,7 +20,7 @@ public class ProductAttributeConsumableMedicalMapper {
     private final DeviceCategoryRepository deviceCategoryRepo;
     private final DeviceSubCategoryRepository deviceSubCategoryRepo;
     private final CertificationRepository certificationRepo;
-    private final MaterialTypeRepository materialTypeRepo;
+    private final ConsumableMaterialTypeRepository consumableMaterialTypeRepo;
     private final CountryMasterRepository countryMasterRepo;
     private final StorageConditionMasterRepository storageConditionMasterRepo;
 
@@ -102,7 +102,7 @@ public class ProductAttributeConsumableMedicalMapper {
 
         // MATERIAL TYPES - Many-to-Many
         if (dto.getMaterialTypeId() != null && !dto.getMaterialTypeId().isEmpty()) {
-            List<ConsumableMaterialType> materialTypes = materialTypeRepo.findAllById(dto.getMaterialTypeId());
+            List<ConsumableMaterialType> materialTypes = consumableMaterialTypeRepo.findAllById(dto.getMaterialTypeId());
 
             if (materialTypes.size() != dto.getMaterialTypeId().size()) {
                 List<Long> foundIds = materialTypes.stream()
@@ -249,7 +249,7 @@ public class ProductAttributeConsumableMedicalMapper {
 
         // Update material types
         if (dto.getMaterialTypeId() != null) {
-            List<ConsumableMaterialType> materialTypes = materialTypeRepo.findAllById(dto.getMaterialTypeId());
+            List<ConsumableMaterialType> materialTypes = consumableMaterialTypeRepo.findAllById(dto.getMaterialTypeId());
             if (materialTypes.size() != dto.getMaterialTypeId().size()) {
                 List<Long> foundIds = materialTypes.stream()
                         .map(ConsumableMaterialType::getMaterialTypeId)
