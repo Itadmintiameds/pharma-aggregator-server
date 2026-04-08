@@ -9,7 +9,7 @@ public class PackagingDetailsDto {
 
     private String packagingId;
     private Long packId;
-    private String unitPerPack;
+    private Long unitPerPack;
     private Long numberOfPacks;
     private Long packSize;
     private Long minimumOrderQuantity;
