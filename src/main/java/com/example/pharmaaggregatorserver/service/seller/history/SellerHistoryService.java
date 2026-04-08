@@ -220,6 +220,39 @@ public class SellerHistoryService {
                 result.plainTempPassword()
         );
     }
+    //For Profile Update
+    @Transactional
+    public void rotateCoordinatorCredentialsIfProfileEmailChanged(
+            Seller seller,
+            String oldCoordinatorEmail) {
+
+        String newCoordinatorEmail = (seller.getCoordinator() != null)
+                ? seller.getCoordinator().getEmail()
+                : null;
+
+        if (newCoordinatorEmail == null
+                || newCoordinatorEmail.equalsIgnoreCase(oldCoordinatorEmail)) {
+            log.debug("Coordinator email unchanged for sellerId={}. No credential rotation.",
+                    seller.getSellerId());
+            return;
+        }
+
+        log.info("Coordinator email changed for sellerId={}: [{}] → [{}]. Rotating credentials.",
+                seller.getSellerId(), oldCoordinatorEmail, newCoordinatorEmail);
+
+        // Delegates username update + password hash to UserCreationService
+        UserCreationService.CredentialRotationResult result =
+                userCreationService.rotateCoordinatorCredentials(
+                        oldCoordinatorEmail, newCoordinatorEmail);
+
+        // Send new credentials to the new coordinator email
+//        sendCredentialRotationEmail(
+//                seller.getSellerName(),
+//                newCoordinatorEmail,
+//                seller.getCoordinator().getName(),
+//                result.plainTempPassword()
+//        );
+    }
 
     // =========================================================================
     // Private helpers

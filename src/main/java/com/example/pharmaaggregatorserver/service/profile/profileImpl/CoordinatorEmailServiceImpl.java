@@ -245,7 +245,7 @@ public class CoordinatorEmailServiceImpl implements CoordinatorEmailService {
     @Override
     public void sendAutoApprovalEmail(String coordinatorEmail, String coordinatorName, String sellerId,
                                       String sellerName, String approvedBy) {
-        String subject = String.format("Seller Profile Update Auto-Approved - %s", sellerName);
+        String subject = String.format("Seller Profile Updated Successfully - %s", sellerName);
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
         String approvalTime = LocalDateTime.now().format(formatter);
@@ -257,9 +257,9 @@ public class CoordinatorEmailServiceImpl implements CoordinatorEmailService {
                         "<style>" +
                         "body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }" +
                         ".container { max-width: 600px; margin: 0 auto; padding: 20px; }" +
-                        ".header { background-color: #2196F3; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }" +
+                        ".header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }" +
                         ".content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }" +
-                        ".details { background-color: white; padding: 15px; margin: 15px 0; border-left: 4px solid #2196F3; }" +
+                        ".details { background-color: white; padding: 15px; margin: 15px 0; border-left: 4px solid #4CAF50; }" +
                         ".footer { background-color: #f1f1f1; padding: 15px; text-align: center; font-size: 12px; color: #666; border-radius: 0 0 5px 5px; }" +
                         "h2 { margin: 0; }" +
                         ".label { font-weight: bold; color: #555; }" +
@@ -269,18 +269,18 @@ public class CoordinatorEmailServiceImpl implements CoordinatorEmailService {
                         "<body>" +
                         "<div class='container'>" +
                         "<div class='header'>" +
-                        "<h2>Seller Profile Update Auto-Approved</h2>" +
+                        "<h2>Seller Profile Updated Successfully</h2>" +
                         "</div>" +
                         "<div class='content'>" +
                         "<p>Dear <strong>%s</strong>,</p>" +
-                        "<p>Your recent profile update request has been <strong style='color: #2196F3;'>AUTO-APPROVED</strong> as it contained only non-critical information changes.</p>" +
+                        "<p>Your seller profile has been <strong style='color: #4CAF50;'>successfully updated</strong>.</p>" +
                         "<div class='details'>" +
-                        "<h3 style='margin-top: 0; color: #2196F3;'>Update Details</h3>" +
+                        "<h3 style='margin-top: 0; color: #4CAF50;'>Update Details</h3>" +
                         "<p><span class='label'>Seller ID:</span> <span class='value'>%s</span></p>" +
                         "<p><span class='label'>Seller Name:</span> <span class='value'>%s</span></p>" +
-                        "<p><span class='label'>Status:</span> <span class='value' style='color: #2196F3; font-weight: bold;'>AUTO-APPROVED</span></p>" +
-                        "<p><span class='label'>Approved By:</span> <span class='value'>%s</span></p>" +
-                        "<p><span class='label'>Approval Time:</span> <span class='value'>%s</span></p>" +
+                        "<p><span class='label'>Status:</span> <span class='value' style='color: #4CAF50; font-weight: bold;'>UPDATED SUCCESSFULLY</span></p>" +
+                        "<p><span class='label'>Updated By:</span> <span class='value'>%s</span></p>" +
+                        "<p><span class='label'>Update Time:</span> <span class='value'>%s</span></p>" +
                         "</div>" +
                         "<p>The changes have been successfully applied to your account. No further action is required.</p>" +
                         "<p>If you have any questions, please contact our support team at <strong>%s</strong>.</p>" +

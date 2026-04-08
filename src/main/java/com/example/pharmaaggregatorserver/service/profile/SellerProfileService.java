@@ -351,7 +351,7 @@ public class SellerProfileService {
 
         // Rotate credentials if coordinator email changed
         if (coordinatorEmailChanged) {
-            sellerHistoryService.rotateCoordinatorCredentialsIfEmailChanged(updatedSeller, oldCoordinatorEmail);
+            sellerHistoryService.rotateCoordinatorCredentialsIfProfileEmailChanged(updatedSeller, oldCoordinatorEmail);
         }
 
         // Send notification email about auto-approval
