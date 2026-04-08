@@ -18,4 +18,6 @@ public class PackagingDetailsDto {
     private String modifiedBy;
     private LocalDateTime createdDate;
     private LocalDateTime modifiedDate;
+
+
 }
