@@ -28,7 +28,7 @@ public class PackagingDetails {
     private PackType packType;
 
     @Column(name = "unit_per_pack")
-    private String unitPerPack;
+    private Long unitPerPack;
 
     @Column(name = "number_of_packs")
     private Long numberOfPacks;

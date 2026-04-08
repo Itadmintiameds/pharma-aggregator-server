@@ -7,5 +7,6 @@ import java.util.Optional;
 
 public interface MoleculeRepository extends JpaRepository<Molecule, Long>{
 
-    Optional<Molecule> findByMoleculeNameIgnoreCase(String moleculeName);
+    Optional<Molecule> findByMoleculeName(String moleculeName);
+
 }
