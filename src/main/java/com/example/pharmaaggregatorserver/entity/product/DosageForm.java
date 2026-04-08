@@ -26,4 +26,8 @@ public class DosageForm {
     @OneToMany(mappedBy = "dosageForm", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private Set<PackType> packTypes;
+
+    @OneToMany(mappedBy = "dosageForm", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private Set<MoleculeStrengthFormat> moleculeStrengthFormats;
 }
