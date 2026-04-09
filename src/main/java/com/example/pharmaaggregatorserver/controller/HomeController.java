@@ -41,7 +41,7 @@ public class HomeController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/api/v1/public/health-check")
+    @GetMapping("/public/health-check")
     public String publicHealthCheck() {
         return "OK";
     }
