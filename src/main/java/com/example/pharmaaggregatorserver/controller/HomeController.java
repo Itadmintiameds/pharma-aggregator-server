@@ -34,12 +34,12 @@ public class HomeController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/public/health-check")
-    public ResponseEntity<Map<String, String>> healthCheck() {
-        Map<String, String> response = new HashMap<>();
-        response.put("status", "UP");
-        return ResponseEntity.ok(response);
-    }
+//    @GetMapping("/public/health-check")
+//    public ResponseEntity<Map<String, String>> healthCheck() {
+//        Map<String, String> response = new HashMap<>();
+//        response.put("status", "UP");
+//        return ResponseEntity.ok(response);
+//    }
 
     @GetMapping("/public/health-check")
     public String publicHealthCheck() {
