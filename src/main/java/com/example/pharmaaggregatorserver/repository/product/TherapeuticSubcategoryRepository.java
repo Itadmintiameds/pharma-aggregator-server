@@ -4,10 +4,12 @@ import com.example.pharmaaggregatorserver.entity.product.TherapeuticSubcategoryM
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface TherapeuticSubcategoryRepository extends JpaRepository<TherapeuticSubcategoryMaster, String> {
 
     List<TherapeuticSubcategoryMaster>
     findByTherapeuticCategoryMaster_TherapeuticCategoryId(String therapeuticCategoryId);
 
+    Optional<TherapeuticSubcategoryMaster> findByTherapeuticSubcategory(String therapeuticSubcategory);
 }
