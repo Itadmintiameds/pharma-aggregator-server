@@ -42,7 +42,7 @@ public class HomeController {
 //    }
 
     @GetMapping("/public/health-check")
-    public String publicHealthCheck() {
-        return "OK";
+    public ResponseEntity<Map<String, String>> healthCheck() {
+        return ResponseEntity.ok(Map.of("status", "UP"));
     }
 }
