@@ -23,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -106,32 +107,41 @@ public class UniversalExcelImportService {
         List<ExcelImportResultDto.RowErrorDto> errors = new ArrayList<>();
         int success = 0, total = 0;
 
-        try (Reader reader = new InputStreamReader(file.getInputStream());
-             CSVParser parser = CSVFormat.DEFAULT.withFirstRecordAsHeader().parse(reader)) {
+        try (Reader reader = new InputStreamReader(file.getInputStream(), StandardCharsets.ISO_8859_1);
+             CSVParser parser = CSVFormat.DEFAULT
+                     .withFirstRecordAsHeader()   // consumes row 0 (main header)
+                     .withIgnoreHeaderCase()
+                     .withTrim()
+                     .withAllowMissingColumnNames() // row 0 has empty cols (nan) — don't throw
+                     .parse(reader)) {
 
-            // For CSV, derive category from a "Category" header column if present
-            String categoryName = parser.getHeaderMap().containsKey("Category")
-                    ? parser.getHeaderMap().keySet().iterator().next()
-                    : "DRUGS";
+            // Category is fixed to DRUGS for this template.
+            // Extend here when new category templates are introduced.
+            String categoryName = "DRUGS";
 
             ProductImportStrategy strategy = strategyFactory.getStrategy(categoryName);
-
             Category category = categoryRepository
                     .findByCategoryNameIgnoreCase(categoryName)
                     .orElseThrow(() -> new RuntimeException("Category not found: " + categoryName));
 
             for (CSVRecord record : parser) {
+
+                // Row 1 (sub-header) becomes first record — blank product name skips it.
+                // Fully blank rows in the template body are also skipped here.
+                String productName = getCsvString(record, "Product Name*");
+                if (productName == null || productName.isBlank()) continue;
+
                 total++;
                 try {
                     ProductDetailsDto dto = strategy.mapCsv(record);
                     dto.setCategoryId(Long.valueOf(category.getCategoryId()));
                     productService.createProduct(dto, userId);
                     success++;
-
                 } catch (Exception ex) {
+                    log.error("CSV row {} failed [{}]: {}", record.getRecordNumber(), productName, ex.getMessage());
                     errors.add(ExcelImportResultDto.RowErrorDto.builder()
                             .rowNumber((int) record.getRecordNumber())
-                            .productName(record.get("Product Name"))
+                            .productName(productName)
                             .errorMessage(ex.getMessage())
                             .build());
                 }
@@ -144,10 +154,20 @@ public class UniversalExcelImportService {
         return buildResult(total, success, errors);
     }
 
+    // Add this small helper used above — keeps the service self-contained
+    private String getCsvString(CSVRecord record, String header) {
+        try {
+            String v = record.get(header);
+            return (v != null && !v.isBlank()) ? v.trim() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private Workbook getWorkbook(MultipartFile file) throws Exception {
         String name = file.getOriginalFilename().toLowerCase();
         if (name.endsWith(".xlsx")) return new XSSFWorkbook(file.getInputStream());
-        if (name.endsWith(".xls"))  return new HSSFWorkbook(file.getInputStream());
+        if (name.endsWith(".xls")) return new HSSFWorkbook(file.getInputStream());
         throw new RuntimeException("Unsupported file type — use .xlsx, .xls, or .csv");
     }
 

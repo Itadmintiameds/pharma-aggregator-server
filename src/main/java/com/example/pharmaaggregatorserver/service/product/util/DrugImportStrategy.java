@@ -7,6 +7,8 @@ import com.example.pharmaaggregatorserver.repository.product.PackTypeRepository;
 import com.example.pharmaaggregatorserver.repository.product.TherapeuticCategoryRepository;
 import com.example.pharmaaggregatorserver.repository.product.TherapeuticSubcategoryRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.csv.CSVRecord;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.springframework.stereotype.Component;
@@ -14,11 +16,11 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
+@Slf4j
 @Component("DRUGS")
 @RequiredArgsConstructor
 public class DrugImportStrategy implements ProductImportStrategy {
@@ -62,34 +64,186 @@ public class DrugImportStrategy implements ProductImportStrategy {
     private static final int ADD_DISCOUNT_SLAB_COUNT = 4;
     private static final int COL_MARKETING_URL = 56;
 
+    // ── CSV header names (match Excel row 0 exactly) ──────────────────────
+    private static final String H_THERAPEUTIC_CAT = "Therapeutic Category*";
+    private static final String H_THERAPEUTIC_SUBCAT = "Therapeutic Sub Category*";
+    private static final String H_PRODUCT_NAME = "Product Name*";
+    private static final String H_MOLECULES = "Molecule* (comma separated)";
+    private static final String H_DOSAGE_FORM = "Dosage Form*";
+//    private static final String H_STRENGTH = "Strength*";
+    private static final String H_WARNINGS = "Warnings / Precautions*";
+    private static final String H_DESCRIPTION = "Product Description*";
+    private static final String H_MANUFACTURER = "Manufacture Name";
+    private static final String H_PACK_TYPE = "Pack Type";
+    private static final String H_UNIT_PER_PACK = "Unit Per Pack";
+    private static final String H_NUMBER_OF_PACKS = "Number Of Packs";
+    private static final String H_MIN_ORDER_QTY = "Minimum Order Qty*";
+    private static final String H_MAX_ORDER_QTY = "Max Order Qty*";
+    private static final String H_BATCH_NUMBER = "Batch / Lot Number*";
+    private static final String H_MFG_DATE = "Manufacturing Date*";
+    private static final String H_EXPIRY_DATE = "Expiry Date*";
+    private static final String H_STORAGE_CONDITION = "Storage Condition*";
+    private static final String H_STOCK_QTY = "Stock Quantity*";
+    private static final String H_DATE_OF_ENTRY = "Date of Entry*";
+    private static final String H_MRP = "MRP (INR)*";
+    private static final String H_SELLING_PRICE = "Selling Price(INR)*";
+    private static final String H_DISCOUNT_PCT = "Discount %";
+    private static final String H_GST_PCT = "GST %";
+    private static final String H_HSN_CODE = "HSN Code*";
+    private static final String H_SHELF_LIFE_MONTHS = "Shelf Life Months";
+    private static final String H_MARKETING_URL = "Product Marketing URL";
+
+    // Additional discount cols accessed by index — duplicate header names in CSV
+    // make name-based access unreliable, so index is used for all 4 slabs
+    private static final int[] CSV_SLAB_MIN_QTY_COLS = {28, 35, 42, 49};
+    private static final int[] CSV_SLAB_DISCOUNT_COLS = {29, 36, 43, 50};
+    private static final int[] CSV_SLAB_START_DATE_COLS = {30, 37, 44, 51};
+    private static final int[] CSV_SLAB_START_TIME_COLS = {31, 38, 45, 52};
+    private static final int[] CSV_SLAB_END_DATE_COLS = {32, 39, 46, 53};
+    private static final int[] CSV_SLAB_END_TIME_COLS = {33, 40, 47, 54};
+
     @Override
     public ProductDetailsDto mapRow(Row row) {
 
         ProductDetailsDto dto = new ProductDetailsDto();
 
-        // ── Product core ──────────────────────────────────────────────────
         dto.setProductName(getString(row, COL_PRODUCT_NAME));
         dto.setWarningsPrecautions(getString(row, COL_WARNINGS));
         dto.setProductDescription(getString(row, COL_DESCRIPTION));
         dto.setManufacturerName(getString(row, COL_MANUFACTURER));
         dto.setProductMarketingUrl(getString(row, COL_MARKETING_URL));
 
-        // ── Packaging ────────────────────────────────────────────────────
         Long unitPerPack = getNullSafeLong(row, COL_UNIT_PER_PACK);
         Long numberOfPacks = getNullSafeLong(row, COL_NUMBER_OF_PACKS);
+        String packTypeName = getString(row, COL_PACK_TYPE);
+        String dosageFormName = getString(row, COL_DOSAGE_FORM);
+
+        dto.setPackagingDetails(buildPackaging(
+                unitPerPack, numberOfPacks,
+                getNullSafeLong(row, COL_MIN_ORDER_QTY),
+                getNullSafeLong(row, COL_MAX_ORDER_QTY),
+                packTypeName, dosageFormName));
+
+        Set<AdditionalDiscountDto> additionalDiscounts = new HashSet<>();
+        for (int slab = 0; slab < ADD_DISCOUNT_SLAB_COUNT; slab++) {
+            int base = COL_ADD_DISCOUNT_START + (slab * ADD_DISCOUNT_SLAB_SIZE);
+            Long minQty = getNullSafeLong(row, base + 1);
+            Long discountPct = getNullSafeLong(row, base + 2);
+            if ((minQty == null || minQty == 0) && (discountPct == null || discountPct == 0)) continue;
+
+            AdditionalDiscountDto ad = new AdditionalDiscountDto();
+            ad.setMinimumPurchaseQuantity(minQty);
+            ad.setAdditionalDiscountPercentage(discountPct);
+            ad.setEffectiveStartDate(getLocalDate(row, base + 3));
+            ad.setEffectiveStartTime(getLocalTime(row, base + 4));
+            ad.setEffectiveEndDate(getLocalDate(row, base + 5));
+            ad.setEffectiveEndTime(getLocalTime(row, base + 6));
+            additionalDiscounts.add(ad);
+        }
+
+        dto.setPricingDetails(Set.of(buildPricing(
+                getString(row, COL_BATCH_NUMBER),
+                toStartOfDay(getLocalDate(row, COL_MFG_DATE)),
+                toEndOfDay(getLocalDate(row, COL_EXPIRY_DATE)),
+                getString(row, COL_STORAGE_CONDITION),
+                getNullSafeLong(row, COL_STOCK_QTY),
+                getLocalDate(row, COL_DATE_OF_ENTRY),
+                getNullSafeLong(row, COL_MRP),
+                getNullSafeLong(row, COL_SELLING_PRICE),
+                getNullSafeLong(row, COL_DISCOUNT_PCT),
+                getNullSafeLong(row, COL_GST_PCT),
+                getNullSafeLong(row, COL_HSN_CODE),
+                getNullSafeLong(row, COL_SHELF_LIFE_MONTHS),
+                additionalDiscounts)));
+
+        dto.setProductAttributeDrugs(Set.of(buildDrugAttr(
+                dosageFormName,
+                getString(row, COL_THERAPEUTIC_CAT),
+                getString(row, COL_THERAPEUTIC_SUBCAT),
+                getString(row, COL_MOLECULES),
+                getString(row, COL_STRENGTH))));
+
+        return dto;
+    }
+
+    // ── CSV entry point ───────────────────────────────────────────────────
+    @Override
+    public ProductDetailsDto mapCsv(CSVRecord r) {
+
+        ProductDetailsDto dto = new ProductDetailsDto();
+
+        dto.setProductName(getCsvString(r, H_PRODUCT_NAME));
+        dto.setWarningsPrecautions(getCsvString(r, H_WARNINGS));
+        dto.setProductDescription(getCsvString(r, H_DESCRIPTION));
+        dto.setManufacturerName(getCsvString(r, H_MANUFACTURER));
+        dto.setProductMarketingUrl(getCsvString(r, H_MARKETING_URL));
+
+        Long unitPerPack = getCsvLong(r, H_UNIT_PER_PACK);
+        Long numberOfPacks = getCsvLong(r, H_NUMBER_OF_PACKS);
+        String packTypeName = getCsvString(r, H_PACK_TYPE);
+        String dosageFormName = getCsvString(r, H_DOSAGE_FORM);
+
+        dto.setPackagingDetails(buildPackaging(
+                unitPerPack, numberOfPacks,
+                getCsvLong(r, H_MIN_ORDER_QTY),
+                getCsvLong(r, H_MAX_ORDER_QTY),
+                packTypeName, dosageFormName));
+
+        Set<AdditionalDiscountDto> additionalDiscounts = new HashSet<>();
+        for (int slab = 0; slab < ADD_DISCOUNT_SLAB_COUNT; slab++) {
+            Long minQty = getCsvLongByIndex(r, CSV_SLAB_MIN_QTY_COLS[slab]);
+            Long discountPct = getCsvLongByIndex(r, CSV_SLAB_DISCOUNT_COLS[slab]);
+            if ((minQty == null || minQty == 0) && (discountPct == null || discountPct == 0)) continue;
+
+            AdditionalDiscountDto ad = new AdditionalDiscountDto();
+            ad.setMinimumPurchaseQuantity(minQty);
+            ad.setAdditionalDiscountPercentage(discountPct);
+            ad.setEffectiveStartDate(parseCsvDate(getCsvStringByIndex(r, CSV_SLAB_START_DATE_COLS[slab])));
+            ad.setEffectiveStartTime(parseCsvTime(getCsvStringByIndex(r, CSV_SLAB_START_TIME_COLS[slab])));
+            ad.setEffectiveEndDate(parseCsvDate(getCsvStringByIndex(r, CSV_SLAB_END_DATE_COLS[slab])));
+            ad.setEffectiveEndTime(parseCsvTime(getCsvStringByIndex(r, CSV_SLAB_END_TIME_COLS[slab])));
+            additionalDiscounts.add(ad);
+        }
+
+        dto.setPricingDetails(Set.of(buildPricing(
+                getCsvString(r, H_BATCH_NUMBER),
+                toStartOfDay(parseCsvDate(getCsvString(r, H_MFG_DATE))),
+                toEndOfDay(parseCsvDate(getCsvString(r, H_EXPIRY_DATE))),
+                getCsvString(r, H_STORAGE_CONDITION),
+                getCsvLong(r, H_STOCK_QTY),
+                parseCsvDate(getCsvString(r, H_DATE_OF_ENTRY)),
+                getCsvLong(r, H_MRP),
+                getCsvLong(r, H_SELLING_PRICE),
+                getCsvLong(r, H_DISCOUNT_PCT),
+                getCsvLong(r, H_GST_PCT),
+                getCsvLong(r, H_HSN_CODE),
+                getCsvLong(r, H_SHELF_LIFE_MONTHS),
+                additionalDiscounts)));
+
+        dto.setProductAttributeDrugs(Set.of(buildDrugAttr(
+                dosageFormName,
+                getCsvString(r, H_THERAPEUTIC_CAT),
+                getCsvString(r, H_THERAPEUTIC_SUBCAT),
+                getCsvString(r, H_MOLECULES),
+                getCsvStringByIndex(r, COL_STRENGTH))));
+
+        return dto;
+    }
+
+    // ── Shared builders ───────────────────────────────────────────────────
+    private PackagingDetailsDto buildPackaging(
+            Long unitPerPack, Long numberOfPacks,
+            Long minOrderQty, Long maxOrderQty,
+            String packTypeName, String dosageFormName) {
 
         PackagingDetailsDto packaging = new PackagingDetailsDto();
         packaging.setUnitPerPack(unitPerPack);
         packaging.setNumberOfPacks(numberOfPacks);
-        // Pack size is auto-calculated: unitPerPack * numberOfPacks
         if (unitPerPack != null && numberOfPacks != null) {
             packaging.setPackSize(unitPerPack * numberOfPacks);
         }
-        packaging.setMinimumOrderQuantity(getNullSafeLong(row, COL_MIN_ORDER_QTY));
-        packaging.setMaximumOrderQuantity(getNullSafeLong(row, COL_MAX_ORDER_QTY));
-
-        String packTypeName = getString(row, COL_PACK_TYPE);
-        String dosageFormName = getString(row, COL_DOSAGE_FORM);
+        packaging.setMinimumOrderQuantity(minOrderQty);
+        packaging.setMaximumOrderQuantity(maxOrderQty);
 
         if (packTypeName != null && !packTypeName.isBlank()
                 && dosageFormName != null && !dosageFormName.isBlank()) {
@@ -100,101 +254,66 @@ public class DrugImportStrategy implements ProductImportStrategy {
                     .getPackId();
             packaging.setPackId(packId);
         }
+        return packaging;
+    }
 
-        dto.setPackagingDetails(packaging);
+    private PricingDetailsDto buildPricing(
+            String batchNumber, LocalDateTime mfgDate, LocalDateTime expiryDate,
+            String storageCondition, Long stockQty, LocalDate dateOfEntry,
+            Long mrp, Long sellingPrice, Long discountPct, Long gstPct,
+            Long hsnCode, Long shelfLifeMonths,
+            Set<AdditionalDiscountDto> additionalDiscounts) {
 
-        // ── Pricing ───────────────────────────────────────────────────────
         PricingDetailsDto pricing = new PricingDetailsDto();
-        pricing.setBatchLotNumber(getString(row, COL_BATCH_NUMBER));
-        pricing.setManufacturingDate(toStartOfDay(getLocalDate(row, COL_MFG_DATE)));
-        pricing.setExpiryDate(toEndOfDay(getLocalDate(row, COL_EXPIRY_DATE)));
-        pricing.setStorageCondition(getString(row, COL_STORAGE_CONDITION));
-        pricing.setStockQuantity(getNullSafeLong(row, COL_STOCK_QTY));
-        pricing.setDateOfStockEntry(getLocalDate(row, COL_DATE_OF_ENTRY));
-        pricing.setMrp(getNullSafeLong(row, COL_MRP));
-        pricing.setSellingPrice(getNullSafeLong(row, COL_SELLING_PRICE));
-        pricing.setDiscountPercentage(getNullSafeLong(row, COL_DISCOUNT_PCT));
-        pricing.setGstPercentage(getNullSafeLong(row, COL_GST_PCT));
-        pricing.setHsnCode(getNullSafeLong(row, COL_HSN_CODE));
-        pricing.setShelfLifeMonths(getNullSafeLong(row, COL_SHELF_LIFE_MONTHS));
-
-        // ── Additional discount slabs ─────────────────────────────────────
-        // 4 slabs × 7 cols each starting at col 27:
-        // base+0 = Slab (no field in DTO — skip)
-        // base+1 = Minimum Purchase Quantity
-        // base+2 = Discount percentage
-        // base+3 = Effective Start Date
-        // base+4 = Effective Start Time
-        // base+5 = Effective End Date
-        // base+6 = Effective End Time
-        Set<AdditionalDiscountDto> additionalDiscounts = new HashSet<>();
-
-        for (int slab = 0; slab < ADD_DISCOUNT_SLAB_COUNT; slab++) {
-            int base = COL_ADD_DISCOUNT_START + (slab * ADD_DISCOUNT_SLAB_SIZE);
-
-            // Check cell type directly — blank Excel cells return 0.0 from getNumericCellValue
-            // which would create ghost rows with zero values
-            Long minQty = getNullSafeLong(row, base + 1);
-            Long discountPct = getNullSafeLong(row, base + 2);
-
-            // Skip slab if both key fields are absent or zero (empty template row)
-            if ((minQty == null || minQty == 0) && (discountPct == null || discountPct == 0)) continue;
-
-            AdditionalDiscountDto ad = new AdditionalDiscountDto();
-            ad.setMinimumPurchaseQuantity(minQty);
-            ad.setAdditionalDiscountPercentage(discountPct);
-            ad.setEffectiveStartDate(getLocalDate(row, base + 3));
-            ad.setEffectiveStartTime(getLocalTime(row, base + 4));
-            ad.setEffectiveEndDate(getLocalDate(row, base + 5));
-            ad.setEffectiveEndTime(getLocalTime(row, base + 6));
-
-            additionalDiscounts.add(ad);
-        }
-
+        pricing.setBatchLotNumber(batchNumber);
+        pricing.setManufacturingDate(mfgDate);
+        pricing.setExpiryDate(expiryDate);
+        pricing.setStorageCondition(storageCondition);
+        pricing.setStockQuantity(stockQty);
+        pricing.setDateOfStockEntry(dateOfEntry);
+        pricing.setMrp(mrp);
+        pricing.setSellingPrice(sellingPrice);
+        pricing.setDiscountPercentage(discountPct);
+        pricing.setGstPercentage(gstPct);
+        pricing.setHsnCode(hsnCode);
+        pricing.setShelfLifeMonths(shelfLifeMonths);
         if (!additionalDiscounts.isEmpty()) {
             pricing.setAdditionalDiscounts(additionalDiscounts);
         }
+        return pricing;
+    }
 
-        dto.setPricingDetails(Set.of(pricing));
+    private ProductAttributeDrugDto buildDrugAttr(
+            String dosageForm, String therapeuticCat, String therapeuticSubCat,
+            String moleculeCell, String strengthCell) {
 
-        // ── Drug attribute ────────────────────────────────────────────────
         ProductAttributeDrugDto attr = new ProductAttributeDrugDto();
-        attr.setDosageForm(getString(row, COL_DOSAGE_FORM));
+        attr.setDosageForm(dosageForm);
 
-        // Resolve therapeutic category and subcategory by name → ID
-        String therapeuticCategoryName = getString(row, COL_THERAPEUTIC_CAT);
-        String therapeuticSubcategoryName = getString(row, COL_THERAPEUTIC_SUBCAT);
-
-        if (therapeuticCategoryName != null && !therapeuticCategoryName.isBlank()) {
-            String catId = therapeuticCategoryRepository
-                    .findByTherapeuticCategory(therapeuticCategoryName)
-                    .orElseThrow(() -> new RuntimeException(
-                            "Therapeutic category not found: " + therapeuticCategoryName))
-                    .getTherapeuticCategoryId();
-            attr.setTherapeuticCategoryId(catId);
+        if (therapeuticCat != null && !therapeuticCat.isBlank()) {
+            attr.setTherapeuticCategoryId(
+                    therapeuticCategoryRepository
+                            .findByTherapeuticCategory(therapeuticCat)
+                            .orElseThrow(() -> new RuntimeException(
+                                    "Therapeutic category not found: " + therapeuticCat))
+                            .getTherapeuticCategoryId());
         }
 
-        if (therapeuticSubcategoryName != null && !therapeuticSubcategoryName.isBlank()) {
-            String subCatId = therapeuticSubcategoryRepository
-                    .findByTherapeuticSubcategory(therapeuticSubcategoryName)
-                    .orElseThrow(() -> new RuntimeException(
-                            "Therapeutic subcategory not found: " + therapeuticSubcategoryName))
-                    .getTherapeuticSubcategoryId();
-            attr.setTherapeuticSubcategoryId(subCatId);
+        if (therapeuticSubCat != null && !therapeuticSubCat.isBlank()) {
+            attr.setTherapeuticSubcategoryId(
+                    therapeuticSubcategoryRepository
+                            .findByTherapeuticSubcategory(therapeuticSubCat)
+                            .orElseThrow(() -> new RuntimeException(
+                                    "Therapeutic subcategory not found: " + therapeuticSubCat))
+                            .getTherapeuticSubcategoryId());
         }
-
-        // ── Molecules + per-molecule strength ─────────────────────────────
-        String moleculeCell = getString(row, COL_MOLECULES);
-        String strengthCell = getString(row, COL_STRENGTH);
 
         if (moleculeCell != null && !moleculeCell.isBlank()) {
             String[] moleculeNames = moleculeCell.split(",");
             String[] strengths = (strengthCell != null && !strengthCell.isBlank())
-                    ? strengthCell.split(",")
-                    : new String[0];
+                    ? strengthCell.split(",") : new String[0];
 
             List<ProductMoleculeDto> molecules = new ArrayList<>();
-
             for (int i = 0; i < moleculeNames.length; i++) {
                 String name = moleculeNames[i].trim();
                 String strength = (i < strengths.length) ? strengths[i].trim() : null;
@@ -208,16 +327,13 @@ public class DrugImportStrategy implements ProductImportStrategy {
                 pm.setStrength(strength);
                 molecules.add(pm);
             }
-
             attr.setMolecules(molecules);
         }
 
-        dto.setProductAttributeDrugs(Set.of(attr));
-
-        return dto;
+        return attr;
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────
+    // ── Excel helpers ─────────────────────────────────────────────────────
     private String getString(Row row, int col) {
         Cell cell = row.getCell(col);
         return (cell != null) ? cell.toString().trim() : null;
@@ -231,14 +347,6 @@ public class DrugImportStrategy implements ProductImportStrategy {
         } catch (Exception e) {
             return null;
         }
-    }
-
-    private LocalDateTime toStartOfDay(LocalDate date) {
-        return date != null ? date.atStartOfDay() : null;
-    }
-
-    private LocalDateTime toEndOfDay(LocalDate date) {
-        return date != null ? date.atTime(23, 59, 59) : null;
     }
 
     private LocalTime getLocalTime(Row row, int col) {
@@ -256,9 +364,6 @@ public class DrugImportStrategy implements ProductImportStrategy {
         if (cell == null) return null;
         switch (cell.getCellType()) {
             case NUMERIC:
-                // Cell is genuinely numeric — but could still be 0 from an empty template cell
-                // that Excel pre-formats as numeric. Check if the raw value is 0 with no
-                // other slab data present — handled at the caller level.
                 return (long) cell.getNumericCellValue();
             case STRING:
                 String s = cell.getStringCellValue().trim();
@@ -280,5 +385,84 @@ public class DrugImportStrategy implements ProductImportStrategy {
             default:
                 return null;
         }
+    }
+
+    // ── CSV helpers ───────────────────────────────────────────────────────
+    private String getCsvString(CSVRecord r, String header) {
+        try {
+            String v = r.get(header);
+            return (v != null && !v.isBlank()) ? v.trim() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String getCsvStringByIndex(CSVRecord r, int index) {
+        try {
+            String v = r.get(index);
+            return (v != null && !v.isBlank()) ? v.trim() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private Long getCsvLong(CSVRecord r, String header) {
+        try {
+            String v = getCsvString(r, header);
+            return (v != null) ? Long.parseLong(v) : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private Long getCsvLongByIndex(CSVRecord r, int index) {
+        try {
+            String v = getCsvStringByIndex(r, index);
+            return (v != null) ? Long.parseLong(v) : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    // Supports: "Sep-25" (MMM-yy), "04-03-2026" (dd-MM-yyyy), "2026-03-01" (ISO)
+    private LocalDate parseCsvDate(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        raw = raw.trim();
+        try {
+            return LocalDate.parse(raw);
+        } catch (Exception ignored) {
+        }
+        try {
+            return YearMonth.parse(raw, DateTimeFormatter.ofPattern("MMM-yy", Locale.ENGLISH)).atDay(1);
+        } catch (Exception ignored) {
+        }
+        try {
+            return LocalDate.parse(raw, DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+        } catch (Exception ignored) {
+        }
+        try {
+            return LocalDate.parse(raw, DateTimeFormatter.ofPattern("M/d/yyyy"));
+        } catch (Exception ignored) {
+        }
+        log.warn("Could not parse date: '{}'", raw);
+        return null;
+    }
+
+    private LocalTime parseCsvTime(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            return LocalTime.parse(raw.trim());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    // ── Shared helpers ────────────────────────────────────────────────────
+    private LocalDateTime toStartOfDay(LocalDate date) {
+        return date != null ? date.atStartOfDay() : null;
+    }
+
+    private LocalDateTime toEndOfDay(LocalDate date) {
+        return date != null ? date.atTime(23, 59, 59) : null;
     }
 }
