@@ -11,4 +11,6 @@ public interface PackTypeRepository extends JpaRepository<PackType, Long> {
     List<PackType> findByDosageForm_DosageId(Long dosageId);
 
     Optional<PackType> findByPackType(String packType);
+
+    Optional<PackType> findByPackTypeAndDosageForm_DosageName(String packType, String dosageName);
 }

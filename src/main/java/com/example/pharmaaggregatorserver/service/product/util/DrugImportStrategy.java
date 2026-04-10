@@ -89,10 +89,14 @@ public class DrugImportStrategy implements ProductImportStrategy {
         packaging.setMaximumOrderQuantity(getNullSafeLong(row, COL_MAX_ORDER_QTY));
 
         String packTypeName = getString(row, COL_PACK_TYPE);
-        if (packTypeName != null && !packTypeName.isBlank()) {
+        String dosageFormName = getString(row, COL_DOSAGE_FORM);
+
+        if (packTypeName != null && !packTypeName.isBlank()
+                && dosageFormName != null && !dosageFormName.isBlank()) {
             Long packId = packTypeRepository
-                    .findByPackType(packTypeName)
-                    .orElseThrow(() -> new RuntimeException("Pack type not found: " + packTypeName))
+                    .findByPackTypeAndDosageForm_DosageName(packTypeName, dosageFormName)
+                    .orElseThrow(() -> new RuntimeException(
+                            "Pack type '" + packTypeName + "' not found for dosage form '" + dosageFormName + "'"))
                     .getPackId();
             packaging.setPackId(packId);
         }
