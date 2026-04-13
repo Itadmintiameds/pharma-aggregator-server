@@ -23,6 +23,7 @@ import java.util.Set;
 public class ProductAttributeDrug {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "product_attribute_id")
     private String productAttributeId;
 

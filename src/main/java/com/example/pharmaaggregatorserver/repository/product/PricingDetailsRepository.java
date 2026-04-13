@@ -14,3 +14,4 @@ public interface PricingDetailsRepository extends JpaRepository<PricingDetails, 
     Integer findMaxPricingNumber();
 
 }
+

@@ -5,6 +5,7 @@ import com.example.pharmaaggregatorserver.dto.product.TherapeuticSubcategoryDto;
 import com.example.pharmaaggregatorserver.response.ApiResponse;
 import com.example.pharmaaggregatorserver.security.UserDetailsImpl;
 import com.example.pharmaaggregatorserver.service.product.ProductDetailsService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -74,11 +75,14 @@ public class ProductDetailsController {
     @PutMapping("/update/{productId}")
     public ResponseEntity<ApiResponse<ProductDetailsDto>> updateProduct(
             @PathVariable String productId,
-            @RequestBody ProductDetailsDto dto,
+            @RequestBody @Valid ProductDetailsDto dto,
             Authentication authentication
     ) {
 
-        UserDetailsImpl user = (UserDetailsImpl) authentication.getPrincipal();
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetailsImpl user)) {
+            throw new RuntimeException("Unauthorized access");
+        }
+
         Long userId = user.getId();
 
         ProductDetailsDto updatedProduct =
@@ -92,7 +96,6 @@ public class ProductDetailsController {
                 )
         );
     }
-
     @GetMapping("/subcategories/{categoryId}")
     public ResponseEntity<List<TherapeuticSubcategoryDto>>
     getSubcategories(@PathVariable String categoryId) {

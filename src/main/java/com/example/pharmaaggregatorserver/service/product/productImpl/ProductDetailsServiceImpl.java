@@ -13,10 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -37,6 +34,7 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
     private final ProductImageMapper productImageMapper;
     private final PackTypeRepository packTypeRepository;
     private final MoleculeRepository moleculeRepository;
+    private final AdditionalDiscountMapper additionalDiscountMapper;
 
 
     @Override
@@ -336,6 +334,156 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
         productRepo.delete(product);
     }
 
+//    @Override
+//    @Transactional
+//    public ProductDetailsDto updateProduct(String productId, ProductDetailsDto dto, Long userId) {
+//
+//        Seller seller = sellerRepo.findByUserId(userId)
+//                .orElseThrow(() -> new RuntimeException("Seller not found"));
+//
+//        ProductDetails existingProduct = productRepo.findById(productId)
+//                .orElseThrow(() -> new RuntimeException("Product not found"));
+//
+//        if (!existingProduct.getSeller().getSellerId().equals(seller.getSellerId())) {
+//            throw new RuntimeException("Unauthorized to update this product");
+//        }
+//
+//
+//        existingProduct.setProductName(dto.getProductName());
+//        existingProduct.setWarningsPrecautions(dto.getWarningsPrecautions());
+//        existingProduct.setProductDescription(dto.getProductDescription());
+//        existingProduct.setProductMarketingUrl(dto.getProductMarketingUrl());
+//        existingProduct.setModifiedBy(seller.getSellerId());
+//        existingProduct.setModifiedDate(LocalDateTime.now());
+//
+//        if (dto.getCategoryId() != null) {
+//            Category category = categoryRepo.findById(dto.getCategoryId())
+//                    .orElseThrow(() -> new RuntimeException("Category not found"));
+//            existingProduct.setCategory(category);
+//        }
+//
+//
+//        if (dto.getPackagingDetails() != null) {
+//
+//            PackagingDetails existingPackaging = existingProduct.getPackagingDetails();
+//
+//            if (existingPackaging == null) {
+//                PackagingDetails newPackaging =
+//                        packagingDetailsMapper.toEntity(dto.getPackagingDetails());
+//
+//                newPackaging.setProductDetails(existingProduct);
+//                existingProduct.setPackagingDetails(newPackaging);
+//
+//            } else {
+//                PackagingDetailsDto pd = dto.getPackagingDetails();
+//
+//                existingPackaging.setUnitPerPack(pd.getUnitPerPack());
+//                existingPackaging.setNumberOfPacks(pd.getNumberOfPacks());
+//                existingPackaging.setPackSize(pd.getPackSize());
+//                existingPackaging.setMinimumOrderQuantity(pd.getMinimumOrderQuantity());
+//                existingPackaging.setMaximumOrderQuantity(pd.getMaximumOrderQuantity());
+//                existingPackaging.setModifiedBy(seller.getSellerId());
+//                existingPackaging.setModifiedDate(LocalDateTime.now());
+//            }
+//        }
+//
+//
+//        if (dto.getPricingDetails() != null) {
+//
+//            Set<PricingDetails> existingPricing = existingProduct.getPricingDetails();
+//
+//            Map<String, PricingDetails> existingMap = existingPricing.stream()
+//                    .collect(Collectors.toMap(PricingDetails::getPricingId, p -> p));
+//
+//            for (PricingDetailsDto dtoPricing : dto.getPricingDetails()) {
+//
+//                if (dtoPricing.getPricingId() != null &&
+//                        existingMap.containsKey(dtoPricing.getPricingId())) {
+//
+//                    PricingDetails existing = existingMap.get(dtoPricing.getPricingId());
+//
+//                    existing.setBatchLotNumber(dtoPricing.getBatchLotNumber());
+////                    existing.setManufacturerName(dtoPricing.getManufacturerName());
+//                    existing.setManufacturingDate(dtoPricing.getManufacturingDate());
+//                    existing.setExpiryDate(dtoPricing.getExpiryDate());
+//                    existing.setStorageCondition(dtoPricing.getStorageCondition());
+//                    existing.setStockQuantity(dtoPricing.getStockQuantity());
+//                    existing.setDateOfStockEntry(dtoPricing.getDateOfStockEntry());
+//                    existing.setSellingPrice(dtoPricing.getSellingPrice());
+//                    existing.setMrp(dtoPricing.getMrp());
+//                    existing.setDiscountPercentage(dtoPricing.getDiscountPercentage());
+//                    existing.setGstPercentage(dtoPricing.getGstPercentage());
+////                    existing.setMinimumPurchaseQuantity(dtoPricing.getMinimumPurchaseQuantity());
+////                    existing.setAdditionalDiscount(dtoPricing.getAdditionalDiscount());
+//                    existing.setFinalPrice(dtoPricing.getFinalPrice());
+//                    existing.setHsnCode(dtoPricing.getHsnCode());
+//                    existing.setShelfLifeMonths(dtoPricing.getShelfLifeMonths());
+//
+//                    existing.setModifiedBy(seller.getSellerId());
+//                    existing.setModifiedDate(LocalDateTime.now());
+//
+//                } else {
+//
+//                    PricingDetails newPricing = pricingDetailsMapper.toEntity(dtoPricing);
+//
+//                    newPricing.setPricingId(generatePricingId(seller.getSellerName()));
+//                    newPricing.setCreatedBy(seller.getSellerId());
+//                    newPricing.setCreatedDate(LocalDateTime.now());
+//
+//                    newPricing.setProductDetails(existingProduct);
+//
+//                    existingPricing.add(newPricing);
+//                }
+//            }
+//        }
+//
+//
+//        if (dto.getProductAttributeDrugs() != null) {
+//
+//            Set<ProductAttributeDrug> existingAttrs = existingProduct.getProductAttributeDrugs();
+//
+//            Map<String, ProductAttributeDrug> existingMap = existingAttrs.stream()
+//                    .collect(Collectors.toMap(ProductAttributeDrug::getProductAttributeId, a -> a));
+//
+//            for (ProductAttributeDrugDto dtoAttr : dto.getProductAttributeDrugs()) {
+//
+//                if (dtoAttr.getProductAttributeId() != null &&
+//                        existingMap.containsKey(dtoAttr.getProductAttributeId())) {
+//
+//                    ProductAttributeDrug existingAttr =
+//                            existingMap.get(dtoAttr.getProductAttributeId());
+//
+//                    existingAttr.setTherapeuticCategoryId(dtoAttr.getTherapeuticCategoryId());
+//                    existingAttr.setTherapeuticSubcategoryId(dtoAttr.getTherapeuticSubcategoryId());
+//                    existingAttr.setDosageForm(dtoAttr.getDosageForm());
+//                    existingAttr.setModifiedBy(seller.getSellerId());
+//                    existingAttr.setModifiedDate(LocalDateTime.now());
+//
+//                }
+//            }
+//        }
+//
+//
+////        if (dto.getProductImages() != null) {
+////
+////            existingProduct.getProductImages().clear();
+////
+////            Set<ProductImage> images = dto.getProductImages().stream()
+////                    .map(img -> {
+////                        ProductImage image = productImageMapper.toEntity(img);
+////                        image.setProductDetails(existingProduct);
+////                        return image;
+////                    })
+////                    .collect(Collectors.toSet());
+////
+////            existingProduct.getProductImages().addAll(images);
+////        }
+//
+//        ProductDetails updatedProduct = productRepo.save(existingProduct);
+//
+//        return productMapper.toDto(updatedProduct);
+//    }
+
     @Override
     @Transactional
     public ProductDetailsDto updateProduct(String productId, ProductDetailsDto dto, Long userId) {
@@ -350,7 +498,7 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
             throw new RuntimeException("Unauthorized to update this product");
         }
 
-
+        // ✅ BASIC FIELDS
         existingProduct.setProductName(dto.getProductName());
         existingProduct.setWarningsPrecautions(dto.getWarningsPrecautions());
         existingProduct.setProductDescription(dto.getProductDescription());
@@ -358,27 +506,28 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
         existingProduct.setModifiedBy(seller.getSellerId());
         existingProduct.setModifiedDate(LocalDateTime.now());
 
+        // ✅ CATEGORY
         if (dto.getCategoryId() != null) {
             Category category = categoryRepo.findById(dto.getCategoryId())
                     .orElseThrow(() -> new RuntimeException("Category not found"));
             existingProduct.setCategory(category);
         }
 
-
+        // =========================================================
+        // ✅ PACKAGING DETAILS
+        // =========================================================
         if (dto.getPackagingDetails() != null) {
 
+            PackagingDetailsDto pd = dto.getPackagingDetails();
             PackagingDetails existingPackaging = existingProduct.getPackagingDetails();
 
             if (existingPackaging == null) {
-                PackagingDetails newPackaging =
-                        packagingDetailsMapper.toEntity(dto.getPackagingDetails());
-
+                PackagingDetails newPackaging = packagingDetailsMapper.toEntity(pd);
                 newPackaging.setProductDetails(existingProduct);
+                newPackaging.setCreatedBy(seller.getSellerId());
+                newPackaging.setCreatedDate(LocalDateTime.now());
                 existingProduct.setPackagingDetails(newPackaging);
-
             } else {
-                PackagingDetailsDto pd = dto.getPackagingDetails();
-
                 existingPackaging.setUnitPerPack(pd.getUnitPerPack());
                 existingPackaging.setNumberOfPacks(pd.getNumberOfPacks());
                 existingPackaging.setPackSize(pd.getPackSize());
@@ -389,98 +538,158 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
             }
         }
 
-
+        // =========================================================
+        // ✅ PRICING DETAILS (WITH ADDITIONAL DISCOUNTS)
+        // =========================================================
         if (dto.getPricingDetails() != null) {
 
             Set<PricingDetails> existingPricing = existingProduct.getPricingDetails();
 
-            Map<String, PricingDetails> existingMap = existingPricing.stream()
+            Map<String, PricingDetails> pricingMap = existingPricing.stream()
                     .collect(Collectors.toMap(PricingDetails::getPricingId, p -> p));
 
-            for (PricingDetailsDto dtoPricing : dto.getPricingDetails()) {
+            for (PricingDetailsDto pDto : dto.getPricingDetails()) {
 
-                if (dtoPricing.getPricingId() != null &&
-                        existingMap.containsKey(dtoPricing.getPricingId())) {
+                PricingDetails pricing;
 
-                    PricingDetails existing = existingMap.get(dtoPricing.getPricingId());
+                if (pDto.getPricingId() != null && pricingMap.containsKey(pDto.getPricingId())) {
 
-                    existing.setBatchLotNumber(dtoPricing.getBatchLotNumber());
-//                    existing.setManufacturerName(dtoPricing.getManufacturerName());
-                    existing.setManufacturingDate(dtoPricing.getManufacturingDate());
-                    existing.setExpiryDate(dtoPricing.getExpiryDate());
-                    existing.setStorageCondition(dtoPricing.getStorageCondition());
-                    existing.setStockQuantity(dtoPricing.getStockQuantity());
-                    existing.setDateOfStockEntry(dtoPricing.getDateOfStockEntry());
-                    existing.setSellingPrice(dtoPricing.getSellingPrice());
-                    existing.setMrp(dtoPricing.getMrp());
-                    existing.setDiscountPercentage(dtoPricing.getDiscountPercentage());
-                    existing.setGstPercentage(dtoPricing.getGstPercentage());
-//                    existing.setMinimumPurchaseQuantity(dtoPricing.getMinimumPurchaseQuantity());
-//                    existing.setAdditionalDiscount(dtoPricing.getAdditionalDiscount());
-                    existing.setFinalPrice(dtoPricing.getFinalPrice());
-                    existing.setHsnCode(dtoPricing.getHsnCode());
-                    existing.setShelfLifeMonths(dtoPricing.getShelfLifeMonths());
-
-                    existing.setModifiedBy(seller.getSellerId());
-                    existing.setModifiedDate(LocalDateTime.now());
+                    pricing = pricingMap.get(pDto.getPricingId());
 
                 } else {
+                    pricing = pricingDetailsMapper.toEntity(pDto);
+                    pricing.setPricingId(generatePricingId(seller.getSellerName()));
+                    pricing.setCreatedBy(seller.getSellerId());
+                    pricing.setCreatedDate(LocalDateTime.now());
+                    pricing.setProductDetails(existingProduct);
 
-                    PricingDetails newPricing = pricingDetailsMapper.toEntity(dtoPricing);
+                    existingPricing.add(pricing);
+                }
 
-                    newPricing.setPricingId(generatePricingId(seller.getSellerName()));
-                    newPricing.setCreatedBy(seller.getSellerId());
-                    newPricing.setCreatedDate(LocalDateTime.now());
+                // ✅ UPDATE COMMON FIELDS
+                pricing.setBatchLotNumber(pDto.getBatchLotNumber());
+                pricing.setManufacturingDate(pDto.getManufacturingDate());
+                pricing.setExpiryDate(pDto.getExpiryDate());
+                pricing.setStorageCondition(pDto.getStorageCondition());
+                pricing.setStockQuantity(pDto.getStockQuantity());
+                pricing.setDateOfStockEntry(pDto.getDateOfStockEntry());
+                pricing.setSellingPrice(pDto.getSellingPrice());
+                pricing.setMrp(pDto.getMrp());
+                pricing.setDiscountPercentage(pDto.getDiscountPercentage());
+                pricing.setGstPercentage(pDto.getGstPercentage());
+                pricing.setFinalPrice(pDto.getFinalPrice());
+                pricing.setHsnCode(pDto.getHsnCode());
+                pricing.setShelfLifeMonths(pDto.getShelfLifeMonths());
 
-                    newPricing.setProductDetails(existingProduct);
+                pricing.setModifiedBy(seller.getSellerId());
+                pricing.setModifiedDate(LocalDateTime.now());
 
-                    existingPricing.add(newPricing);
+                // 🔥 ADDITIONAL DISCOUNTS (FIXED)
+                if (pDto.getAdditionalDiscounts() != null) {
+
+                    if (pricing.getAdditionalDiscounts() == null) {
+                        pricing.setAdditionalDiscounts(new HashSet<>());
+                    } else {
+                        pricing.getAdditionalDiscounts().clear();
+                    }
+
+                    Set<AdditionalDiscount> discounts = pDto.getAdditionalDiscounts().stream()
+                            .map(d -> {
+
+                                AdditionalDiscount ad = new AdditionalDiscount();
+
+                                // ✅ MAKE SURE THESE MATCH ENTITY FIELDS
+                                ad.setMinimumPurchaseQuantity(d.getMinimumPurchaseQuantity());
+                                ad.setAdditionalDiscountPercentage(d.getAdditionalDiscountPercentage());
+                                ad.setEffectiveStartDate(d.getEffectiveStartDate());
+                                ad.setEffectiveStartTime(d.getEffectiveStartTime());
+                                ad.setEffectiveEndDate(d.getEffectiveEndDate());
+                                ad.setEffectiveEndTime(d.getEffectiveEndTime());
+
+                                ad.setPricingDetails(pricing);
+
+                                return ad;
+                            })
+                            .collect(Collectors.toSet());
+
+                    pricing.getAdditionalDiscounts().addAll(discounts);
                 }
             }
         }
 
+        // =========================================================
+        // ✅ PRODUCT ATTRIBUTE DRUG + MOLECULES
+        // =========================================================
 
-        if (dto.getProductAttributeDrugs() != null) {
+        if (dto.getProductAttributeDrugs() != null && !dto.getProductAttributeDrugs().isEmpty()) {
 
+            ProductAttributeDrugDto attrDto =
+                    dto.getProductAttributeDrugs().iterator().next();
             Set<ProductAttributeDrug> existingAttrs = existingProduct.getProductAttributeDrugs();
 
-            Map<String, ProductAttributeDrug> existingMap = existingAttrs.stream()
-                    .collect(Collectors.toMap(ProductAttributeDrug::getProductAttributeId, a -> a));
+            ProductAttributeDrug attr;
 
-            for (ProductAttributeDrugDto dtoAttr : dto.getProductAttributeDrugs()) {
+            // ✅ Get existing OR create new
+            if (existingAttrs != null && !existingAttrs.isEmpty()) {
+                attr = existingAttrs.iterator().next();
+            } else {
+                attr = new ProductAttributeDrug();
+                attr.setProductDetails(existingProduct);
+                attr.setCreatedBy(seller.getSellerId());
 
-                if (dtoAttr.getProductAttributeId() != null &&
-                        existingMap.containsKey(dtoAttr.getProductAttributeId())) {
+                if (existingAttrs == null) {
+                    existingAttrs = new HashSet<>();
+                    existingProduct.setProductAttributeDrugs(existingAttrs);
+                }
 
-                    ProductAttributeDrug existingAttr =
-                            existingMap.get(dtoAttr.getProductAttributeId());
+                existingAttrs.add(attr);
+            }
 
-                    existingAttr.setTherapeuticCategoryId(dtoAttr.getTherapeuticCategoryId());
-                    existingAttr.setTherapeuticSubcategoryId(dtoAttr.getTherapeuticSubcategoryId());
-                    existingAttr.setDosageForm(dtoAttr.getDosageForm());
-                    existingAttr.setModifiedBy(seller.getSellerId());
-                    existingAttr.setModifiedDate(LocalDateTime.now());
+            // ✅ UPDATE FIELDS
+            attr.setTherapeuticCategoryId(attrDto.getTherapeuticCategoryId());
+            attr.setTherapeuticSubcategoryId(attrDto.getTherapeuticSubcategoryId());
+            attr.setDosageForm(attrDto.getDosageForm());
+            attr.setModifiedBy(seller.getSellerId());
+            attr.setModifiedDate(LocalDateTime.now());
 
+            // =====================================================
+            // 🔥 MOLECULES (ONLY ADD NEW ROWS - FIXED)
+            // =====================================================
+            if (attrDto.getMolecules() != null) {
+
+                if (attr.getProductMolecules() == null) {
+                    attr.setProductMolecules(new HashSet<>());
+                }
+
+                for (var mDto : attrDto.getMolecules()) {
+
+                    Long moleculeId = mDto.getMoleculeId();
+
+                    Molecule molecule = moleculeRepo.findById(moleculeId)
+                            .orElseThrow(() -> new RuntimeException("Molecule not found: " + moleculeId));
+
+                    ProductMolecule pm = new ProductMolecule();
+
+                    // ✅ FIX: SET EMBEDDED ID FULLY
+                    ProductMoleculeId id = new ProductMoleculeId();
+                    id.setProductAttributeId(attr.getProductAttributeId()); // must not be null
+                    id.setMoleculeId(moleculeId);
+
+                    pm.setId(id);
+
+                    // ✅ RELATIONS
+                    pm.setProductAttributeDrug(attr);
+                    pm.setMolecule(molecule);
+                    pm.setStrength(mDto.getStrength());
+
+                    attr.getProductMolecules().add(pm);
                 }
             }
         }
 
-
-//        if (dto.getProductImages() != null) {
-//
-//            existingProduct.getProductImages().clear();
-//
-//            Set<ProductImage> images = dto.getProductImages().stream()
-//                    .map(img -> {
-//                        ProductImage image = productImageMapper.toEntity(img);
-//                        image.setProductDetails(existingProduct);
-//                        return image;
-//                    })
-//                    .collect(Collectors.toSet());
-//
-//            existingProduct.getProductImages().addAll(images);
-//        }
-
+        // =========================================================
+        // ✅ SAVE
+        // =========================================================
         ProductDetails updatedProduct = productRepo.save(existingProduct);
 
         return productMapper.toDto(updatedProduct);
