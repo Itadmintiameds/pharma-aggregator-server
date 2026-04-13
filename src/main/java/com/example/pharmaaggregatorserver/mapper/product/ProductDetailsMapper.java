@@ -102,6 +102,9 @@ public class ProductDetailsMapper {
 
         dto.setProductId(entity.getProductId());
         dto.setProductName(entity.getProductName());
+        if (entity.getCategory() != null) {
+            dto.setCategoryId(entity.getCategory().getCategoryId());
+        }
         dto.setWarningsPrecautions(entity.getWarningsPrecautions());
         dto.setProductDescription(entity.getProductDescription());
         dto.setProductMarketingUrl(entity.getProductMarketingUrl());

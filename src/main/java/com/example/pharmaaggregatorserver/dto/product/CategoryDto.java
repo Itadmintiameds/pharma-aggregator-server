@@ -9,7 +9,7 @@ import java.util.Set;
 @Data
 public class CategoryDto {
 
-    private String categoryId;
+    private Long categoryId;
     private String categoryName;
     private String categoryDescription;
     private Set<TherapeuticCategoryMaster> therapeuticCategoryMasters;

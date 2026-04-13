@@ -101,7 +101,7 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
         if (product.getProductAttributeDrugs() != null) {
             product.getProductAttributeDrugs().forEach(a -> {
 
-                a.setProductAttributeId(UUID.randomUUID().toString());
+                a.setProductDetails(product);
                 a.setProductDetails(product);
                 a.setCreatedBy(sellerId);
                 a.setCreatedDate(LocalDateTime.now());
@@ -117,12 +117,12 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
                         pm.setProductAttributeDrug(a);
                         pm.setMolecule(molecule);
 
-                        ProductMoleculeId id = new ProductMoleculeId(
-                                a.getProductAttributeId(),
-                                molecule.getMoleculeId()
-                        );
-
-                        pm.setId(id);
+//                        ProductMoleculeId id = new ProductMoleculeId(
+//                                a.getProductAttributeId(),
+//                                molecule.getMoleculeId()
+//                        );
+//
+//                        pm.setId(id);
                     });
                 }
             });
