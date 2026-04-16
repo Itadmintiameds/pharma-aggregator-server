@@ -14,6 +14,7 @@ import com.example.pharmaaggregatorserver.entity.seller.*;
 import com.example.pharmaaggregatorserver.entity.seller.profile.PendingSeller;
 import com.example.pharmaaggregatorserver.entity.seller.profile.PendingSellerDocument;
 import com.example.pharmaaggregatorserver.exception.ResourceNotFoundException;
+import com.example.pharmaaggregatorserver.exception.DuplicateRequestException;
 import com.example.pharmaaggregatorserver.mapper.seller.profile.SellerByIdMapper;
 import com.example.pharmaaggregatorserver.repository.master.*;
 import com.example.pharmaaggregatorserver.repository.seller.SellerRepository;
@@ -70,33 +71,51 @@ public class SellerProfileService {
 
     @Transactional
     public SellerResponseDTO requestSellerUpdate(String sellerId, SellerEditRequest request, String requestedBy) {
+        try {
+            log.info("Starting requestSellerUpdate for sellerId: {}, requestedBy: {}", sellerId, requestedBy);
+            log.debug("Request payload: {}", request);
 
-        // Fetch existing seller to validate it exists and check for changes
-        Seller existingSeller = sellerRepository.findById(sellerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Seller not found with id: " + sellerId));
+            // Fetch existing seller to validate it exists and check for changes
+            Seller existingSeller = sellerRepository.findById(sellerId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Seller not found with id: " + sellerId));
 
-        // Check if there's already a pending request for this seller
-        List<PendingSeller> pendingRequests = pendingSellerRepository.findBySellerIdAndStatus(sellerId, "PENDING");
-        if (!pendingRequests.isEmpty()) {
-            throw new IllegalStateException("A pending update request already exists for this seller");
-        }
+            log.info("Found existing seller: {}", existingSeller.getSellerId());
 
-        // Determine if admin approval is required based on the changes
-        boolean requiresAdminApproval = requiresAdminApproval(existingSeller, request);
+            // Check if there's already a pending request for this seller
+            List<PendingSeller> pendingRequests = pendingSellerRepository.findBySellerIdAndStatus(sellerId, "PENDING");
+            if (!pendingRequests.isEmpty()) {
+                log.warn("Pending request already exists for sellerId: {}", sellerId);
+                // Throw custom exception with existing pending request ID
+                Long existingPendingId = pendingRequests.get(0).getPendingSellerId();
+                throw new DuplicateRequestException("A pending update request already exists for this seller. Pending Request ID: " + existingPendingId);
+            }
 
-        if (!requiresAdminApproval) {
-            // Auto-approve - update seller directly
-            return autoApproveUpdate(existingSeller, request, requestedBy);
-        } else {
-            // Create pending seller entity for admin approval
+            // Determine if admin approval is required based on the changes
+            boolean requiresAdminApproval = requiresAdminApproval(existingSeller, request);
+            log.info("Requires admin approval: {}", requiresAdminApproval);
+
+            // ALWAYS create a pending seller record for every request
             PendingSeller pendingSeller = createPendingSellerFromRequest(request, requestedBy);
             pendingSeller.setSellerId(sellerId);
             pendingSeller.setRequestType("UPDATE");
 
+            if (!requiresAdminApproval) {
+                // For auto-approval, set status to AUTO_APPROVED
+                pendingSeller.setStatus("AUTO_APPROVED");
+                pendingSeller.setApprovedBy("SYSTEM");
+                pendingSeller.setApprovedAt(LocalDateTime.now());
+            } else {
+                // For admin approval, set status to PENDING
+                pendingSeller.setStatus("PENDING");
+            }
+
+            log.info("Saving pending seller...");
             PendingSeller savedPending = pendingSellerRepository.save(pendingSeller);
+            log.info("Saved pending seller with ID: {}", savedPending.getPendingSellerId());
 
             // Save documents separately
             if (request.getDocuments() != null && !request.getDocuments().isEmpty()) {
+                log.info("Saving {} documents...", request.getDocuments().size());
                 saveDocuments(savedPending, request.getDocuments());
             }
 
@@ -104,9 +123,68 @@ public class SellerProfileService {
             savedPending = pendingSellerRepository.findById(savedPending.getPendingSellerId())
                     .orElseThrow(() -> new ResourceNotFoundException("Pending seller not found"));
 
-            // Return response
-            return mapToResponseDTO(savedPending);
+            SellerResponseDTO response;
+
+            if (!requiresAdminApproval) {
+                log.info("Processing auto-approval for pending seller ID: {}", savedPending.getPendingSellerId());
+                // Auto-approve - update seller directly
+                response = autoApproveUpdate(existingSeller, request, requestedBy, savedPending);
+                // Make sure pendingSellerId is set in response
+                response.setPendingSellerId(savedPending.getPendingSellerId());
+                response.setMessage("Your changes have been auto-approved and applied successfully");
+            } else {
+                log.info("Returning pending approval response for pending seller ID: {}", savedPending.getPendingSellerId());
+                // Return response indicating pending approval
+                response = mapToResponseDTO(savedPending);
+                response.setPendingSellerId(savedPending.getPendingSellerId());
+                response.setMessage("Update request submitted successfully and pending admin approval");
+            }
+
+            // Also set the documents list in response with pending IDs
+            if (savedPending.getDocuments() != null && !savedPending.getDocuments().isEmpty()) {
+                log.info("Setting {} documents in response", savedPending.getDocuments().size());
+                List<SellerResponseDTO.DocumentDTO> documentDTOs = savedPending.getDocuments().stream()
+                        .map(doc -> {
+                            SellerResponseDTO.DocumentDTO dto = new SellerResponseDTO.DocumentDTO();
+                            dto.setPendingSellerDocumentId(doc.getId());
+                            dto.setProductTypeId(doc.getProductType().getProductTypeId());
+                            dto.setProductTypeName(doc.getProductType().getProductTypeName());
+                            dto.setDocumentNumber(doc.getDocumentNumber());
+                            dto.setDocumentFileUrl(doc.getDocumentFileUrl());
+                            dto.setLicenseIssueDate(doc.getLicenseIssueDate());
+                            dto.setLicenseExpiryDate(doc.getLicenseExpiryDate());
+                            dto.setLicenseIssuingAuthority(doc.getLicenseIssuingAuthority());
+                            return dto;
+                        })
+                        .collect(Collectors.toList());
+                response.setDocuments(documentDTOs);
+            }
+
+            log.info("Successfully completed requestSellerUpdate for sellerId: {}", sellerId);
+            return response;
+
+        } catch (DuplicateRequestException e) {
+            log.error("Duplicate request for sellerId: {}", sellerId, e);
+            throw e;
+        } catch (Exception e) {
+            log.error("Error in requestSellerUpdate for sellerId: {}", sellerId, e);
+            throw new RuntimeException("Failed to process seller update request: " + e.getMessage(), e);
         }
+    }
+
+    @Transactional
+    public PendingSeller createPendingSeller(SellerEditRequest request, String requestedBy) {
+        PendingSeller pendingSeller = createPendingSellerFromRequest(request, requestedBy);
+        pendingSeller.setRequestType("CREATE");
+        pendingSeller.setStatus("PENDING");
+        PendingSeller savedPending = pendingSellerRepository.save(pendingSeller);
+
+        // Save documents separately
+        if (request.getDocuments() != null && !request.getDocuments().isEmpty()) {
+            saveDocuments(savedPending, request.getDocuments());
+        }
+
+        return savedPending;
     }
 
     /**
@@ -140,6 +218,22 @@ public class SellerProfileService {
         if (request.getGstNumber() != null && !request.getGstNumber().equals(existingGstNumber)) {
             log.info("Admin approval required: GST number changed from '{}' to '{}'",
                     existingGstNumber, request.getGstNumber());
+            return true;
+        }
+
+        // 3. GST Document change (requires admin approval for new document)
+        String existingGstFileUrl = existingSeller.getSellerGST() != null ?
+                existingSeller.getSellerGST().getGstFileUrl() : null;
+        if (request.getGstFileUrl() != null && !request.getGstFileUrl().equals(existingGstFileUrl)) {
+            log.info("Admin approval required: GST document changed");
+            return true;
+        }
+
+        // 4. Company Registration Certificate change (requires admin approval)
+        String existingCompanyRegUrl = existingSeller.getCompanyRegistrationCertificateUrl();
+        if (request.getCompanyRegistrationCertificateUrl() != null &&
+                !request.getCompanyRegistrationCertificateUrl().equals(existingCompanyRegUrl)) {
+            log.info("Admin approval required: Company Registration Certificate changed");
             return true;
         }
 
@@ -270,7 +364,7 @@ public class SellerProfileService {
      * Auto-approve update - directly update seller without admin approval
      */
     @Transactional
-    private SellerResponseDTO autoApproveUpdate(Seller seller, SellerEditRequest request, String requestedBy) {
+    private SellerResponseDTO autoApproveUpdate(Seller seller, SellerEditRequest request, String requestedBy, PendingSeller pendingRecord) {
         // Capture old coordinator before any changes
         SellerCoordinator oldCoordinator = null;
         if (seller.getCoordinator() != null) {
@@ -361,7 +455,28 @@ public class SellerProfileService {
 
         // Return response indicating auto-approval
         SellerResponseDTO response = sellerByIdMapper.toResponseDTO(updatedSeller);
+        response.setPendingSellerId(pendingRecord.getPendingSellerId());
         response.setMessage("Your changes have been auto-approved and applied successfully");
+
+        // Also set documents from pending record if needed
+        if (pendingRecord.getDocuments() != null && !pendingRecord.getDocuments().isEmpty()) {
+            List<SellerResponseDTO.DocumentDTO> documentDTOs = pendingRecord.getDocuments().stream()
+                    .map(doc -> {
+                        SellerResponseDTO.DocumentDTO dto = new SellerResponseDTO.DocumentDTO();
+                        dto.setPendingSellerDocumentId(doc.getId());
+                        dto.setProductTypeId(doc.getProductType().getProductTypeId());
+                        dto.setProductTypeName(doc.getProductType().getProductTypeName());
+                        dto.setDocumentNumber(doc.getDocumentNumber());
+                        dto.setDocumentFileUrl(doc.getDocumentFileUrl());
+                        dto.setLicenseIssueDate(doc.getLicenseIssueDate());
+                        dto.setLicenseExpiryDate(doc.getLicenseExpiryDate());
+                        dto.setLicenseIssuingAuthority(doc.getLicenseIssuingAuthority());
+                        return dto;
+                    })
+                    .collect(Collectors.toList());
+            response.setDocuments(documentDTOs);
+        }
+
         return response;
     }
 
@@ -596,20 +711,6 @@ public class SellerProfileService {
         return a.equals(b);
     }
 
-    @Transactional
-    public PendingSeller createPendingSeller(SellerEditRequest request, String requestedBy) {
-        PendingSeller pendingSeller = createPendingSellerFromRequest(request, requestedBy);
-        pendingSeller.setRequestType("CREATE");
-        PendingSeller savedPending = pendingSellerRepository.save(pendingSeller);
-
-        // Save documents separately
-        if (request.getDocuments() != null && !request.getDocuments().isEmpty()) {
-            saveDocuments(savedPending, request.getDocuments());
-        }
-
-        return savedPending;
-    }
-
     private void saveDocuments(PendingSeller pendingSeller, List<SellerEditRequest.DocumentDTO> documentDTOs) {
         for (SellerEditRequest.DocumentDTO docDTO : documentDTOs) {
             PendingSellerDocument document = new PendingSellerDocument();
@@ -632,6 +733,37 @@ public class SellerProfileService {
     }
 
     private PendingSeller createPendingSellerFromRequest(SellerEditRequest request, String requestedBy) {
+        log.info("Creating pending seller from request");
+
+        // Validate required fields
+        if (request.getSellerName() == null || request.getSellerName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Seller name is required");
+        }
+        if (request.getPhone() == null || request.getPhone().trim().isEmpty()) {
+            throw new IllegalArgumentException("Phone number is required");
+        }
+        if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
+            throw new IllegalArgumentException("Email is required");
+        }
+        if (request.getCompanyTypeId() == null) {
+            throw new IllegalArgumentException("Company type is required");
+        }
+        if (request.getSellerTypeId() == null) {
+            throw new IllegalArgumentException("Seller type is required");
+        }
+        if (request.getProductTypeId() == null || request.getProductTypeId().isEmpty()) {
+            throw new IllegalArgumentException("At least one product type is required");
+        }
+        if (request.getAddress() == null) {
+            throw new IllegalArgumentException("Address is required");
+        }
+        if (request.getCoordinator() == null) {
+            throw new IllegalArgumentException("Coordinator details are required");
+        }
+        if (request.getBankDetails() == null) {
+            throw new IllegalArgumentException("Bank details are required");
+        }
+
         PendingSeller pendingSeller = new PendingSeller();
 
         // Basic info
@@ -657,6 +789,9 @@ public class SellerProfileService {
         // Address fields
         if (request.getAddress() != null) {
             SellerEditRequest.AddressDTO addr = request.getAddress();
+
+            log.info("Processing address: stateId={}, districtId={}, talukaId={}",
+                    addr.getStateId(), addr.getDistrictId(), addr.getTalukaId());
 
             StateMaster state = stateRepository.findById(addr.getStateId())
                     .orElseThrow(() -> new ResourceNotFoundException("State not found with id: " + addr.getStateId()));
@@ -712,7 +847,7 @@ public class SellerProfileService {
         }
 
         pendingSeller.setRequestedBy(requestedBy);
-        pendingSeller.setStatus("PENDING");
+        pendingSeller.setCreatedAt(LocalDateTime.now());
 
         return pendingSeller;
     }
@@ -770,11 +905,11 @@ public class SellerProfileService {
 
             sendApprovalEmail(pendingSeller, sellerId, approvedBy);
 
-            // Delete pending documents and pending seller record
-            if (pendingSeller.getDocuments() != null && !pendingSeller.getDocuments().isEmpty()) {
-                pendingSellerDocumentRepository.deleteAll(pendingSeller.getDocuments());
-            }
-            pendingSellerRepository.delete(pendingSeller);
+            // Update pending record status instead of deleting it
+            pendingSeller.setStatus("APPROVED");
+            pendingSeller.setApprovedBy(approvedBy);
+            pendingSeller.setApprovedAt(LocalDateTime.now());
+            pendingSellerRepository.save(pendingSeller);
 
             log.info("Seller update approved by: {} for pending request ID: {}", approvedBy, pendingSellerId);
 
@@ -1077,9 +1212,26 @@ public class SellerProfileService {
     }
 
     public List<PendingSellerResponseDTO> getPendingRequests() {
+        // Return only requests that are still PENDING (not auto-approved or processed)
         List<PendingSeller> pendingSellers = pendingSellerRepository.findByStatus("PENDING");
 
         return pendingSellers.stream()
+                .map(this::mapToPendingResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    // New method to get all requests including auto-approved ones for audit
+    public List<PendingSellerResponseDTO> getAllRequests() {
+        List<PendingSeller> allSellers = pendingSellerRepository.findAll();
+        return allSellers.stream()
+                .map(this::mapToPendingResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    // New method to get auto-approved requests
+    public List<PendingSellerResponseDTO> getAutoApprovedRequests() {
+        List<PendingSeller> autoApprovedSellers = pendingSellerRepository.findByStatus("AUTO_APPROVED");
+        return autoApprovedSellers.stream()
                 .map(this::mapToPendingResponseDTO)
                 .collect(Collectors.toList());
     }
@@ -1194,15 +1346,26 @@ public class SellerProfileService {
         dto.setLicenseExpiryDate(document.getLicenseExpiryDate() != null ?
                 document.getLicenseExpiryDate().atStartOfDay() : null);
         dto.setLicenseIssuingAuthority(document.getLicenseIssuingAuthority());
-        // dto.setLicenseStatus(document.getLicenseStatus());
         return dto;
     }
 
+    /**
+     * Maps a PendingSeller entity to SellerResponseDTO
+     * FIXED: Now properly sets pendingSellerId in all cases
+     */
     private SellerResponseDTO mapToResponseDTO(PendingSeller savedPending) {
         SellerResponseDTO response = new SellerResponseDTO();
 
+        // ALWAYS set the pendingSellerId first - this is the critical fix
         response.setPendingSellerId(savedPending.getPendingSellerId());
-        response.setMessage("Update request submitted successfully and pending admin approval");
+
+        // Set message based on status
+        if ("AUTO_APPROVED".equals(savedPending.getStatus())) {
+            response.setMessage("Your changes have been auto-approved and applied successfully");
+        } else {
+            response.setMessage("Update request submitted successfully and pending admin approval");
+        }
+
         response.setSellerName(savedPending.getSellerName());
         response.setPhone(savedPending.getPhone());
         response.setEmail(savedPending.getEmail());
@@ -1221,7 +1384,7 @@ public class SellerProfileService {
         if (savedPending.getProductTypes() != null && !savedPending.getProductTypes().isEmpty()) {
             response.setProductTypeId(
                     savedPending.getProductTypes().stream()
-                            .map(pt -> pt.getProductTypeId())
+                            .map(ProductTypeMaster::getProductTypeId)
                             .collect(Collectors.toList())
             );
         }
@@ -1271,7 +1434,6 @@ public class SellerProfileService {
                         dto.setLicenseIssueDate(doc.getLicenseIssueDate());
                         dto.setLicenseExpiryDate(doc.getLicenseExpiryDate());
                         dto.setLicenseIssuingAuthority(doc.getLicenseIssuingAuthority());
-                        // dto.setLicenseStatus(doc.getLicenseStatus());
                         return dto;
                     })
                     .collect(Collectors.toList());
@@ -1291,6 +1453,19 @@ public class SellerProfileService {
         }
         pendingSellerRepository.deleteAll(rejectedRequests);
         log.info("Deleted {} old rejected requests created before {}", rejectedRequests.size(), cutoffDate);
+    }
+
+    // New method to delete old auto-approved requests (optional)
+    @Transactional
+    public void deleteOldAutoApprovedRequests(LocalDateTime cutoffDate) {
+        List<PendingSeller> autoApprovedRequests = pendingSellerRepository.findByStatusAndCreatedAtBefore("AUTO_APPROVED", cutoffDate);
+        for (PendingSeller request : autoApprovedRequests) {
+            if (request.getDocuments() != null && !request.getDocuments().isEmpty()) {
+                pendingSellerDocumentRepository.deleteAll(request.getDocuments());
+            }
+        }
+        pendingSellerRepository.deleteAll(autoApprovedRequests);
+        log.info("Deleted {} old auto-approved requests created before {}", autoApprovedRequests.size(), cutoffDate);
     }
 
     private void movePendingFilesToSeller(PendingSeller pending, String sellerId, String now) {
