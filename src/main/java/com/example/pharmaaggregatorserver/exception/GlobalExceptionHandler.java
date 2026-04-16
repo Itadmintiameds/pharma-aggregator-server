@@ -1,18 +1,21 @@
 package com.example.pharmaaggregatorserver.exception;
 
+
 import com.example.pharmaaggregatorserver.dto.seller.SellerLogIn.ApiResponse;
 import com.example.pharmaaggregatorserver.response.ErrorResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.validation.FieldError;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -38,21 +41,6 @@ public class GlobalExceptionHandler {
         });
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ApiResponse<>("ERROR", "Validation failed", errors));
-
-        /* Option 2: If you prefer the string format instead, use this:
-        String errorMessage = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(error -> error.getField() + ": " + error.getDefaultMessage())
-                .distinct()
-                .collect(Collectors.joining(", "));
-
-        ErrorResponse response = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                errorMessage
-        );
-        return ResponseEntity.badRequest().body(response);
-        */
     }
 
     // Resource Not Found
@@ -80,9 +68,30 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleGenericException(Exception ex) {
         // Log the error for debugging
-        ex.printStackTrace();
+        log.error("Unexpected error occurred: ", ex);
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ApiResponse<>("ERROR", "An unexpected error occurred: " + ex.getMessage(), null));
+    }
+
+    @ExceptionHandler(DuplicateRequestException.class)
+    @ResponseStatus(HttpStatus.OK)  // Return 200 OK instead of 500
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleDuplicateRequestException(DuplicateRequestException ex) {
+        log.error("Duplicate request error: {}", ex.getMessage());
+
+        // Create the inner error data
+        Map<String, Object> errorData = new HashMap<>();
+        errorData.put("status", "ERROR");
+        errorData.put("message", ex.getMessage());
+        errorData.put("data", null);
+
+        // Create the outer response
+        ApiResponse<Map<String, Object>> response = new ApiResponse<>(
+                "SUCCESS",
+                "Request processed successfully",
+                errorData
+        );
+
+        return ResponseEntity.ok(response);
     }
 }

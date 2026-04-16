@@ -11,8 +11,9 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
-
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
+//import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 @Slf4j
@@ -112,7 +113,7 @@ public class CoordinatorEmailServiceImpl implements CoordinatorEmailService {
         String subject = String.format("Seller Profile %s Approved - %s", action, sellerName);
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
-        String approvalTime = LocalDateTime.now().format(formatter);
+        String approvalTime = ZonedDateTime.now(ZoneId.of("Asia/Kolkata")).format(formatter);
 
         String htmlBody = String.format(
                 "<!DOCTYPE html>" +
@@ -178,7 +179,7 @@ public class CoordinatorEmailServiceImpl implements CoordinatorEmailService {
         String subject = String.format("Seller Profile %s Rejected - %s", action, sellerName);
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
-        String rejectionTime = LocalDateTime.now().format(formatter);
+        String rejectionTime = ZonedDateTime.now(ZoneId.of("Asia/Kolkata")).format(formatter);
 
         String htmlBody = String.format(
                 "<!DOCTYPE html>" +
@@ -248,7 +249,7 @@ public class CoordinatorEmailServiceImpl implements CoordinatorEmailService {
         String subject = String.format("Seller Profile Updated Successfully - %s", sellerName);
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
-        String approvalTime = LocalDateTime.now().format(formatter);
+        String approvalTime = ZonedDateTime.now(ZoneId.of("Asia/Kolkata")).format(formatter);
 
         String htmlBody = String.format(
                 "<!DOCTYPE html>" +
