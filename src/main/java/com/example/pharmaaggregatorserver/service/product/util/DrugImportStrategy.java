@@ -2,6 +2,7 @@ package com.example.pharmaaggregatorserver.service.product.util;
 
 import com.example.pharmaaggregatorserver.dto.product.*;
 import com.example.pharmaaggregatorserver.entity.product.Molecule;
+import com.example.pharmaaggregatorserver.exception.ValidationException;
 import com.example.pharmaaggregatorserver.repository.product.MoleculeRepository;
 import com.example.pharmaaggregatorserver.repository.product.PackTypeRepository;
 import com.example.pharmaaggregatorserver.repository.product.TherapeuticCategoryRepository;
@@ -70,7 +71,7 @@ public class DrugImportStrategy implements ProductImportStrategy {
     private static final String H_PRODUCT_NAME = "Product Name*";
     private static final String H_MOLECULES = "Molecule* (comma separated)";
     private static final String H_DOSAGE_FORM = "Dosage Form*";
-//    private static final String H_STRENGTH = "Strength*";
+    //    private static final String H_STRENGTH = "Strength*";
     private static final String H_WARNINGS = "Warnings / Precautions*";
     private static final String H_DESCRIPTION = "Product Description*";
     private static final String H_MANUFACTURER = "Manufacture Name";
@@ -104,6 +105,8 @@ public class DrugImportStrategy implements ProductImportStrategy {
 
     @Override
     public ProductDetailsDto mapRow(Row row) {
+
+        validateMandatoryExcel(row);
 
         ProductDetailsDto dto = new ProductDetailsDto();
 
@@ -169,6 +172,8 @@ public class DrugImportStrategy implements ProductImportStrategy {
     // ── CSV entry point ───────────────────────────────────────────────────
     @Override
     public ProductDetailsDto mapCsv(CSVRecord r) {
+
+        validateMandatoryCsv(r);
 
         ProductDetailsDto dto = new ProductDetailsDto();
 
@@ -464,5 +469,182 @@ public class DrugImportStrategy implements ProductImportStrategy {
 
     private LocalDateTime toEndOfDay(LocalDate date) {
         return date != null ? date.atTime(23, 59, 59) : null;
+    }
+
+    private void validateMandatoryExcel(Row row) {
+        List<String> errors = new ArrayList<>();
+
+        validateRequired(getString(row, COL_PRODUCT_NAME), "Product Name", errors);
+        validateRequired(getString(row, COL_THERAPEUTIC_CAT), "Therapeutic Category", errors);
+        validateRequired(getString(row, COL_THERAPEUTIC_SUBCAT), "Therapeutic Sub Category", errors);
+        validateRequired(getString(row, COL_MOLECULES), "Molecule", errors);
+        validateRequired(getString(row, COL_DOSAGE_FORM), "Dosage Form", errors);
+        validateRequired(getString(row, COL_WARNINGS), "Warnings / Precautions", errors);
+        validateRequired(getString(row, COL_DESCRIPTION), "Product Description", errors);
+        validateRequired(getString(row, COL_BATCH_NUMBER), "Batch Number", errors);
+        validateRequired(getString(row, COL_STORAGE_CONDITION), "Storage Condition", errors);
+
+        validateRequired(getNullSafeLong(row, COL_MIN_ORDER_QTY), "Minimum Order Qty", errors);
+        validateRequired(getNullSafeLong(row, COL_MAX_ORDER_QTY), "Max Order Qty", errors);
+        validateRequired(getNullSafeLong(row, COL_STOCK_QTY), "Stock Quantity", errors);
+        validateRequired(getNullSafeLong(row, COL_MRP), "MRP", errors);
+        validateRequired(getNullSafeLong(row, COL_SELLING_PRICE), "Selling Price", errors);
+        validateRequired(getNullSafeLong(row, COL_HSN_CODE), "HSN Code", errors);
+
+        validateRequired(getLocalDate(row, COL_MFG_DATE), "Manufacturing Date", errors);
+        validateRequired(getLocalDate(row, COL_EXPIRY_DATE), "Expiry Date", errors);
+        validateRequired(getLocalDate(row, COL_DATE_OF_ENTRY), "Date of Entry", errors);
+
+        // Business validations
+        Long mrp = getNullSafeLong(row, COL_MRP);
+        Long sellingPrice = getNullSafeLong(row, COL_SELLING_PRICE);
+
+        if (mrp != null && mrp <= 0) {
+            errors.add("MRP must be greater than 0");
+        }
+
+        if (sellingPrice != null && mrp != null && sellingPrice > mrp) {
+            errors.add("Selling Price cannot be greater than MRP");
+        }
+
+        LocalDate mfg = getLocalDate(row, COL_MFG_DATE);
+        LocalDate exp = getLocalDate(row, COL_EXPIRY_DATE);
+
+        if (mfg != null && exp != null && exp.isBefore(mfg)) {
+            errors.add("Expiry Date cannot be before Manufacturing Date");
+        }
+
+        String moleculeCell = getString(row, COL_MOLECULES);
+        String strengthCell = getString(row, COL_STRENGTH);
+
+        if (moleculeCell != null && !moleculeCell.isBlank()) {
+
+            String[] molecules = Arrays.stream(moleculeCell.split(","))
+                    .map(String::trim)
+                    .toArray(String[]::new);
+
+            if (strengthCell == null || strengthCell.isBlank()) {
+                errors.add("Strength is mandatory for molecules: " + String.join(", ", molecules));
+            } else {
+
+                String[] strengths = Arrays.stream(strengthCell.split(","))
+                        .map(String::trim)
+                        .toArray(String[]::new);
+
+                if (molecules.length != strengths.length) {
+                    errors.add("Mismatch: " + molecules.length + " molecule(s) but "
+                            + strengths.length + " strength value(s) provided for molecules: "
+                            + String.join(", ", molecules));
+                }
+
+                int max = Math.max(molecules.length, strengths.length);
+
+                for (int i = 0; i < max; i++) {
+
+                    String molecule = (i < molecules.length) ? molecules[i] : "UNKNOWN";
+                    String strength = (i < strengths.length) ? strengths[i] : null;
+
+                    if (strength == null || strength.isBlank()) {
+                        errors.add("Strength missing for molecule: " + molecule);
+                    }
+                }
+            }
+        }
+
+        if (!errors.isEmpty()) {
+            throw new ValidationException(errors);
+        }
+    }
+
+    private void validateMandatoryCsv(CSVRecord r) {
+        List<String> errors = new ArrayList<>();
+
+        validateRequired(getCsvString(r, H_PRODUCT_NAME), "Product Name", errors);
+        validateRequired(getCsvString(r, H_THERAPEUTIC_CAT), "Therapeutic Category", errors);
+        validateRequired(getCsvString(r, H_THERAPEUTIC_SUBCAT), "Therapeutic Sub Category", errors);
+        validateRequired(getCsvString(r, H_MOLECULES), "Molecule", errors);
+        validateRequired(getCsvString(r, H_DOSAGE_FORM), "Dosage Form", errors);
+        validateRequired(getCsvString(r, H_WARNINGS), "Warnings", errors);
+        validateRequired(getCsvString(r, H_DESCRIPTION), "Product Description", errors);
+        validateRequired(getCsvString(r, H_BATCH_NUMBER), "Batch Number", errors);
+        validateRequired(getCsvString(r, H_STORAGE_CONDITION), "Storage Condition", errors);
+
+        validateRequired(getCsvLong(r, H_MIN_ORDER_QTY), "Minimum Order Qty", errors);
+        validateRequired(getCsvLong(r, H_MAX_ORDER_QTY), "Max Order Qty", errors);
+        validateRequired(getCsvLong(r, H_STOCK_QTY), "Stock Quantity", errors);
+        validateRequired(getCsvLong(r, H_MRP), "MRP", errors);
+        validateRequired(getCsvLong(r, H_SELLING_PRICE), "Selling Price", errors);
+        validateRequired(getCsvLong(r, H_HSN_CODE), "HSN Code", errors);
+
+        validateRequired(parseCsvDate(getCsvString(r, H_MFG_DATE)), "Manufacturing Date", errors);
+        validateRequired(parseCsvDate(getCsvString(r, H_EXPIRY_DATE)), "Expiry Date", errors);
+        validateRequired(parseCsvDate(getCsvString(r, H_DATE_OF_ENTRY)), "Date of Entry", errors);
+
+        Long mrp = getCsvLong(r, H_MRP);
+        Long sellingPrice = getCsvLong(r, H_SELLING_PRICE);
+
+        if (mrp != null && mrp <= 0) {
+            errors.add("MRP must be greater than 0");
+        }
+
+        if (sellingPrice != null && mrp != null && sellingPrice > mrp) {
+            errors.add("Selling Price cannot be greater than MRP");
+        }
+
+        LocalDate mfg = parseCsvDate(getCsvString(r, H_MFG_DATE));
+        LocalDate exp = parseCsvDate(getCsvString(r, H_EXPIRY_DATE));
+
+        if (mfg != null && exp != null && exp.isBefore(mfg)) {
+            errors.add("Expiry Date cannot be before Manufacturing Date");
+        }
+
+        String moleculeCell = getCsvString(r, H_MOLECULES);
+        String strengthCell = getCsvStringByIndex(r, COL_STRENGTH);
+
+        if (moleculeCell != null && !moleculeCell.isBlank()) {
+
+            String[] molecules = Arrays.stream(moleculeCell.split(","))
+                    .map(String::trim)
+                    .toArray(String[]::new);
+
+            if (strengthCell == null || strengthCell.isBlank()) {
+                errors.add("Strength is mandatory for molecules: " + String.join(", ", molecules));
+            } else {
+
+                String[] strengths = Arrays.stream(strengthCell.split(","))
+                        .map(String::trim)
+                        .toArray(String[]::new);
+
+                if (molecules.length != strengths.length) {
+                    errors.add("Mismatch: " + molecules.length + " molecule(s) but "
+                            + strengths.length + " strength value(s) provided for molecules: "
+                            + String.join(", ", molecules));
+                }
+
+                int max = Math.max(molecules.length, strengths.length);
+
+                for (int i = 0; i < max; i++) {
+
+                    String molecule = (i < molecules.length) ? molecules[i] : "UNKNOWN";
+                    String strength = (i < strengths.length) ? strengths[i] : null;
+
+                    if (strength == null || strength.isBlank()) {
+                        errors.add("Strength missing for molecule: " + molecule);
+                    }
+                }
+            }
+        }
+
+        if (!errors.isEmpty()) {
+            throw new ValidationException(errors);
+        }
+    }
+
+    private void validateRequired(Object value, String field, List<String> errors) {
+        if (value == null) {
+            errors.add(field + " is mandatory");
+        } else if (value instanceof String && ((String) value).isBlank()) {
+            errors.add(field + " is mandatory");
+        }
     }
 }
