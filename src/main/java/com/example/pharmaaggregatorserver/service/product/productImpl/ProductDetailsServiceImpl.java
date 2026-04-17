@@ -657,7 +657,10 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
             // =====================================================
             if (attrDto.getMolecules() != null) {
 
-                if (attr.getProductMolecules() == null) {
+                // ✅ CLEAR OLD (CRITICAL FIX)
+                if (attr.getProductMolecules() != null) {
+                    attr.getProductMolecules().clear();
+                } else {
                     attr.setProductMolecules(new HashSet<>());
                 }
 
@@ -670,14 +673,11 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
 
                     ProductMolecule pm = new ProductMolecule();
 
-                    // ✅ FIX: SET EMBEDDED ID FULLY
                     ProductMoleculeId id = new ProductMoleculeId();
-                    id.setProductAttributeId(attr.getProductAttributeId()); // must not be null
+                    id.setProductAttributeId(attr.getProductAttributeId());
                     id.setMoleculeId(moleculeId);
 
                     pm.setId(id);
-
-                    // ✅ RELATIONS
                     pm.setProductAttributeDrug(attr);
                     pm.setMolecule(molecule);
                     pm.setStrength(mDto.getStrength());
