@@ -9,4 +9,7 @@ public interface MoleculeService {
     List<MoleculeDto> getAllMolecules();
 
     public MoleculeDto getMoleculeByName(String name);
+
+    MoleculeDto getMoleculeById(Long moleculeId, String productAttributeId);
+
 }

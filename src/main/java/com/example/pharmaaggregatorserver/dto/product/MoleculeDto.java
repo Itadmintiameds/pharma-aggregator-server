@@ -10,5 +10,6 @@ public class MoleculeDto {
     private String mechanismOfAction;
     private String primaryUse;
     private String drugSchedule;
+    private String strength;
 
 }

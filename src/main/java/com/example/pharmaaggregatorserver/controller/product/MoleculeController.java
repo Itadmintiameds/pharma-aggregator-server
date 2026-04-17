@@ -26,4 +26,15 @@ public class MoleculeController {
     public ResponseEntity<MoleculeDto> getByName(@RequestParam String name) {
         return ResponseEntity.ok(moleculeService.getMoleculeByName(name));
     }
+
+    @GetMapping("/getMoleculeById")
+    public ResponseEntity<MoleculeDto> getMoleculeById(
+            @RequestParam Long moleculeId,
+            @RequestParam String productAttributeId) {
+
+        MoleculeDto molecule =
+                moleculeService.getMoleculeById(moleculeId, productAttributeId);
+
+        return ResponseEntity.ok(molecule);
+    }
 }
