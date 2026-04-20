@@ -23,13 +23,16 @@ public class SMSOTPController {
         return ResponseEntity.ok(otpService.sendOTP(request));
     }
 
+//    @PostMapping("/verify")
+//    public ResponseEntity<SMSOtpResponseDTO> verify(@RequestBody SMSVerifyOtpRequestDTO dto) {
+//
+//        SMSOtpResponseDTO response = otpService.verifyOTP(dto);
+//
+//        return ResponseEntity.ok(response);
+//    }
     @PostMapping("/verify")
-    public ResponseEntity<SMSOtpResponseDTO> verify(
-            @RequestBody SMSVerifyOtpRequestDTO dto) {
-
-        SMSOtpResponseDTO response = otpService.verifyOTP(dto);
-
-        return ResponseEntity.ok(response);
+    public ResponseEntity<SMSOtpResponseDTO> verify(@RequestBody SMSVerifyOtpRequestDTO dto) {
+        return ResponseEntity.ok(otpService.verifyOTP(dto));
     }
 
 }

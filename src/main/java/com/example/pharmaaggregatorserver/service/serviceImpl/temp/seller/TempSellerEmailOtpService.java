@@ -9,7 +9,9 @@ import com.example.pharmaaggregatorserver.entity.temp.seller.*;
 import com.example.pharmaaggregatorserver.repository.temp.seller.*;
 import com.example.pharmaaggregatorserver.service.EmailService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.Random;
@@ -76,23 +78,62 @@ public class TempSellerEmailOtpService {
     }
 
     // ================== VERIFY OTP ==================
+//    public OtpResponseDTO verifyOtp(EmailOtpVerifyRequestDTO request) {
+//
+//        TempSellerEmailOtp otp = otpRepository
+//                .findTopByEmailOrderByExpiryTimeDesc(request.getEmail())
+//                .orElseThrow(() ->
+//                        new RuntimeException("OTP not found"));
+//
+//        if (otp.isVerified()) {
+//            throw new RuntimeException("OTP already used");
+//        }
+//
+//        if (otp.getExpiryTime().isBefore(LocalDateTime.now())) {
+//            throw new RuntimeException("OTP expired");
+//        }
+//
+//        if (!otp.getOtp().equals(request.getOtp())) {
+//            throw new RuntimeException("Invalid OTP");
+//        }
+//
+//        otp.setVerified(true);
+//        otpRepository.save(otp);
+//
+//        return OtpResponseDTO.builder()
+//                .status("SUCCESS")
+//                .message("Email verified successfully")
+//                .build();
+//    }
     public OtpResponseDTO verifyOtp(EmailOtpVerifyRequestDTO request) {
 
         TempSellerEmailOtp otp = otpRepository
                 .findTopByEmailOrderByExpiryTimeDesc(request.getEmail())
                 .orElseThrow(() ->
-                        new RuntimeException("OTP not found"));
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "OTP not found"
+                        ));
 
         if (otp.isVerified()) {
-            throw new RuntimeException("OTP already used");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "OTP already used"
+            );
         }
 
         if (otp.getExpiryTime().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("OTP expired");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "OTP expired"
+            );
         }
 
         if (!otp.getOtp().equals(request.getOtp())) {
-            throw new RuntimeException("Invalid OTP");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Invalid OTP"
+            );
         }
 
         otp.setVerified(true);

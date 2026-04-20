@@ -10,7 +10,9 @@ import com.twilio.rest.verify.v2.service.Verification;
 import com.twilio.rest.verify.v2.service.VerificationCheck;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 
@@ -53,29 +55,92 @@ public class TwilioOTPService {
     }
 
     // ================= VERIFY OTP =================
+//    public SMSOtpResponseDTO verifyOTP(SMSVerifyOtpRequestDTO request) {
+//
+//        PhoneOTP phoneOTP = otpRepository
+//                .findTopByPhoneOrderByExpiryTimeDesc(request.getPhone())
+//                .orElseThrow(() ->
+//                        new ResponseStatusException(
+//                                HttpStatus.NOT_FOUND,
+//                                "OTP request not found"
+//                        )
+//                );
+//
+//        if (phoneOTP.isVerified()) {
+//            throw new ResponseStatusException(
+//                    HttpStatus.BAD_REQUEST,
+//                    "OTP already verified"
+//            );
+//        }
+//
+//        if (phoneOTP.getExpiryTime().isBefore(LocalDateTime.now())) {
+//            throw new ResponseStatusException(
+//                    HttpStatus.BAD_REQUEST,
+//                    "OTP expired"
+//            );
+//        }
+//
+//        VerificationCheck verificationCheck =
+//                VerificationCheck.creator(serviceSid)
+//                        .setTo(request.getPhone())
+//                        .setCode(request.getOtp())
+//                        .create();
+//
+//        if (!"approved".equalsIgnoreCase(verificationCheck.getStatus())) {
+//            throw new ResponseStatusException(
+//                    HttpStatus.BAD_REQUEST,
+//                    "Invalid OTP"
+//            );
+//        }
+//
+//        phoneOTP.setVerified(true);
+//        otpRepository.save(phoneOTP);
+//
+//        return SMSOtpResponseDTO.builder()
+//                .status("SUCCESS")
+//                .message("OTP verified successfully")
+//                .build();
+//    }
     public SMSOtpResponseDTO verifyOTP(SMSVerifyOtpRequestDTO request) {
 
         PhoneOTP phoneOTP = otpRepository
                 .findTopByPhoneOrderByExpiryTimeDesc(request.getPhone())
-                .orElseThrow(() -> new RuntimeException("OTP request not found"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "OTP request not found"
+                ));
 
         if (phoneOTP.isVerified()) {
-            throw new RuntimeException("OTP already verified");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "OTP already verified");
         }
 
         if (phoneOTP.getExpiryTime().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("OTP expired");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "OTP expired");
         }
 
-        // Verify with Twilio
-        VerificationCheck verificationCheck =
-                VerificationCheck.creator(serviceSid)
-                        .setTo(request.getPhone())
-                        .setCode(request.getOtp())
-                        .create();
+        try {
+            VerificationCheck verificationCheck =
+                    VerificationCheck.creator(serviceSid)
+                            .setTo(request.getPhone())
+                            .setCode(request.getOtp())
+                            .create();
 
-        if (!"approved".equalsIgnoreCase(verificationCheck.getStatus())) {
-            throw new RuntimeException("Invalid OTP");
+            if (!"approved".equalsIgnoreCase(verificationCheck.getStatus())) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Invalid OTP"
+                );
+            }
+//            if (!"approved".equalsIgnoreCase(verificationCheck.getStatus())) {
+//                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid OTP");
+//            }
+
+        } catch (Exception e) {
+            // IMPORTANT FIX HERE
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Invalid OTP"
+            );
         }
 
         phoneOTP.setVerified(true);

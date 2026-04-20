@@ -1,6 +1,6 @@
 package com.example.pharmaaggregatorserver.exception;
 
-
+import org.springframework.web.server.ResponseStatusException;
 import com.example.pharmaaggregatorserver.dto.seller.SellerLogIn.ApiResponse;
 import com.example.pharmaaggregatorserver.response.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -74,24 +74,41 @@ public class GlobalExceptionHandler {
                 .body(new ApiResponse<>("ERROR", "An unexpected error occurred: " + ex.getMessage(), null));
     }
 
-    @ExceptionHandler(DuplicateRequestException.class)
-    @ResponseStatus(HttpStatus.OK)  // Return 200 OK instead of 500
-    public ResponseEntity<ApiResponse<Map<String, Object>>> handleDuplicateRequestException(DuplicateRequestException ex) {
-        log.error("Duplicate request error: {}", ex.getMessage());
+//    @ExceptionHandler(DuplicateRequestException.class)
+//    @ResponseStatus(HttpStatus.OK)  // Return 200 OK instead of 500
+//    public ResponseEntity<ApiResponse<Map<String, Object>>> handleDuplicateRequestException(DuplicateRequestException ex) {
+//        log.error("Duplicate request error: {}", ex.getMessage());
+//
+//        // Create the inner error data
+//        Map<String, Object> errorData = new HashMap<>();
+//        errorData.put("status", "ERROR");
+//        errorData.put("message", ex.getMessage());
+//        errorData.put("data", null);
+//
+//        // Create the outer response
+//        ApiResponse<Map<String, Object>> response = new ApiResponse<>(
+//                "SUCCESS",
+//                "Request processed successfully",
+//                errorData
+//        );
+//
+//        return ResponseEntity.ok(response);
+//    }
 
-        // Create the inner error data
-        Map<String, Object> errorData = new HashMap<>();
-        errorData.put("status", "ERROR");
-        errorData.put("message", ex.getMessage());
-        errorData.put("data", null);
 
-        // Create the outer response
-        ApiResponse<Map<String, Object>> response = new ApiResponse<>(
-                "SUCCESS",
-                "Request processed successfully",
-                errorData
-        );
 
-        return ResponseEntity.ok(response);
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiResponse<?>> handleResponseStatusException(ResponseStatusException ex) {
+
+        return ResponseEntity
+                .status(ex.getStatusCode())
+                .body(new ApiResponse<>(
+                        "ERROR",
+                        ex.getReason(),
+                        null
+                ));
     }
+
+
+
 }
