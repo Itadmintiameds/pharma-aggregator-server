@@ -29,4 +29,11 @@ public class DosageFormController {
 
         return dosageFormService.getPackTypesByDosageId(dosageId);
     }
+
+    @GetMapping("/packType/category/{categoryId}")
+    public List<PackTypeDto> getPackTypesByCategoryId(
+            @PathVariable Long categoryId) {
+
+        return dosageFormService.getPackTypesByCategoryId(categoryId);
+    }
 }

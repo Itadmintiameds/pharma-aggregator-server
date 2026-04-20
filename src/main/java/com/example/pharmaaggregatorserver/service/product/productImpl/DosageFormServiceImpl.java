@@ -9,11 +9,13 @@ import com.example.pharmaaggregatorserver.repository.product.PackTypeRepository;
 import com.example.pharmaaggregatorserver.service.product.DosageFormService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class DosageFormServiceImpl implements DosageFormService {
 
@@ -38,6 +40,21 @@ public class DosageFormServiceImpl implements DosageFormService {
 
         List<PackType> packTypes =
                 packTypeRepository.findByDosageForm_DosageId(dosageId);
+
+        return packTypes.stream().map(p -> {
+            PackTypeDto dto = new PackTypeDto();
+            dto.setPackId(p.getPackId());
+            dto.setPackType(p.getPackType());
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+
+    @Override
+    public List<PackTypeDto> getPackTypesByCategoryId(Long categoryId) {
+
+        List<PackType> packTypes =
+                packTypeRepository.findByCategory_CategoryId(categoryId);
 
         return packTypes.stream().map(p -> {
             PackTypeDto dto = new PackTypeDto();

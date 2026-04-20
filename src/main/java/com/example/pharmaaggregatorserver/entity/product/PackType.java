@@ -26,12 +26,17 @@ public class PackType {
     private String packType;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "dosage_id", nullable = false)
+    @JoinColumn(name = "dosage_id", nullable = true)
     @JsonIgnore
     private DosageForm dosageForm;
 
     @OneToMany(mappedBy = "packType")
     @JsonIgnore
     private List<PackagingDetails> packagingDetailsList;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = false)
+    @JsonIgnore
+    private Category category;
 
 }

@@ -36,4 +36,8 @@ public class Category {
     @JsonIgnore
     private Set<ProductDetails> productDetails;
 
+    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private Set<PackType> packTypes;
+
 }

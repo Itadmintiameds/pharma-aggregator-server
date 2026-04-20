@@ -12,5 +12,7 @@ public interface DosageFormService {
 
     List<PackTypeDto> getPackTypesByDosageId(Long dosageId);
 
+    List<PackTypeDto> getPackTypesByCategoryId(Long categoryId);
+
 
 }
