@@ -24,8 +24,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -35,54 +37,45 @@ public class UniversalExcelImportService {
     private final ProductImportStrategyFactory strategyFactory;
     private final ProductDetailsService productService;
     private final CategoryRepository categoryRepository;
-    private static final Map<String, String> SHEET_TO_CATEGORY = Map.of(
-            "DRUGS", "Drugs",
-            "CONSUMABLE", "Consumable Medical Devices & Equipment",
-            "NON_CONSUMABLE", "Non-Consumable Medical Devices & Equipment",
-            "COSMETIC_AND_PERSONAL_USE", "Cosmetic & Personal Use",
-            "FOOD_AND_INFANT_NUTRITION", "Food & Infant Nutrition",
-            "SUPPLEMENTS_OR_NUTRACEUTICALS", "Supplements / Nutraceuticals"
-    );
+//    private static final Map<String, String> SHEET_TO_CATEGORY = Map.of(
+//            "DRUGS", "Drugs",
+//            "CONSUMABLE", "Consumable Medical Devices & Equipment",
+//            "NON_CONSUMABLE", "Non-Consumable Medical Devices & Equipment",
+//            "COSMETIC_AND_PERSONAL_USE", "Cosmetic & Personal Use",
+//            "FOOD_AND_INFANT_NUTRITION", "Food & Infant Nutrition",
+//            "SUPPLEMENTS_OR_NUTRACEUTICALS", "Supplements / Nutraceuticals"
+//    );
 
     // Maps a header that uniquely identifies each CSV template to its strategy key.
     // Add one entry here whenever a new category template gets CSV support.
-    private static final Map<String, String> CSV_HEADER_TO_STRATEGY = Map.of(
-            "Therapeutic Category*", "DRUGS",
-            "Device Category*", "NON_CONSUMABLE"
-            // "Cosmetic Category*",   "COSMETIC_AND_PERSONAL_USE"  ← add future categories here
-    );
+//    private static final Map<String, String> CSV_HEADER_TO_STRATEGY = Map.of(
+//            "Therapeutic Category*", "DRUGS",
+//            "Device Category*", "NON_CONSUMABLE"
+//            // "Cosmetic Category*",   "COSMETIC_AND_PERSONAL_USE"  ← add future categories here
+//    );
 
-    public ExcelImportResultDto importFile(MultipartFile file, Long userId) {
+    public ExcelImportResultDto importFile(MultipartFile file, Long userId, Long categoryId) {
         String name = Objects.requireNonNull(file.getOriginalFilename()).toLowerCase();
-        return name.endsWith(".csv") ? importCsv(file, userId) : importExcel(file, userId);
+        return name.endsWith(".csv") ? importCsv(file, userId, categoryId) : importExcel(file, userId, categoryId);
     }
 
-    private ExcelImportResultDto importExcel(MultipartFile file, Long userId) {
+    private ExcelImportResultDto importExcel(MultipartFile file, Long userId, Long categoryId) {
 
         List<ExcelImportResultDto.RowErrorDto> errors = new ArrayList<>();
         int success = 0, total = 0;
 
         try (Workbook wb = getWorkbook(file)) {
 
+            String strategyKey = resolveStrategyKey(categoryId);
+            ProductImportStrategy strategy = strategyFactory.getStrategy(strategyKey);
+
             for (int s = 0; s < wb.getNumberOfSheets(); s++) {
 
                 Sheet sheet = wb.getSheetAt(s);
                 String sheetName = sheet.getSheetName();
-
-                // Skip sheets that have no registered strategy (e.g. "Master", "Masters")
-                ProductImportStrategy strategy;
-                try {
-                    strategy = strategyFactory.getStrategy(sheetName);
-                } catch (RuntimeException ex) {
-                    log.info("Skipping sheet '{}': {}", sheetName, ex.getMessage());
+                if (sheetName.equalsIgnoreCase("Master") || sheetName.equalsIgnoreCase("Masters")) {
                     continue;
                 }
-
-                String categoryName = SHEET_TO_CATEGORY.get(sheetName.toUpperCase());
-
-                Category category = categoryRepository
-                        .findByCategoryNameIgnoreCase(categoryName)
-                        .orElseThrow(() -> new RuntimeException("Category not found: " + categoryName));
 
                 // Row 0 = main header, Row 1 = sub-header → data starts at row 2
                 for (int i = 2; i <= sheet.getLastRowNum(); i++) {
@@ -96,8 +89,8 @@ public class UniversalExcelImportService {
                     total++;
 
                     try {
-                        ProductDetailsDto dto = strategy.mapRow(row);
-                        dto.setCategoryId(Long.valueOf(category.getCategoryId()));
+                        ProductDetailsDto dto = strategy.mapRow(row, categoryId);
+                        dto.setCategoryId(categoryId);
                         productService.createProduct(dto, userId);
                         success++;
 
@@ -119,7 +112,7 @@ public class UniversalExcelImportService {
         return buildResult(total, success, errors);
     }
 
-    private ExcelImportResultDto importCsv(MultipartFile file, Long userId) {
+    private ExcelImportResultDto importCsv(MultipartFile file, Long userId, Long categoryId) {
 
         List<ExcelImportResultDto.RowErrorDto> errors = new ArrayList<>();
         int success = 0, total = 0;
@@ -136,19 +129,8 @@ public class UniversalExcelImportService {
 //            // Extend here when new category templates are introduced.
 //            String categoryName = "DRUGS";
 
-            String strategyKey = detectCsvStrategy(parser.getHeaderNames());
-            String categoryName = SHEET_TO_CATEGORY.get(strategyKey);
-
-            if (categoryName == null) {
-                throw new RuntimeException(
-                        "Could not detect product category from CSV headers. " +
-                                "Ensure the file uses an official template.");
-            }
-
+            String strategyKey = resolveStrategyKey(categoryId);
             ProductImportStrategy strategy = strategyFactory.getStrategy(strategyKey);
-            Category category = categoryRepository
-                    .findByCategoryNameIgnoreCase(categoryName)
-                    .orElseThrow(() -> new RuntimeException("Category not found: " + categoryName));
 
             for (CSVRecord record : parser) {
 
@@ -159,8 +141,8 @@ public class UniversalExcelImportService {
 
                 total++;
                 try {
-                    ProductDetailsDto dto = strategy.mapCsv(record);
-                    dto.setCategoryId(Long.valueOf(category.getCategoryId()));
+                    ProductDetailsDto dto = strategy.mapCsv(record, categoryId);
+                    dto.setCategoryId(categoryId);
                     productService.createProduct(dto, userId);
                     success++;
                 } catch (Exception ex) {
@@ -212,21 +194,41 @@ public class UniversalExcelImportService {
         return cell != null ? cell.toString().trim() : null;
     }
 
+    private String resolveStrategyKey(Long categoryId) {
+
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new RuntimeException("Invalid categoryId: " + categoryId));
+
+        String name = category.getCategoryName().toUpperCase();
+
+        return switch (name) {
+            case "DRUGS" -> "DRUGS";
+            case "CONSUMABLE MEDICAL DEVICES & EQUIPMENT" -> "CONSUMABLE";
+            case "NON-CONSUMABLE MEDICAL DEVICES & EQUIPMENT" -> "NON_CONSUMABLE";
+            case "COSMETIC & PERSONAL USE" -> "COSMETIC_AND_PERSONAL_USE";
+            case "FOOD & INFANT NUTRITION" -> "FOOD_AND_INFANT_NUTRITION";
+            case "SUPPLEMENTS / NUTRACEUTICALS" -> "SUPPLEMENTS_OR_NUTRACEUTICALS";
+            default -> throw new RuntimeException("Unsupported category: " + name);
+        };
+    }
+
     /**
      * Scans the parsed CSV headers against the known distinctive-header map.
      * Returns the matching strategy key, or throws if no template is recognised.
      */
-    private String detectCsvStrategy(List<String> headerNames) {
-        Set<String> normalised = headerNames.stream()
-                .map(String::trim)
-                .collect(Collectors.toSet());
+//    private String detectCsvStrategy(List<String> headerNames) {
+//        Set<String> normalised = headerNames.stream()
+//                .map(String::trim)
+//                .collect(Collectors.toSet());
+//
+//        return CSV_HEADER_TO_STRATEGY.entrySet().stream()
+//                .filter(e -> normalised.contains(e.getKey()))
+//                .map(Map.Entry::getValue)
+//                .findFirst()
+//                .orElseThrow(() -> new RuntimeException(
+//                        "Unrecognised CSV template — no matching distinctive header found. " +
+//                                "Known headers: " + CSV_HEADER_TO_STRATEGY.keySet()));
+//    }
 
-        return CSV_HEADER_TO_STRATEGY.entrySet().stream()
-                .filter(e -> normalised.contains(e.getKey()))
-                .map(Map.Entry::getValue)
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException(
-                        "Unrecognised CSV template — no matching distinctive header found. " +
-                                "Known headers: " + CSV_HEADER_TO_STRATEGY.keySet()));
-    }
+
 }

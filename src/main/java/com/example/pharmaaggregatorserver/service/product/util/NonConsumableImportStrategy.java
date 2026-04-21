@@ -130,7 +130,8 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
     private static final int[] CSV_SLAB_END_TIME_COLS = {40, 47, 54, 61};
 
     @Override
-    public ProductDetailsDto mapRow(Row row) {
+    public ProductDetailsDto mapRow(Row row, Long categoryId) {
+        log.info("Non-Consumable Excel import Called");
 
         validateMandatoryExcel(row);
 
@@ -151,7 +152,8 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
                 getLong(row, COL_NUMBER_OF_PACKS),
                 getLong(row, COL_MIN_ORDER_QTY),
                 getLong(row, COL_MAX_ORDER_QTY),
-                getString(row, COL_PACK_TYPE)
+                getString(row, COL_PACK_TYPE),
+                categoryId
         ));
 
         // ===== ADDITIONAL DISCOUNTS =====
@@ -347,7 +349,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
 
     private PackagingDetailsDto buildPackaging(Long unit, Long packs,
                                                Long min, Long max,
-                                               String packType) {
+                                               String packType, Long categoryId) {
         PackagingDetailsDto dto = new PackagingDetailsDto();
         dto.setUnitPerPack(unit);
         dto.setNumberOfPacks(packs);
@@ -360,7 +362,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
 
         if (!isBlank(packType)) {
             dto.setPackId(
-                    packTypeRepository.findByPackType(packType)
+                    packTypeRepository.findByPackTypeAndCategory_CategoryId(packType, categoryId)
                             .orElseThrow(() -> new RuntimeException(
                                     "Pack type not found: " + packType))
                             .getPackId()
@@ -407,7 +409,8 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
 // =========================================================
 
     @Override
-    public ProductDetailsDto mapCsv(CSVRecord r) {
+    public ProductDetailsDto mapCsv(CSVRecord r, Long categoryId) {
+        log.info("Non-Consumable CSV import Called");
 
         validateMandatoryCsv(r);
 
@@ -428,7 +431,8 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
                 getCsvLong(r, H_NUMBER_OF_PACKS),
                 getCsvLong(r, H_MIN_ORDER_QTY),
                 getCsvLong(r, H_MAX_ORDER_QTY),
-                getCsvString(r, H_PACK_TYPE)
+                getCsvString(r, H_PACK_TYPE),
+                categoryId
         ));
 
         Set<AdditionalDiscountDto> additionalDiscounts = new HashSet<>();

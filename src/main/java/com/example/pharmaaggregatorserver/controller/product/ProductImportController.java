@@ -22,12 +22,13 @@ public class ProductImportController {
     @PostMapping
     public ResponseEntity<ExcelImportResultDto> importProducts(
             @RequestParam("file") MultipartFile file,
+            @RequestParam("categoryId") Long categoryId,
             Authentication authentication
     ) {
         UserDetailsImpl user = (UserDetailsImpl) authentication.getPrincipal();
 
         ExcelImportResultDto result =
-                importService.importFile(file, user.getId());
+                importService.importFile(file, user.getId(), categoryId);
 
         return ResponseEntity.ok(result);
     }

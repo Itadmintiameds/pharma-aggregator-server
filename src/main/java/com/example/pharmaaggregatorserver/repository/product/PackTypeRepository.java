@@ -10,9 +10,9 @@ public interface PackTypeRepository extends JpaRepository<PackType, Long> {
 
     List<PackType> findByDosageForm_DosageId(Long dosageId);
 
-    Optional<PackType> findByPackType(String packType);
+    Optional<PackType> findByPackTypeAndCategory_CategoryId(String packType, Long categoryId);
 
-    Optional<PackType> findByPackTypeAndDosageForm_DosageName(String packType, String dosageName);
+    Optional<PackType> findByPackTypeAndCategory_CategoryIdAndDosageForm_DosageName(String packType, Long categoryId,String dosageName);
 
     List<PackType> findByCategory_CategoryId(Long categoryId);
 }

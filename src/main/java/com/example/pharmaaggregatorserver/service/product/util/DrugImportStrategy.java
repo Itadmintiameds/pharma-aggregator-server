@@ -104,7 +104,8 @@ public class DrugImportStrategy implements ProductImportStrategy {
     private static final int[] CSV_SLAB_END_TIME_COLS = {33, 40, 47, 54};
 
     @Override
-    public ProductDetailsDto mapRow(Row row) {
+    public ProductDetailsDto mapRow(Row row, Long categoryId) {
+        log.info("Drugs Excel import Called");
 
         validateMandatoryExcel(row);
 
@@ -125,7 +126,7 @@ public class DrugImportStrategy implements ProductImportStrategy {
                 unitPerPack, numberOfPacks,
                 getNullSafeLong(row, COL_MIN_ORDER_QTY),
                 getNullSafeLong(row, COL_MAX_ORDER_QTY),
-                packTypeName, dosageFormName));
+                packTypeName, categoryId, dosageFormName));
 
         Set<AdditionalDiscountDto> additionalDiscounts = new HashSet<>();
         for (int slab = 0; slab < ADD_DISCOUNT_SLAB_COUNT; slab++) {
@@ -171,7 +172,8 @@ public class DrugImportStrategy implements ProductImportStrategy {
 
     // ── CSV entry point ───────────────────────────────────────────────────
     @Override
-    public ProductDetailsDto mapCsv(CSVRecord r) {
+    public ProductDetailsDto mapCsv(CSVRecord r, Long categoryId) {
+        log.info("Drugs CSV import Called");
 
         validateMandatoryCsv(r);
 
@@ -192,7 +194,7 @@ public class DrugImportStrategy implements ProductImportStrategy {
                 unitPerPack, numberOfPacks,
                 getCsvLong(r, H_MIN_ORDER_QTY),
                 getCsvLong(r, H_MAX_ORDER_QTY),
-                packTypeName, dosageFormName));
+                packTypeName, categoryId, dosageFormName));
 
         Set<AdditionalDiscountDto> additionalDiscounts = new HashSet<>();
         for (int slab = 0; slab < ADD_DISCOUNT_SLAB_COUNT; slab++) {
@@ -239,7 +241,7 @@ public class DrugImportStrategy implements ProductImportStrategy {
     private PackagingDetailsDto buildPackaging(
             Long unitPerPack, Long numberOfPacks,
             Long minOrderQty, Long maxOrderQty,
-            String packTypeName, String dosageFormName) {
+            String packTypeName, Long categoryId, String dosageFormName) {
 
         PackagingDetailsDto packaging = new PackagingDetailsDto();
         packaging.setUnitPerPack(unitPerPack);
@@ -253,7 +255,7 @@ public class DrugImportStrategy implements ProductImportStrategy {
         if (packTypeName != null && !packTypeName.isBlank()
                 && dosageFormName != null && !dosageFormName.isBlank()) {
             Long packId = packTypeRepository
-                    .findByPackTypeAndDosageForm_DosageName(packTypeName, dosageFormName)
+                    .findByPackTypeAndCategory_CategoryIdAndDosageForm_DosageName(packTypeName, categoryId, dosageFormName)
                     .orElseThrow(() -> new RuntimeException(
                             "Pack type '" + packTypeName + "' not found for dosage form '" + dosageFormName + "'"))
                     .getPackId();
