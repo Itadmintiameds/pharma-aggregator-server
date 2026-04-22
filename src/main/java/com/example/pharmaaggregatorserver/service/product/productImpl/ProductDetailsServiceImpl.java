@@ -502,7 +502,6 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
         existingProduct.setProductName(dto.getProductName());
         existingProduct.setWarningsPrecautions(dto.getWarningsPrecautions());
         existingProduct.setProductDescription(dto.getProductDescription());
-        existingProduct.setProductMarketingUrl(dto.getProductMarketingUrl());
         existingProduct.setModifiedBy(seller.getSellerId());
         existingProduct.setModifiedDate(LocalDateTime.now());
 

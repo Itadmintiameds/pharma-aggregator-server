@@ -31,7 +31,6 @@ public class ProductDetailsMapper {
         entity.setProductName(dto.getProductName());
         entity.setWarningsPrecautions(dto.getWarningsPrecautions());
         entity.setProductDescription(dto.getProductDescription());
-        entity.setProductMarketingUrl(dto.getProductMarketingUrl());
         entity.setManufacturerName(dto.getManufacturerName());
         entity.setCreatedBy(dto.getCreatedBy());
         entity.setModifiedBy(dto.getModifiedBy());
@@ -107,7 +106,6 @@ public class ProductDetailsMapper {
         }
         dto.setWarningsPrecautions(entity.getWarningsPrecautions());
         dto.setProductDescription(entity.getProductDescription());
-        dto.setProductMarketingUrl(entity.getProductMarketingUrl());
         dto.setManufacturerName(entity.getManufacturerName());
         dto.setCreatedBy(entity.getCreatedBy());
         dto.setModifiedBy(entity.getModifiedBy());

@@ -36,9 +36,6 @@ public class ProductDetails {
     @Column(name = "product_description")
     private String productDescription;
 
-    @Column(name = "product_marketing_url")
-    private String productMarketingUrl;
-
     @Column(name = "manufacturer_name")
     private String manufacturerName;
 
@@ -74,19 +71,15 @@ public class ProductDetails {
 
     @OneToMany(mappedBy = "productDetails", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
+    private Set<ProductImage> productImages;
+
+    @OneToMany(mappedBy = "productDetails", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private Set<ProductAttributeDrug> productAttributeDrugs;
 
     @OneToMany(mappedBy = "productDetails", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private Set<ProductAttributeNonConsumableMedical> productAttributeNonConsumableMedicals;
-
-//    @OneToMany(mappedBy = "productDetails", cascade = CascadeType.ALL, orphanRemoval = true)
-//    @JsonIgnore
-//    private Set<ProductAttributeConsumableMedical> productAttributeConsumableMedicals;
-
-    @OneToMany(mappedBy = "productDetails", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonIgnore
-    private Set<ProductImage> productImages;
 
     @OneToMany(mappedBy = "productDetails", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
