@@ -1,6 +1,5 @@
 package com.example.pharmaaggregatorserver.entity.product;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -58,4 +57,8 @@ public class ProductAttributeDrug {
     @OneToMany(mappedBy = "productAttributeDrug", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private Set<ProductMolecule> productMolecules = new HashSet<>();
+
+    @OneToOne(mappedBy = "productAttributeDrug", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private ProductUserManual productUserManual;
 }

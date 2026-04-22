@@ -66,7 +66,6 @@ public class ProductImageService {
 
     public List<String> getImagesByProductId(String productId) {
 
-        // ✅ Optional validation (good practice)
         if (!productRepo.existsById(productId)) {
             throw new RuntimeException("Product not found");
         }

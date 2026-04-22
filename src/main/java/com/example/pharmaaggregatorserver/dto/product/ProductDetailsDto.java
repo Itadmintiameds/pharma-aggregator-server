@@ -16,7 +16,6 @@ public class ProductDetailsDto {
     private String productName;
     private String warningsPrecautions;
     private String productDescription;
-    private String productMarketingUrl;
     private String manufacturerName;
     private String createdBy;
     private String modifiedBy;
@@ -29,5 +28,4 @@ public class ProductDetailsDto {
     private Set<ConsumableProductAttributeDTO> productAttributeConsumableMedicals;
     private Set<ProductAttributeNonConsumableMedicalDto> productAttributeNonConsumableMedicals;
     private Set<ProductImageDto> productImages;
-
 }

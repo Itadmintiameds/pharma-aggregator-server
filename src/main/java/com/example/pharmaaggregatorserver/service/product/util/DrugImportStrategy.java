@@ -115,7 +115,7 @@ public class DrugImportStrategy implements ProductImportStrategy {
         dto.setWarningsPrecautions(getString(row, COL_WARNINGS));
         dto.setProductDescription(getString(row, COL_DESCRIPTION));
         dto.setManufacturerName(getString(row, COL_MANUFACTURER));
-        dto.setProductMarketingUrl(getString(row, COL_MARKETING_URL));
+//        dto.setProductMarketingUrl(getString(row, COL_MARKETING_URL));
 
         Long unitPerPack = getNullSafeLong(row, COL_UNIT_PER_PACK);
         Long numberOfPacks = getNullSafeLong(row, COL_NUMBER_OF_PACKS);
@@ -183,7 +183,7 @@ public class DrugImportStrategy implements ProductImportStrategy {
         dto.setWarningsPrecautions(getCsvString(r, H_WARNINGS));
         dto.setProductDescription(getCsvString(r, H_DESCRIPTION));
         dto.setManufacturerName(getCsvString(r, H_MANUFACTURER));
-        dto.setProductMarketingUrl(getCsvString(r, H_MARKETING_URL));
+//        dto.setProductMarketingUrl(getCsvString(r, H_MARKETING_URL));
 
         Long unitPerPack = getCsvLong(r, H_UNIT_PER_PACK);
         Long numberOfPacks = getCsvLong(r, H_NUMBER_OF_PACKS);
