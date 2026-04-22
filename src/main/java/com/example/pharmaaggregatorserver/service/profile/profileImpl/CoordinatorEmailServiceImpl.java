@@ -26,7 +26,7 @@ public class CoordinatorEmailServiceImpl implements CoordinatorEmailService {
     @Value("${app.support.email:support@tiameds.com}")
     private String supportEmail;
 
-    @Value("${app.login.url:https://marketplace.tiameds.com/login}")
+    @Value("${app.login-url:https://marketplace.tiameds.com/reset-password}")
     private String loginUrl;
 
     @Override
@@ -409,8 +409,12 @@ public class CoordinatorEmailServiceImpl implements CoordinatorEmailService {
                 .append("<p>As part of TiaMeds Marketplace security protocol, your login credentials have been regenerated:</p>")
                 .append("<p><span class='label'>New Username:</span> <span class='value'><strong>").append(escapeHtml(dto.getNewEmail())).append("</strong></span></p>")
                 .append("<p><span class='label'>Temporary Password:</span> <span class='value'><strong>").append(escapeHtml(dto.getTemporaryPassword())).append("</strong></span></p>")
-                .append("<p><span class='label'>Login Link:</span> <span class='value'><a href='").append(escapeHtml(dto.getLoginUrl() != null ? dto.getLoginUrl() : loginUrl)).append("'>")
-                .append(escapeHtml(dto.getLoginUrl() != null ? dto.getLoginUrl() : loginUrl)).append("</a></span></p>")
+                .append("<p><span class='label'>Login Link:</span> <span class='value'>")
+                .append("<a href='")
+                .append(loginUrl)
+                .append("?username=").append(dto.getNewEmail())
+                .append("' style='color: #ff9800; font-weight: bold;'>Click here to reset your password</a>")
+                .append("</span></p>")
                 .append("<p><strong>For security reasons, you will be required to change your password upon first login.</strong></p>")
                 .append("</div>")
                 .append("<p>If you did not authorize this update or believe there is an error, kindly contact our support team at <strong>")
