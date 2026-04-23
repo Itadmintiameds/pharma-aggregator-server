@@ -122,11 +122,11 @@ public class DrugImportStrategy implements ProductImportStrategy {
         String packTypeName = getString(row, COL_PACK_TYPE);
         String dosageFormName = getString(row, COL_DOSAGE_FORM);
 
-        dto.setPackagingDetails(buildPackaging(
-                unitPerPack, numberOfPacks,
-                getNullSafeLong(row, COL_MIN_ORDER_QTY),
-                getNullSafeLong(row, COL_MAX_ORDER_QTY),
-                packTypeName, categoryId, dosageFormName));
+//        dto.setPackagingDetails(buildPackaging(
+//                unitPerPack, numberOfPacks,
+//                getNullSafeLong(row, COL_MIN_ORDER_QTY),
+//                getNullSafeLong(row, COL_MAX_ORDER_QTY),
+//                packTypeName, categoryId, dosageFormName));
 
         Set<AdditionalDiscountDto> additionalDiscounts = new HashSet<>();
         for (int slab = 0; slab < ADD_DISCOUNT_SLAB_COUNT; slab++) {
@@ -190,11 +190,11 @@ public class DrugImportStrategy implements ProductImportStrategy {
         String packTypeName = getCsvString(r, H_PACK_TYPE);
         String dosageFormName = getCsvString(r, H_DOSAGE_FORM);
 
-        dto.setPackagingDetails(buildPackaging(
-                unitPerPack, numberOfPacks,
-                getCsvLong(r, H_MIN_ORDER_QTY),
-                getCsvLong(r, H_MAX_ORDER_QTY),
-                packTypeName, categoryId, dosageFormName));
+//        dto.setPackagingDetails(buildPackaging(
+//                unitPerPack, numberOfPacks,
+//                getCsvLong(r, H_MIN_ORDER_QTY),
+//                getCsvLong(r, H_MAX_ORDER_QTY),
+//                packTypeName, categoryId, dosageFormName));
 
         Set<AdditionalDiscountDto> additionalDiscounts = new HashSet<>();
         for (int slab = 0; slab < ADD_DISCOUNT_SLAB_COUNT; slab++) {

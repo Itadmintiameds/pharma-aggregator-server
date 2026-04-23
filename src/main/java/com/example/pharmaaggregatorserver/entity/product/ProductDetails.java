@@ -61,9 +61,9 @@ public class ProductDetails {
     @JsonIgnore
     private Seller seller;
 
-    @OneToOne(mappedBy = "productDetails", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "productDetails", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
-    private PackagingDetails packagingDetails;
+    private Set<PackagingDetails> packagingDetails;
 
     @OneToMany(mappedBy = "productDetails", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore

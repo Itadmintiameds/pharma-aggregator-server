@@ -71,22 +71,12 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
     private void setChildRelationships(ProductDetails product, String sellerName, String sellerId) {
 
         if (product.getPackagingDetails() != null) {
-
-            PackagingDetails packaging = product.getPackagingDetails();
-
-            packaging.setPackagingId(generatePackagingId(sellerName));
-            packaging.setProductDetails(product);
-            packaging.setCreatedBy(sellerId);
-            packaging.setCreatedDate(LocalDateTime.now());
-
-            if (packaging.getPackType() == null || packaging.getPackType().getPackId() == null) {
-                throw new RuntimeException("PackType (packId) is required");
-            }
-
-            PackType packType = packTypeRepository.findById(packaging.getPackType().getPackId())
-                    .orElseThrow(() -> new RuntimeException("Invalid packId"));
-
-            packaging.setPackType(packType);
+            product.getPackagingDetails().forEach(p -> {
+                p.setPackagingId(generatePackagingId(sellerName));
+                p.setProductDetails(product);
+                p.setCreatedBy(sellerId);
+                p.setCreatedDate(LocalDateTime.now());
+            });
         }
 
         if (product.getPricingDetails() != null) {
@@ -117,35 +107,11 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
                         pm.setProductAttributeDrug(a);
                         pm.setMolecule(molecule);
 
-//                        ProductMoleculeId id = new ProductMoleculeId(
-//                                a.getProductAttributeId(),
-//                                molecule.getMoleculeId()
-//                        );
-//
-//                        pm.setId(id);
                     });
                 }
             });
         }
 
-        // ================= Non CONSUMABLE MEDICAL(OLD) =================
-//        if (product.getProductAttributeNonConsumableMedicals() != null) {
-//            product.getProductAttributeNonConsumableMedicals().forEach(a -> {
-//
-//                // Validate mandatory FK fields are resolved
-//                if (a.getDeviceCategory() == null) {
-//                    throw new RuntimeException("deviceCategoryId is required for non-consumable medical attribute");
-//                }
-//                if (a.getCertification() == null) {
-//                    throw new RuntimeException("certificationId is required for non-consumable medical attribute");
-//                }
-//
-//                a.setProductAttributeId(UUID.randomUUID().toString());
-//                a.setProductDetails(product);
-//                a.setCreatedBy(sellerId);
-//                a.setCreatedDate(LocalDateTime.now());
-//            });
-//        }
 
 // ================= Non CONSUMABLE MEDICAL =================
 
@@ -517,23 +483,20 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
         // =========================================================
         if (dto.getPackagingDetails() != null) {
 
-            PackagingDetailsDto pd = dto.getPackagingDetails();
-            PackagingDetails existingPackaging = existingProduct.getPackagingDetails();
+            if (existingProduct.getPackagingDetails() == null) {
+                existingProduct.setPackagingDetails(new HashSet<>());
+            }
 
-            if (existingPackaging == null) {
+            for (PackagingDetailsDto pd : dto.getPackagingDetails()) {
+
                 PackagingDetails newPackaging = packagingDetailsMapper.toEntity(pd);
+
+                newPackaging.setPackagingId(generatePackagingId(seller.getSellerName()));
                 newPackaging.setProductDetails(existingProduct);
                 newPackaging.setCreatedBy(seller.getSellerId());
                 newPackaging.setCreatedDate(LocalDateTime.now());
-                existingProduct.setPackagingDetails(newPackaging);
-            } else {
-                existingPackaging.setUnitPerPack(pd.getUnitPerPack());
-                existingPackaging.setNumberOfPacks(pd.getNumberOfPacks());
-                existingPackaging.setPackSize(pd.getPackSize());
-                existingPackaging.setMinimumOrderQuantity(pd.getMinimumOrderQuantity());
-                existingPackaging.setMaximumOrderQuantity(pd.getMaximumOrderQuantity());
-                existingPackaging.setModifiedBy(seller.getSellerId());
-                existingPackaging.setModifiedDate(LocalDateTime.now());
+
+                existingProduct.getPackagingDetails().add(newPackaging);
             }
         }
 
@@ -542,76 +505,39 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
         // =========================================================
         if (dto.getPricingDetails() != null) {
 
-            Set<PricingDetails> existingPricing = existingProduct.getPricingDetails();
-
-            Map<String, PricingDetails> pricingMap = existingPricing.stream()
-                    .collect(Collectors.toMap(PricingDetails::getPricingId, p -> p));
+            if (existingProduct.getPricingDetails() == null) {
+                existingProduct.setPricingDetails(new HashSet<>());
+            }
 
             for (PricingDetailsDto pDto : dto.getPricingDetails()) {
 
-                PricingDetails pricing;
+                PricingDetails pricing = pricingDetailsMapper.toEntity(pDto);
 
-                if (pDto.getPricingId() != null && pricingMap.containsKey(pDto.getPricingId())) {
+                pricing.setPricingId(generatePricingId(seller.getSellerName()));
+                pricing.setCreatedBy(seller.getSellerId());
+                pricing.setCreatedDate(LocalDateTime.now());
+                pricing.setProductDetails(existingProduct);
 
-                    pricing = pricingMap.get(pDto.getPricingId());
+                // 🔥 DO NOT UPDATE — ONLY INSERT
+                existingProduct.getPricingDetails().add(pricing);
 
-                } else {
-                    pricing = pricingDetailsMapper.toEntity(pDto);
-                    pricing.setPricingId(generatePricingId(seller.getSellerName()));
-                    pricing.setCreatedBy(seller.getSellerId());
-                    pricing.setCreatedDate(LocalDateTime.now());
-                    pricing.setProductDetails(existingProduct);
-
-                    existingPricing.add(pricing);
-                }
-
-                // ✅ UPDATE COMMON FIELDS
-                pricing.setBatchLotNumber(pDto.getBatchLotNumber());
-                pricing.setManufacturingDate(pDto.getManufacturingDate());
-                pricing.setExpiryDate(pDto.getExpiryDate());
-                pricing.setStorageCondition(pDto.getStorageCondition());
-                pricing.setStockQuantity(pDto.getStockQuantity());
-                pricing.setDateOfStockEntry(pDto.getDateOfStockEntry());
-                pricing.setSellingPrice(pDto.getSellingPrice());
-                pricing.setMrp(pDto.getMrp());
-                pricing.setDiscountPercentage(pDto.getDiscountPercentage());
-                pricing.setGstPercentage(pDto.getGstPercentage());
-                pricing.setFinalPrice(pDto.getFinalPrice());
-                pricing.setHsnCode(pDto.getHsnCode());
-                pricing.setShelfLifeMonths(pDto.getShelfLifeMonths());
-
-                pricing.setModifiedBy(seller.getSellerId());
-                pricing.setModifiedDate(LocalDateTime.now());
-
-                // 🔥 ADDITIONAL DISCOUNTS (FIXED)
+                // Additional discounts (same as before)
                 if (pDto.getAdditionalDiscounts() != null) {
-
-                    if (pricing.getAdditionalDiscounts() == null) {
-                        pricing.setAdditionalDiscounts(new HashSet<>());
-                    } else {
-                        pricing.getAdditionalDiscounts().clear();
-                    }
-
                     Set<AdditionalDiscount> discounts = pDto.getAdditionalDiscounts().stream()
                             .map(d -> {
-
                                 AdditionalDiscount ad = new AdditionalDiscount();
-
-                                // ✅ MAKE SURE THESE MATCH ENTITY FIELDS
                                 ad.setMinimumPurchaseQuantity(d.getMinimumPurchaseQuantity());
                                 ad.setAdditionalDiscountPercentage(d.getAdditionalDiscountPercentage());
                                 ad.setEffectiveStartDate(d.getEffectiveStartDate());
                                 ad.setEffectiveStartTime(d.getEffectiveStartTime());
                                 ad.setEffectiveEndDate(d.getEffectiveEndDate());
                                 ad.setEffectiveEndTime(d.getEffectiveEndTime());
-
                                 ad.setPricingDetails(pricing);
-
                                 return ad;
                             })
                             .collect(Collectors.toSet());
 
-                    pricing.getAdditionalDiscounts().addAll(discounts);
+                    pricing.setAdditionalDiscounts(discounts);
                 }
             }
         }

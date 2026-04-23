@@ -154,14 +154,14 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
         dto.setWarningsPrecautions(getString(row, COL_SAFETY_INSTRUCTIONS));
 
         // ===== PACKAGING =====
-        dto.setPackagingDetails(buildPackaging(
-                getLong(row, COL_UNIT_PER_PACK),
-                getLong(row, COL_NUMBER_OF_PACKS),
-                getLong(row, COL_MIN_ORDER_QTY),
-                getLong(row, COL_MAX_ORDER_QTY),
-                getString(row, COL_PACK_TYPE),
-                categoryId
-        ));
+//        dto.setPackagingDetails(buildPackaging(
+//                getLong(row, COL_UNIT_PER_PACK),
+//                getLong(row, COL_NUMBER_OF_PACKS),
+//                getLong(row, COL_MIN_ORDER_QTY),
+//                getLong(row, COL_MAX_ORDER_QTY),
+//                getString(row, COL_PACK_TYPE),
+//                categoryId
+//        ));
 
         // ===== ADDITIONAL DISCOUNTS =====
         Set<AdditionalDiscountDto> additionalDiscounts = new HashSet<>();
@@ -553,14 +553,14 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
         dto.setWarningsPrecautions(getCsvString(r, H_SAFETY_INSTRUCTIONS));
 
         // ===== PACKAGING =====
-        dto.setPackagingDetails(buildPackaging(
-                getCsvLong(r, H_UNIT_PER_PACK),
-                getCsvLong(r, H_NUMBER_OF_PACKS),
-                getCsvLong(r, H_MIN_ORDER_QTY),
-                getCsvLong(r, H_MAX_ORDER_QTY),
-                getCsvString(r, H_PACK_TYPE),
-                categoryId
-        ));
+//        dto.setPackagingDetails(buildPackaging(
+//                getCsvLong(r, H_UNIT_PER_PACK),
+//                getCsvLong(r, H_NUMBER_OF_PACKS),
+//                getCsvLong(r, H_MIN_ORDER_QTY),
+//                getCsvLong(r, H_MAX_ORDER_QTY),
+//                getCsvString(r, H_PACK_TYPE),
+//                categoryId
+//        ));
 
         // ===== ADDITIONAL DISCOUNTS =====
         Set<AdditionalDiscountDto> additionalDiscounts = new HashSet<>();

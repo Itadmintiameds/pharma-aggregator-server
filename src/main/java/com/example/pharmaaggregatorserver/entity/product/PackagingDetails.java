@@ -54,8 +54,8 @@ public class PackagingDetails {
     @Column(name = "modified_date")
     private LocalDateTime modifiedDate;
 
-    @OneToOne
-    @JoinColumn(name = "product_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", nullable = false)
     @JsonIgnore
     private ProductDetails productDetails;
 

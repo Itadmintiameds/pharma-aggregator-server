@@ -22,7 +22,7 @@ public class ProductDetailsDto {
     private LocalDateTime createdDate;
     private LocalDateTime modifiedDate;
     private Long categoryId;
-    private PackagingDetailsDto  packagingDetails;
+    private Set<PackagingDetailsDto> packagingDetails;
     private Set<PricingDetailsDto> pricingDetails;
     private Set<ProductAttributeDrugDto> productAttributeDrugs;
     private Set<ConsumableProductAttributeDTO> productAttributeConsumableMedicals;
