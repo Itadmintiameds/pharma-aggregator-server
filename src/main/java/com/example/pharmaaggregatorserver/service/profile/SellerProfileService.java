@@ -1,9 +1,6 @@
 package com.example.pharmaaggregatorserver.service.profile;
 
-import com.example.pharmaaggregatorserver.dto.seller.profile.CoordinatorEmailDTO;
-import com.example.pharmaaggregatorserver.dto.seller.profile.PendingSellerResponseDTO;
-import com.example.pharmaaggregatorserver.dto.seller.profile.SellerEditRequest;
-import com.example.pharmaaggregatorserver.dto.seller.profile.SellerResponseDTO;
+import com.example.pharmaaggregatorserver.dto.seller.profile.*;
 import com.example.pharmaaggregatorserver.entity.master.CompanyTypeMaster;
 import com.example.pharmaaggregatorserver.entity.master.DistrictMaster;
 import com.example.pharmaaggregatorserver.entity.master.ProductTypeMaster;
@@ -122,6 +119,11 @@ public class SellerProfileService {
             // Refresh to load documents
             savedPending = pendingSellerRepository.findById(savedPending.getPendingSellerId())
                     .orElseThrow(() -> new ResourceNotFoundException("Pending seller not found"));
+
+            // Send acknowledgement email for PENDING requests (admin approval required)
+            if (requiresAdminApproval) {
+                sendUpdateSubmissionAcknowledgementEmail(savedPending, existingSeller.getSellerName());
+            }
 
             SellerResponseDTO response;
 
@@ -1556,5 +1558,31 @@ public class SellerProfileService {
                 .orElseThrow(() -> new ResourceNotFoundException("Seller not found with id: " + sellerId));
 
         return sellerByIdMapper.toResponseDTO(seller);
+    }
+
+    /**
+     * Send acknowledgement email when admin approval is required
+     */
+    private void sendUpdateSubmissionAcknowledgementEmail(PendingSeller pendingSeller, String sellerName) {
+        String coordinatorEmail = pendingSeller.getCoordinatorEmail();
+        String coordinatorName = pendingSeller.getCoordinatorName();
+        String requestId = String.valueOf(pendingSeller.getPendingSellerId());
+
+        if (coordinatorEmail == null || coordinatorEmail.isEmpty()) {
+            log.warn("No coordinator email found for pending seller ID: {}", pendingSeller.getPendingSellerId());
+            return;
+        }
+
+        SellerUpdateEmailDTO emailDTO = SellerUpdateEmailDTO.builder()
+                .coordinatorEmail(coordinatorEmail)
+                .coordinatorName(coordinatorName != null ? coordinatorName : "Coordinator")
+                .sellerCompanyName(pendingSeller.getSellerName())
+                .requestId(requestId)
+                .supportEmail(supportEmail)
+                .build();
+
+        coordinatorEmailService.sendSellerUpdateSubmissionAcknowledgement(emailDTO);
+        log.info("Update submission acknowledgement email sent to coordinator: {} for pending request ID: {}",
+                coordinatorEmail, pendingSeller.getPendingSellerId());
     }
 }
