@@ -37,12 +37,13 @@ public class ProductDetailsMapper {
         entity.setCreatedDate(dto.getCreatedDate());
         entity.setModifiedDate(dto.getModifiedDate());
 
-
         if (dto.getPackagingDetails() != null) {
-            PackagingDetails packaging =
-                    packagingMapper.toEntity(dto.getPackagingDetails());
-            packaging.setProductDetails(entity);
-            entity.setPackagingDetails(packaging);
+            Set<PackagingDetails> packagingDetailsSet = dto.getPackagingDetails().stream()
+                    .map(packagingMapper::toEntity)
+                    .peek(p -> p.setProductDetails(entity))
+                    .collect(Collectors.toSet());
+
+            entity.setPackagingDetails(packagingDetailsSet);
         }
 
         if (dto.getPricingDetails() != null) {
@@ -112,10 +113,11 @@ public class ProductDetailsMapper {
         dto.setCreatedDate(entity.getCreatedDate());
         dto.setModifiedDate(entity.getModifiedDate());
 
-
         if (entity.getPackagingDetails() != null) {
             dto.setPackagingDetails(
-                    packagingMapper.toDTO(entity.getPackagingDetails())
+                    entity.getPackagingDetails().stream()
+                            .map(packagingMapper::toDTO)
+                            .collect(Collectors.toSet())
             );
         }
 

@@ -58,7 +58,7 @@ public class ProductAttributeDrug {
     @JsonIgnore
     private Set<ProductMolecule> productMolecules = new HashSet<>();
 
-    @OneToOne(mappedBy = "productAttributeDrug", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToOne(mappedBy = "productAttributeDrug", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JsonIgnore
     private ProductUserManual productUserManual;
 }
