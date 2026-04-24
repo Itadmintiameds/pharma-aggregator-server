@@ -147,14 +147,14 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         dto.setManufacturerName(getString(row, COL_MANUFACTURER));
 
         // ===== PACKAGING =====
-//        dto.setPackagingDetails(buildPackaging(
-//                getLong(row, COL_UNIT_PER_PACK),
-//                getLong(row, COL_NUMBER_OF_PACKS),
-//                getLong(row, COL_MIN_ORDER_QTY),
-//                getLong(row, COL_MAX_ORDER_QTY),
-//                getString(row, COL_PACK_TYPE),
-//                categoryId
-//        ));
+        dto.setPackagingDetails(Set.of(buildPackaging(
+                getLong(row, COL_UNIT_PER_PACK),
+                getLong(row, COL_NUMBER_OF_PACKS),
+                getLong(row, COL_MIN_ORDER_QTY),
+                getLong(row, COL_MAX_ORDER_QTY),
+                getString(row, COL_PACK_TYPE),
+                categoryId
+        )));
 
         // ===== ADDITIONAL DISCOUNTS =====
         Set<AdditionalDiscountDto> additionalDiscounts = buildAdditionalDiscounts(row);
@@ -426,14 +426,14 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         dto.setProductDescription(getCsvString(r, H_PRODUCT_DESCRIPTION));
         dto.setManufacturerName(getCsvString(r, H_MANUFACTURER));
 
-//        dto.setPackagingDetails(buildPackaging(
-//                getCsvLong(r, H_UNIT_PER_PACK),
-//                getCsvLong(r, H_NUMBER_OF_PACKS),
-//                getCsvLong(r, H_MIN_ORDER_QTY),
-//                getCsvLong(r, H_MAX_ORDER_QTY),
-//                getCsvString(r, H_PACK_TYPE),
-//                categoryId
-//        ));
+        dto.setPackagingDetails(Set.of(buildPackaging(
+                getCsvLong(r, H_UNIT_PER_PACK),
+                getCsvLong(r, H_NUMBER_OF_PACKS),
+                getCsvLong(r, H_MIN_ORDER_QTY),
+                getCsvLong(r, H_MAX_ORDER_QTY),
+                getCsvString(r, H_PACK_TYPE),
+                categoryId
+        )));
 
         Set<AdditionalDiscountDto> additionalDiscounts = new HashSet<>();
         for (int slab = 0; slab < ADD_DISCOUNT_SLAB_COUNT; slab++) {
