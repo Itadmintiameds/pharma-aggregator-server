@@ -646,6 +646,38 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
             }
         }
 
+        //consumable
+        if (dto.getProductAttributeConsumableMedicals() != null && !dto.getProductAttributeConsumableMedicals().isEmpty()) {
+
+          ConsumableProductAttributeDTO ConsumableDto =
+                    dto.getProductAttributeConsumableMedicals().iterator().next();
+
+            Set<ProductAttributeConsumableMedical> existingConsumables =
+                    existingProduct.getProductAttributeConsumables();
+
+            if (existingConsumables != null && !existingConsumables.isEmpty()) {
+
+                ProductAttributeConsumableMedical existing =
+                        existingConsumables.iterator().next();
+
+                // ONLY UPDATE THESE 4 FIELDS
+                existing.setPurpose(ConsumableDto.getPurpose());
+                existing.setKeyFeaturesSpecifications(ConsumableDto.getKeyFeaturesSpecifications());
+                existing.setSafetyInstructions(ConsumableDto.getSafetyInstructions());
+
+                if (ConsumableDto.getStorageConditionId() != null) {
+                    StorageConditionMaster storageCondition = storageConditionMasterRepository
+                            .findById(ConsumableDto.getStorageConditionId())
+                            .orElseThrow(() -> new RuntimeException("Storage condition not found"));
+                    existing.setStorageConditionMaster(storageCondition);
+                }
+
+                existing.setModifiedBy(seller.getSellerId());
+                existing.setModifiedDate(LocalDateTime.now());
+            }
+        }
+
+
         // =========================================================
         // ✅ SAVE
         // =========================================================
@@ -653,6 +685,9 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
 
         return productMapper.toDto(updatedProduct);
     }
+
+
+
 
     @Override
     public List<TherapeuticSubcategoryDto> getSubcategories(String categoryId) {
