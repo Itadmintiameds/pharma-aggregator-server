@@ -2,6 +2,7 @@ package com.example.pharmaaggregatorserver.service.product.productImpl;
 
 import com.example.pharmaaggregatorserver.dto.product.*;
 import com.example.pharmaaggregatorserver.entity.product.*;
+import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.StorageConditionMaster;
 import com.example.pharmaaggregatorserver.entity.seller.Seller;
 import com.example.pharmaaggregatorserver.mapper.product.*;
 import com.example.pharmaaggregatorserver.repository.product.*;
@@ -13,7 +14,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -35,6 +39,7 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
     private final PackTypeRepository packTypeRepository;
     private final MoleculeRepository moleculeRepository;
     private final AdditionalDiscountMapper additionalDiscountMapper;
+    private final StorageConditionMasterRepository storageConditionMasterRepository;
 
 
     @Override
@@ -609,6 +614,35 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
 
                     attr.getProductMolecules().add(pm);
                 }
+            }
+        }
+
+        if (dto.getProductAttributeNonConsumableMedicals() != null && !dto.getProductAttributeNonConsumableMedicals().isEmpty()) {
+
+            ProductAttributeNonConsumableMedicalDto nonConsumableDto =
+                    dto.getProductAttributeNonConsumableMedicals().iterator().next();
+
+            Set<ProductAttributeNonConsumableMedical> existingNonConsumables =
+                    existingProduct.getProductAttributeNonConsumableMedicals();
+
+            if (existingNonConsumables != null && !existingNonConsumables.isEmpty()) {
+
+                ProductAttributeNonConsumableMedical existing =
+                        existingNonConsumables.iterator().next();
+
+                // ✅ ONLY UPDATE THESE 3 FIELDS
+                existing.setPurpose(nonConsumableDto.getPurpose());
+                existing.setKeyFeaturesSpecifications(nonConsumableDto.getKeyFeaturesSpecifications());
+
+                if (nonConsumableDto.getStorageConditionId() != null) {
+                    StorageConditionMaster storageCondition = storageConditionMasterRepository
+                            .findById(nonConsumableDto.getStorageConditionId())
+                            .orElseThrow(() -> new RuntimeException("Storage condition not found"));
+                    existing.setStorageConditionMaster(storageCondition);
+                }
+
+                existing.setModifiedBy(seller.getSellerId());
+                existing.setModifiedDate(LocalDateTime.now());
             }
         }
 
