@@ -6,7 +6,6 @@ import com.example.pharmaaggregatorserver.entity.master.ProductTypeMaster;
 import com.example.pharmaaggregatorserver.entity.master.SellerTypeMaster;
 import com.example.pharmaaggregatorserver.entity.product.ProductDetails;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
