@@ -752,6 +752,14 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         validateRequired(getLong(row, COL_GST), "GST", errors);
         validateRequired(getLong(row, COL_HSN), "HSN Code", errors);
 
+        Long hsnCodeExcel = getLong(row, COL_HSN);
+        if (hsnCodeExcel != null) {
+            int digits = String.valueOf(hsnCodeExcel).length();
+            if (digits != 4 && digits != 6 && digits != 8) {
+                errors.add("HSN Code must be 4, 6, or 8 digits");
+            }
+        }
+
         // ===== BUSINESS RULES =====
         Long mrp = getLong(row, COL_MRP);
         Long sellingPrice = getLong(row, COL_SELLING_PRICE);
@@ -806,6 +814,14 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         validateRequired(getCsvLong(r, H_MRP), "MRP", errors);
         validateRequired(getCsvLong(r, H_GST), "GST", errors);
         validateRequired(getCsvLong(r, H_HSN), "HSN Code", errors);
+
+        Long hsnCodeCsv = getCsvLong(r, H_HSN);
+        if (hsnCodeCsv != null) {
+            int digits = String.valueOf(hsnCodeCsv).length();
+            if (digits != 4 && digits != 6 && digits != 8) {
+                errors.add("HSN Code must be 4, 6, or 8 digits");
+            }
+        }
 
         // ===== BUSINESS RULES =====
         Long mrp = getCsvLong(r, H_MRP);

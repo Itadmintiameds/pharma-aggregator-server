@@ -493,6 +493,14 @@ public class DrugImportStrategy implements ProductImportStrategy {
         validateRequired(getNullSafeLong(row, COL_SELLING_PRICE), "Selling Price", errors);
         validateRequired(getNullSafeLong(row, COL_HSN_CODE), "HSN Code", errors);
 
+        Long hsnCodeExcel = getNullSafeLong(row, COL_HSN_CODE);
+        if (hsnCodeExcel != null) {
+            int digits = String.valueOf(hsnCodeExcel).length();
+            if (digits != 4 && digits != 6 && digits != 8) {
+                errors.add("HSN Code must be 4, 6, or 8 digits");
+            }
+        }
+
         validateRequired(getLocalDate(row, COL_MFG_DATE), "Manufacturing Date", errors);
         validateRequired(getLocalDate(row, COL_EXPIRY_DATE), "Expiry Date", errors);
         validateRequired(getLocalDate(row, COL_DATE_OF_ENTRY), "Date of Entry", errors);
@@ -577,6 +585,14 @@ public class DrugImportStrategy implements ProductImportStrategy {
         validateRequired(getCsvLong(r, H_MRP), "MRP", errors);
         validateRequired(getCsvLong(r, H_SELLING_PRICE), "Selling Price", errors);
         validateRequired(getCsvLong(r, H_HSN_CODE), "HSN Code", errors);
+
+        Long hsnCodeCsv = getCsvLong(r, H_HSN_CODE);
+        if (hsnCodeCsv != null) {
+            int digits = String.valueOf(hsnCodeCsv).length();
+            if (digits != 4 && digits != 6 && digits != 8) {
+                errors.add("HSN Code must be 4, 6, or 8 digits");
+            }
+        }
 
         validateRequired(parseCsvDate(getCsvString(r, H_MFG_DATE)), "Manufacturing Date", errors);
         validateRequired(parseCsvDate(getCsvString(r, H_EXPIRY_DATE)), "Expiry Date", errors);
