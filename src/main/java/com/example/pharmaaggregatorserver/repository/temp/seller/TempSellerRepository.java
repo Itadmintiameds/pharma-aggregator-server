@@ -7,6 +7,7 @@ import java.util.Optional;
 public interface TempSellerRepository extends JpaRepository<TempSeller, Long> {
     boolean existsByPhone(String phone);
     boolean existsByEmail(String email);
+    boolean existsByGstNumber(String gstnumber);
 
     @Query("SELECT MAX(s.tempSellerRequestId) FROM TempSeller s")
     Optional<String> findMaxRequestId();

@@ -129,6 +129,18 @@ public class TempSellerController {
         return ResponseEntity.ok(exists);
     }
 
+    @GetMapping("/coordinator/check-document")
+    public ResponseEntity<Boolean> checkDocumentExists(@RequestParam String documentnumber) {
+        boolean exists = coordinatorService.checkDocumentExists(documentnumber);
+        return ResponseEntity.ok(exists); //checkGSTNumberExists
+    }
+
+    @GetMapping("/coordinator/check-gstnumber")
+    public ResponseEntity<Boolean> checkGstNumberExists(@RequestParam String gstnumber) {
+        boolean exists = coordinatorService.checkGSTNumberExists(gstnumber);
+        return ResponseEntity.ok(exists);
+    }
+
     @PostMapping(value = "/{tempSellerId}/documents/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<TempSellerDocumentUploadResponse>> uploadDocuments(
             @PathVariable Long tempSellerId,
