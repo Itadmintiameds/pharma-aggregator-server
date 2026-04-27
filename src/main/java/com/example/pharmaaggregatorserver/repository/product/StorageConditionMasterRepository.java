@@ -9,7 +9,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface StorageConditionMasterRepository extends JpaRepository<StorageConditionMaster, Long> {
-    Optional<StorageConditionMaster> findByConditionName(String storage);
+//    Optional<StorageConditionMaster> findByConditionName(String storage);
+
+    Optional<StorageConditionMaster> findByConditionNameAndCategory_CategoryId(String storage, Long categoryId);
 
     @Query("""
         SELECT s.storageConditionId AS storageConditionId,

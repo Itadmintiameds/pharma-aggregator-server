@@ -211,13 +211,13 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
 
         // ===== ATTRIBUTES =====
         dto.setProductAttributeConsumableMedicals(
-                Set.of(buildConsumableAttr(row))
+                Set.of(buildConsumableAttr(row, categoryId))
         );
 
         return dto;
     }
 
-    private ConsumableProductAttributeDTO buildConsumableAttr(Row row) {
+    private ConsumableProductAttributeDTO buildConsumableAttr(Row row, Long categoryId) {
 
         ConsumableProductAttributeDTO dto = new ConsumableProductAttributeDTO();
 
@@ -300,7 +300,7 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
         String storage = getString(row, COL_STORAGE_CONDITION);
         if (storage != null && !storage.isBlank()) {
             dto.setStorageConditionId(
-                    storageConditionRepository.findByConditionName(storage)
+                    storageConditionRepository.findByConditionNameAndCategory_CategoryId(storage, categoryId)
                             .orElseThrow(() -> new RuntimeException("Storage condition not found"))
                             .getStorageConditionId()
             );
@@ -617,13 +617,13 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
 
         // ===== ATTRIBUTES =====
         dto.setProductAttributeConsumableMedicals(
-                Set.of(buildConsumableAttrFromCsv(r))
+                Set.of(buildConsumableAttrFromCsv(r, categoryId))
         );
 
         return dto;
     }
 
-    private ConsumableProductAttributeDTO buildConsumableAttrFromCsv(CSVRecord r) {
+    private ConsumableProductAttributeDTO buildConsumableAttrFromCsv(CSVRecord r, Long categoryId) {
 
         ConsumableProductAttributeDTO dto = new ConsumableProductAttributeDTO();
 
@@ -703,7 +703,7 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
         String storage = getCsvString(r, H_STORAGE_CONDITION);
         if (storage != null && !storage.isBlank()) {
             dto.setStorageConditionId(
-                    storageConditionRepository.findByConditionName(storage)
+                    storageConditionRepository.findByConditionNameAndCategory_CategoryId(storage, categoryId)
                             .orElseThrow(() -> new RuntimeException("Storage condition not found"))
                             .getStorageConditionId()
             );

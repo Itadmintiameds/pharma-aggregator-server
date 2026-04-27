@@ -33,7 +33,10 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
     private final StorageConditionMasterRepository storageConditionRepository;
     private final PackTypeRepository packTypeRepository;
 
-    // ===== COLUMN INDEX (0-based, verified against Excel template row 0) =====
+    // ── Valid GST percentages ─────────────────────────────────────────────
+    private static final Set<Long> VALID_GST_VALUES = Set.of(0L, 5L, 12L, 18L);
+
+    // ===== COLUMN INDEX (0-based) =========================================
     private static final int COL_DEVICE_CATEGORY = 0;
     private static final int COL_DEVICE_SUBCATEGORY = 1;
     private static final int COL_PRODUCT_NAME = 2;
@@ -66,7 +69,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
     private static final int COL_MAX_ORDER_QTY = 25;
     private static final int COL_MFG_DATE = 26; // "Manufacturing Date*"
     private static final int COL_STOCK_QTY = 27;
-    private static final int COL_DATE_OF_ENTRY = 28;
+    private static final int COL_DATE_OF_ENTRY = 28; // ignored — always LocalDate.now()
     private static final int COL_MRP = 29;
     private static final int COL_SELLING_PRICE = 30;
     private static final int COL_DISCOUNT = 31;
@@ -110,7 +113,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
     private static final String H_MAX_ORDER_QTY = "Max Order Qty*";
     private static final String H_MFG_DATE = "Manufacturing Date*";
     private static final String H_STOCK_QTY = "Stock Quantity*";
-    private static final String H_DATE_OF_ENTRY = "Date of Entry*";
+    private static final String H_DATE_OF_ENTRY = "Date of Entry*"; // ignored — always LocalDate.now()
     private static final String H_MRP = "MRP (INR)*";
     private static final String H_SELLING_PRICE = "Selling Price(INR)*";
     private static final String H_DISCOUNT = "Discount %";
@@ -129,6 +132,10 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
     private static final int[] CSV_SLAB_END_DATE_COLS = {39, 46, 53, 60};
     private static final int[] CSV_SLAB_END_TIME_COLS = {40, 47, 54, 61};
 
+    // =========================================================
+    // ================= EXCEL ENTRY POINT =====================
+    // =========================================================
+
     @Override
     public ProductDetailsDto mapRow(Row row, Long categoryId) {
         log.info("Non-Consumable Excel import Called");
@@ -137,11 +144,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
 
         ProductDetailsDto dto = new ProductDetailsDto();
 
-        // ===== BASIC =====
-        String productName = getString(row, COL_PRODUCT_NAME);
-        if (isBlank(productName)) throw new RuntimeException("Product Name is mandatory");
-
-        dto.setProductName(productName);
+        dto.setProductName(getString(row, COL_PRODUCT_NAME));
         dto.setWarningsPrecautions(getString(row, COL_SAFETY_PRECAUTIONS));
         dto.setProductDescription(getString(row, COL_PRODUCT_DESCRIPTION));
         dto.setManufacturerName(getString(row, COL_MANUFACTURER));
@@ -156,40 +159,143 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
                 categoryId
         )));
 
-        // ===== ADDITIONAL DISCOUNTS =====
-        Set<AdditionalDiscountDto> additionalDiscounts = buildAdditionalDiscounts(row);
+        Long mainDiscountPct = getLong(row, COL_DISCOUNT);
+        Long mainMinOrderQty = getLong(row, COL_MIN_ORDER_QTY);
+        Long mainMaxOrderQty = getLong(row, COL_MAX_ORDER_QTY);
+        Set<Long> seenSlabMpqs = new HashSet<>();
+        Set<AdditionalDiscountDto> additionalDiscounts = new HashSet<>();
 
-        // ===== PRICING =====
-        // Note: this template has no Batch/Lot Number or Expiry Date or Shelf Life columns
+        for (int slab = 0; slab < ADD_DISCOUNT_SLAB_COUNT; slab++) {
+            int base = COL_ADD_DISCOUNT_START + (slab * ADD_DISCOUNT_SLAB_SIZE);
+            Long minQty = getLong(row, base + 1);
+            Long discount = getLong(row, base + 2);
+
+            if ((minQty == null || minQty == 0) && (discount == null || discount == 0)) continue;
+
+            validateAdditionalDiscountSlab(
+                    slab + 1, minQty, discount,
+                    mainMinOrderQty, mainMaxOrderQty, mainDiscountPct,
+                    getDate(row, base + 3), getDate(row, base + 5),
+                    seenSlabMpqs);
+
+            AdditionalDiscountDto d = new AdditionalDiscountDto();
+            d.setMinimumPurchaseQuantity(minQty);
+            d.setAdditionalDiscountPercentage(discount);
+            d.setEffectiveStartDate(getDate(row, base + 3));
+            d.setEffectiveStartTime(getTime(row, base + 4));
+            d.setEffectiveEndDate(getDate(row, base + 5));
+            d.setEffectiveEndTime(getTime(row, base + 6));
+            additionalDiscounts.add(d);
+        }
+
         dto.setPricingDetails(Set.of(buildPricing(
-                null,                                     // batchNumber — not in template
+                null,
                 toStart(getDate(row, COL_MFG_DATE)),
-                null,                                     // expiryDate — not in template
+                null,
                 null,
                 getLong(row, COL_STOCK_QTY),
-                getDate(row, COL_DATE_OF_ENTRY),
+                LocalDate.now(),                    // Date of Stock Entry — always today
                 getLong(row, COL_MRP),
                 getLong(row, COL_SELLING_PRICE),
-                getLong(row, COL_DISCOUNT),
+                mainDiscountPct,
                 getLong(row, COL_GST),
                 getLong(row, COL_HSN),
-                null,                                     // shelfLifeMonths — not in template
+                null,                               // shelfLifeMonths — not in template
                 additionalDiscounts
         )));
 
-        // ===== ATTRIBUTES =====
         dto.setProductAttributeNonConsumableMedicals(
-                Set.of(buildNonConsumableAttr(row))
+                Set.of(buildNonConsumableAttr(row, categoryId))
         );
 
         return dto;
     }
 
     // =========================================================
-    // ================= NON CONSUMABLE ATTR ===================
+    // ================= CSV ENTRY POINT =======================
     // =========================================================
 
-    private ProductAttributeNonConsumableMedicalDto buildNonConsumableAttr(Row row) {
+    @Override
+    public ProductDetailsDto mapCsv(CSVRecord r, Long categoryId) {
+        log.info("Non-Consumable CSV import Called");
+
+        validateMandatoryCsv(r);
+
+        ProductDetailsDto dto = new ProductDetailsDto();
+
+        dto.setProductName(getCsvString(r, H_PRODUCT_NAME));
+        dto.setWarningsPrecautions(getCsvString(r, H_SAFETY_PRECAUTIONS));
+        dto.setProductDescription(getCsvString(r, H_PRODUCT_DESCRIPTION));
+        dto.setManufacturerName(getCsvString(r, H_MANUFACTURER));
+
+        dto.setPackagingDetails(Set.of(buildPackaging(
+                getCsvLong(r, H_UNIT_PER_PACK),
+                getCsvLong(r, H_NUMBER_OF_PACKS),
+                getCsvLong(r, H_MIN_ORDER_QTY),
+                getCsvLong(r, H_MAX_ORDER_QTY),
+                getCsvString(r, H_PACK_TYPE),
+                categoryId
+        )));
+
+        Long mainDiscountPct = getCsvLong(r, H_DISCOUNT);
+        Long mainMinOrderQty = getCsvLong(r, H_MIN_ORDER_QTY);
+        Long mainMaxOrderQty = getCsvLong(r, H_MAX_ORDER_QTY);
+        Set<Long> seenSlabMpqs = new HashSet<>();
+        Set<AdditionalDiscountDto> additionalDiscounts = new HashSet<>();
+
+        for (int slab = 0; slab < ADD_DISCOUNT_SLAB_COUNT; slab++) {
+            Long minQty = getCsvLongByIndex(r, CSV_SLAB_MIN_QTY_COLS[slab]);
+            Long discount = getCsvLongByIndex(r, CSV_SLAB_DISCOUNT_COLS[slab]);
+
+            if ((minQty == null || minQty == 0) && (discount == null || discount == 0)) continue;
+
+            LocalDate slabStartDate = parseCsvDate(getCsvStringByIndex(r, CSV_SLAB_START_DATE_COLS[slab]));
+            LocalDate slabEndDate = parseCsvDate(getCsvStringByIndex(r, CSV_SLAB_END_DATE_COLS[slab]));
+
+            validateAdditionalDiscountSlab(
+                    slab + 1, minQty, discount,
+                    mainMinOrderQty, mainMaxOrderQty, mainDiscountPct,
+                    slabStartDate, slabEndDate,
+                    seenSlabMpqs);
+
+            AdditionalDiscountDto d = new AdditionalDiscountDto();
+            d.setMinimumPurchaseQuantity(minQty);
+            d.setAdditionalDiscountPercentage(discount);
+            d.setEffectiveStartDate(slabStartDate);
+            d.setEffectiveStartTime(parseCsvTime(getCsvStringByIndex(r, CSV_SLAB_START_TIME_COLS[slab])));
+            d.setEffectiveEndDate(slabEndDate);
+            d.setEffectiveEndTime(parseCsvTime(getCsvStringByIndex(r, CSV_SLAB_END_TIME_COLS[slab])));
+            additionalDiscounts.add(d);
+        }
+
+        dto.setPricingDetails(Set.of(buildPricing(
+                null,
+                toStart(parseCsvDate(getCsvString(r, H_MFG_DATE))),
+                null,
+                null,
+                getCsvLong(r, H_STOCK_QTY),
+                LocalDate.now(),                    // Date of Stock Entry — always today
+                getCsvLong(r, H_MRP),
+                getCsvLong(r, H_SELLING_PRICE),
+                mainDiscountPct,
+                getCsvLong(r, H_GST),
+                getCsvLong(r, H_HSN),
+                null,
+                additionalDiscounts
+        )));
+
+        dto.setProductAttributeNonConsumableMedicals(
+                Set.of(buildNonConsumableAttrFromCsv(r, categoryId))
+        );
+
+        return dto;
+    }
+
+    // =========================================================
+    // ================= NON CONSUMABLE ATTR (Excel) ===========
+    // =========================================================
+
+    private ProductAttributeNonConsumableMedicalDto buildNonConsumableAttr(Row row, Long categoryId) {
 
         ProductAttributeNonConsumableMedicalDto dto =
                 new ProductAttributeNonConsumableMedicalDto();
@@ -298,183 +404,23 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         String storage = getString(row, COL_STORAGE_CONDITION);
         if (!isBlank(storage)) {
             dto.setStorageConditionId(
-                    storageConditionRepository.findByConditionName(storage)
+                    storageConditionRepository
+                            .findByConditionNameAndCategory_CategoryId(storage, categoryId)
                             .orElseThrow(() -> new RuntimeException(
                                     "Storage condition not found: " + storage))
                             .getStorageConditionId()
             );
         }
 
-        // ===== BROCHURE =====
         dto.setBrochurePath("NOT_UPLOADED");
-
         return dto;
     }
 
     // =========================================================
-    // ================= ADDITIONAL DISCOUNTS ==================
+    // ================= NON CONSUMABLE ATTR (CSV) =============
     // =========================================================
 
-    private Set<AdditionalDiscountDto> buildAdditionalDiscounts(Row row) {
-
-        Set<AdditionalDiscountDto> set = new HashSet<>();
-
-        for (int slab = 0; slab < ADD_DISCOUNT_SLAB_COUNT; slab++) {
-            // base points to the "Slab label" cell; data starts at base+1
-            int base = COL_ADD_DISCOUNT_START + (slab * ADD_DISCOUNT_SLAB_SIZE);
-
-            Long minQty = getLong(row, base + 1);
-            Long discount = getLong(row, base + 2);
-
-            if ((minQty == null || minQty == 0) &&
-                    (discount == null || discount == 0)) continue;
-
-            AdditionalDiscountDto d = new AdditionalDiscountDto();
-            d.setMinimumPurchaseQuantity(minQty);
-            d.setAdditionalDiscountPercentage(discount);
-            d.setEffectiveStartDate(getDate(row, base + 3));
-            d.setEffectiveStartTime(getTime(row, base + 4));
-            d.setEffectiveEndDate(getDate(row, base + 5));
-            d.setEffectiveEndTime(getTime(row, base + 6));
-
-            set.add(d);
-        }
-
-        return set;
-    }
-
-    // =========================================================
-    // ================= PACKAGING =============================
-    // =========================================================
-
-    private PackagingDetailsDto buildPackaging(Long unit, Long packs,
-                                               Long min, Long max,
-                                               String packType, Long categoryId) {
-        PackagingDetailsDto dto = new PackagingDetailsDto();
-        dto.setUnitPerPack(unit);
-        dto.setNumberOfPacks(packs);
-        dto.setMinimumOrderQuantity(min);
-        dto.setMaximumOrderQuantity(max);
-
-        if (unit != null && packs != null) {
-            dto.setPackSize(unit * packs);
-        }
-
-        if (!isBlank(packType)) {
-            dto.setPackId(
-                    packTypeRepository.findByPackTypeAndCategory_CategoryId(packType, categoryId)
-                            .orElseThrow(() -> new RuntimeException(
-                                    "Pack type not found: " + packType))
-                            .getPackId()
-            );
-        }
-
-        return dto;
-    }
-
-    // =========================================================
-    // ================= PRICING ===============================
-    // =========================================================
-
-    private PricingDetailsDto buildPricing(
-            String batchNumber, LocalDateTime mfgDate, LocalDateTime expiryDate,
-            String storageCondition, Long stockQty, LocalDate dateOfEntry,
-            Long mrp, Long sellingPrice, Long discountPct, Long gstPct,
-            Long hsnCode, Long shelfLifeMonths,
-            Set<AdditionalDiscountDto> additionalDiscounts) {
-
-        PricingDetailsDto pricing = new PricingDetailsDto();
-        pricing.setBatchLotNumber(batchNumber);
-        pricing.setManufacturingDate(mfgDate);
-        pricing.setExpiryDate(expiryDate);
-//        pricing.setStorageCondition(storageCondition);
-        pricing.setStockQuantity(stockQty);
-        pricing.setDateOfStockEntry(dateOfEntry);
-        pricing.setMrp(mrp);
-        pricing.setSellingPrice(sellingPrice);
-        pricing.setDiscountPercentage(discountPct);
-        pricing.setGstPercentage(gstPct);
-        pricing.setHsnCode(hsnCode);
-        pricing.setShelfLifeMonths(shelfLifeMonths);
-
-        if (additionalDiscounts != null && !additionalDiscounts.isEmpty()) {
-            pricing.setAdditionalDiscounts(additionalDiscounts);
-        }
-
-        return pricing;
-    }
-
-    // =========================================================
-// ================= CSV ENTRY POINT =======================
-// =========================================================
-
-    @Override
-    public ProductDetailsDto mapCsv(CSVRecord r, Long categoryId) {
-        log.info("Non-Consumable CSV import Called");
-
-        validateMandatoryCsv(r);
-
-        String certifications = getCsvString(r, H_CERTIFICATIONS);
-
-        ProductDetailsDto dto = new ProductDetailsDto();
-
-        String productName = getCsvString(r, H_PRODUCT_NAME);
-        if (isBlank(productName)) throw new RuntimeException("Product Name is mandatory");
-
-        dto.setProductName(productName);
-        dto.setWarningsPrecautions(getCsvString(r, H_SAFETY_PRECAUTIONS));
-        dto.setProductDescription(getCsvString(r, H_PRODUCT_DESCRIPTION));
-        dto.setManufacturerName(getCsvString(r, H_MANUFACTURER));
-
-        dto.setPackagingDetails(Set.of(buildPackaging(
-                getCsvLong(r, H_UNIT_PER_PACK),
-                getCsvLong(r, H_NUMBER_OF_PACKS),
-                getCsvLong(r, H_MIN_ORDER_QTY),
-                getCsvLong(r, H_MAX_ORDER_QTY),
-                getCsvString(r, H_PACK_TYPE),
-                categoryId
-        )));
-
-        Set<AdditionalDiscountDto> additionalDiscounts = new HashSet<>();
-        for (int slab = 0; slab < ADD_DISCOUNT_SLAB_COUNT; slab++) {
-            Long minQty = getCsvLongByIndex(r, CSV_SLAB_MIN_QTY_COLS[slab]);
-            Long discount = getCsvLongByIndex(r, CSV_SLAB_DISCOUNT_COLS[slab]);
-            if ((minQty == null || minQty == 0) && (discount == null || discount == 0)) continue;
-
-            AdditionalDiscountDto d = new AdditionalDiscountDto();
-            d.setMinimumPurchaseQuantity(minQty);
-            d.setAdditionalDiscountPercentage(discount);
-            d.setEffectiveStartDate(parseCsvDate(getCsvStringByIndex(r, CSV_SLAB_START_DATE_COLS[slab])));
-            d.setEffectiveStartTime(parseCsvTime(getCsvStringByIndex(r, CSV_SLAB_START_TIME_COLS[slab])));
-            d.setEffectiveEndDate(parseCsvDate(getCsvStringByIndex(r, CSV_SLAB_END_DATE_COLS[slab])));
-            d.setEffectiveEndTime(parseCsvTime(getCsvStringByIndex(r, CSV_SLAB_END_TIME_COLS[slab])));
-            additionalDiscounts.add(d);
-        }
-
-        dto.setPricingDetails(Set.of(buildPricing(
-                null,
-                toStart(parseCsvDate(getCsvString(r, H_MFG_DATE))),
-                null,
-                null,
-                getCsvLong(r, H_STOCK_QTY),
-                parseCsvDate(getCsvString(r, H_DATE_OF_ENTRY)),
-                getCsvLong(r, H_MRP),
-                getCsvLong(r, H_SELLING_PRICE),
-                getCsvLong(r, H_DISCOUNT),
-                getCsvLong(r, H_GST),
-                getCsvLong(r, H_HSN),
-                null,
-                additionalDiscounts
-        )));
-
-        dto.setProductAttributeNonConsumableMedicals(
-                Set.of(buildNonConsumableAttrFromCsv(r))
-        );
-
-        return dto;
-    }
-
-    private ProductAttributeNonConsumableMedicalDto buildNonConsumableAttrFromCsv(CSVRecord r) {
+    private ProductAttributeNonConsumableMedicalDto buildNonConsumableAttrFromCsv(CSVRecord r, Long categoryId) {
 
         ProductAttributeNonConsumableMedicalDto dto =
                 new ProductAttributeNonConsumableMedicalDto();
@@ -570,7 +516,8 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         String storage = getCsvString(r, H_STORAGE_CONDITION);
         if (!isBlank(storage)) {
             dto.setStorageConditionId(
-                    storageConditionRepository.findByConditionName(storage)
+                    storageConditionRepository
+                            .findByConditionNameAndCategory_CategoryId(storage, categoryId)
                             .orElseThrow(() -> new RuntimeException(
                                     "Storage condition not found: " + storage))
                             .getStorageConditionId()
@@ -581,9 +528,647 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         return dto;
     }
 
-// =========================================================
-// ================= CSV HELPERS ===========================
-// =========================================================
+    // =========================================================
+    // ================= PACKAGING =============================
+    // =========================================================
+
+    private PackagingDetailsDto buildPackaging(Long unit, Long packs,
+                                               Long min, Long max,
+                                               String packType, Long categoryId) {
+        PackagingDetailsDto dto = new PackagingDetailsDto();
+        dto.setUnitPerPack(unit);
+        dto.setNumberOfPacks(packs);
+        dto.setMinimumOrderQuantity(min);
+        dto.setMaximumOrderQuantity(max);
+
+        if (unit != null && packs != null) {
+            dto.setPackSize(unit * packs);
+        }
+
+        if (!isBlank(packType)) {
+            dto.setPackId(
+                    packTypeRepository.findByPackTypeAndCategory_CategoryId(packType, categoryId)
+                            .orElseThrow(() -> new RuntimeException(
+                                    "Pack type not found: " + packType))
+                            .getPackId()
+            );
+        }
+
+        return dto;
+    }
+
+    // =========================================================
+    // ================= PRICING ===============================
+    // =========================================================
+
+    private PricingDetailsDto buildPricing(
+            String batchNumber, LocalDateTime mfgDate, LocalDateTime expiryDate,
+            String storageCondition, Long stockQty, LocalDate dateOfEntry,
+            Long mrp, Long sellingPrice, Long discountPct, Long gstPct,
+            Long hsnCode, Long shelfLifeMonths,
+            Set<AdditionalDiscountDto> additionalDiscounts) {
+
+        PricingDetailsDto pricing = new PricingDetailsDto();
+        pricing.setBatchLotNumber(batchNumber);
+        pricing.setManufacturingDate(mfgDate);
+        pricing.setExpiryDate(expiryDate);
+        pricing.setStockQuantity(stockQty);
+        pricing.setDateOfStockEntry(dateOfEntry);
+        pricing.setMrp(mrp);
+        pricing.setSellingPrice(sellingPrice);
+        pricing.setDiscountPercentage(discountPct);
+        pricing.setGstPercentage(gstPct);
+        pricing.setHsnCode(hsnCode);
+        pricing.setShelfLifeMonths(shelfLifeMonths);
+
+        if (additionalDiscounts != null && !additionalDiscounts.isEmpty()) {
+            pricing.setAdditionalDiscounts(additionalDiscounts);
+        }
+
+        return pricing;
+    }
+
+    // =========================================================
+    // ================= ADDITIONAL DISCOUNT SLAB VALIDATION ===
+    // =========================================================
+
+    /**
+     * Validates a single additional discount slab.
+     * Throws ValidationException immediately on the first bad slab so the
+     * error message clearly identifies which slab (1-based) is at fault.
+     */
+    private void validateAdditionalDiscountSlab(
+            int slabNumber,
+            Long mpq, Long discountPct,
+            Long mainMoq, Long mainMaxQty, Long mainDiscountPct,
+            LocalDate startDate, LocalDate endDate,
+            Set<Long> seenMpqs) {
+
+        List<String> errors = new ArrayList<>();
+        String prefix = "Additional Discount Slab " + slabNumber + ": ";
+
+        // ── MPQ validations ───────────────────────────────────────────────
+        if (mpq == null) {
+            errors.add(prefix + "MPQ is required");
+        } else {
+            if (mpq <= 0) {
+                errors.add(prefix + "MPQ must be greater than 0");
+            }
+            if (mainMoq != null && mpq <= mainMoq) {
+                errors.add(prefix + "MPQ (" + mpq + ") must be greater than main Minimum Order Quantity (" + mainMoq + ")");
+            }
+            if (mainMaxQty != null && mpq > mainMaxQty) {
+                errors.add(prefix + "MPQ (" + mpq + ") must be ≤ main Maximum Order Quantity (" + mainMaxQty + ")");
+            }
+            if (!seenMpqs.add(mpq)) {
+                errors.add(prefix + "Duplicate MPQ value (" + mpq + ") — each slab must have a unique MPQ");
+            }
+        }
+
+        // ── Discount % validations ────────────────────────────────────────
+        if (discountPct == null) {
+            if (mpq != null) {
+                errors.add(prefix + "Discount % cannot be blank when MPQ is entered");
+            }
+        } else {
+            if (discountPct <= 0 || discountPct > 100) {
+                errors.add(prefix + "Discount % must be between 1 and 100");
+            }
+            if (mainDiscountPct != null && discountPct < mainDiscountPct) {
+                errors.add(prefix + "Discount % (" + discountPct + ") must be ≥ main Discount % (" + mainDiscountPct + ")");
+            }
+        }
+
+        // ── Effective date validations ────────────────────────────────────
+        if (startDate == null) {
+            errors.add(prefix + "Effective Start Date is mandatory for an additional discount slab");
+        }
+        if (endDate == null) {
+            errors.add(prefix + "Effective End Date is mandatory for an additional discount slab");
+        }
+        if (startDate != null && endDate != null && endDate.isBefore(startDate)) {
+            errors.add(prefix + "Effective End Date cannot be before Effective Start Date");
+        }
+
+        if (!errors.isEmpty()) {
+            throw new ValidationException(errors);
+        }
+    }
+
+    // =========================================================
+    // ================= EXCEL VALIDATION ======================
+    // =========================================================
+
+    private void validateMandatoryExcel(Row row) {
+        List<String> errors = new ArrayList<>();
+
+        // ── Product Name ──────────────────────────────────────────────────
+        String productName = getString(row, COL_PRODUCT_NAME);
+        validateRequired(productName, "Product Name", errors);
+        if (!isBlank(productName)) {
+            if (productName.length() < 3) errors.add("Product Name must be at least 3 characters");
+            if (productName.length() > 150) errors.add("Product Name must not exceed 150 characters");
+        }
+
+        // ── Device Category / Sub Category ────────────────────────────────
+        validateRequired(getString(row, COL_DEVICE_CATEGORY), "Device Category", errors);
+        validateRequired(getString(row, COL_DEVICE_SUBCATEGORY), "Device Sub Category", errors);
+
+        // ── Brand Name ────────────────────────────────────────────────────
+        String brandName = getString(row, COL_BRAND_NAME);
+        validateRequired(brandName, "Brand Name", errors);
+        if (!isBlank(brandName) && brandName.length() > 60) {
+            errors.add("Brand Name must not exceed 60 characters");
+        }
+
+        // ── Model Name ────────────────────────────────────────────────────
+        String modelName = getString(row, COL_MODEL_NAME);
+        validateRequired(modelName, "Model Name", errors);
+        if (!isBlank(modelName) && modelName.length() > 60) {
+            errors.add("Model Name must not exceed 60 characters");
+        }
+
+        // ── Model Number ──────────────────────────────────────────────────
+        String modelNumber = getString(row, COL_MODEL_NUMBER);
+        validateRequired(modelNumber, "Model Number", errors);
+        if (!isBlank(modelNumber) && modelNumber.length() > 60) {
+            errors.add("Model Number must not exceed 60 characters");
+        }
+
+        // ── Device Classification ─────────────────────────────────────────
+        validateRequired(getString(row, COL_DEVICE_CLASSIFICATION), "Device Classification", errors);
+
+        // ── UDI (optional) ────────────────────────────────────────────────
+        String udi = getString(row, COL_UDI);
+        if (!isBlank(udi) && udi.length() > 60) {
+            errors.add("UDI must not exceed 60 characters");
+        }
+
+        // ── Intended Use / Purpose ────────────────────────────────────────
+        String purpose = getString(row, COL_PURPOSE);
+        validateRequired(purpose, "Intended Use / Purpose", errors);
+        if (!isBlank(purpose) && purpose.length() < 10) {
+            errors.add("Intended Use / Purpose must be at least 10 characters");
+        }
+
+        // ── Key Features ──────────────────────────────────────────────────
+        String keyFeatures = getString(row, COL_KEY_FEATURES);
+        validateRequired(keyFeatures, "Key Features / Technical Specifications", errors);
+        if (!isBlank(keyFeatures) && keyFeatures.length() < 10) {
+            errors.add("Key Features / Technical Specifications must be at least 10 characters");
+        }
+
+        // ── Warnings / Precautions ────────────────────────────────────────
+        String warnings = getString(row, COL_SAFETY_PRECAUTIONS);
+        validateRequired(warnings, "Safety Instructions / Precautions", errors);
+        if (!isBlank(warnings)) {
+            if (warnings.length() < 10) errors.add("Safety Instructions / Precautions must be at least 10 characters");
+            if (warnings.length() > 1000)
+                errors.add("Safety Instructions / Precautions must not exceed 1000 characters");
+        }
+
+        // ── Certifications / Material ─────────────────────────────────────
+        validateRequired(getString(row, COL_CERTIFICATIONS), "Certifications", errors);
+        validateRequired(getString(row, COL_MATERIAL_TYPES), "Material Type", errors);
+
+        // ── Warranty Period ───────────────────────────────────────────────
+        String warrantyRaw = getString(row, COL_WARRANTY);
+        validateRequired(warrantyRaw, "Warranty Period", errors);
+        if (!isBlank(warrantyRaw)) {
+            validateWarrantyPeriod(warrantyRaw, errors);
+        }
+
+        // ── Service Availability / Country ────────────────────────────────
+        validateRequired(getString(row, COL_SERVICE_AVAILABILITY), "Service Availability", errors);
+        validateRequired(getString(row, COL_COUNTRY), "Country", errors);
+
+        // ── Manufacturer Name ─────────────────────────────────────────────
+        String manufacturer = getString(row, COL_MANUFACTURER);
+        validateRequired(manufacturer, "Manufacturer Name", errors);
+        if (!isBlank(manufacturer) && manufacturer.length() > 100) {
+            errors.add("Manufacturer Name must not exceed 100 characters");
+        }
+
+        // ── Product Description ───────────────────────────────────────────
+        String description = getString(row, COL_PRODUCT_DESCRIPTION);
+        validateRequired(description, "Product Description", errors);
+        if (!isBlank(description) && description.length() > 1000) {
+            errors.add("Product Description must not exceed 1000 characters");
+        }
+
+        // ── Pack Type ─────────────────────────────────────────────────────
+        validateRequired(getString(row, COL_PACK_TYPE), "Pack Type", errors);
+
+        // ── Unit Per Pack ─────────────────────────────────────────────────
+        String unitPerPackRaw = getString(row, COL_UNIT_PER_PACK);
+        Long unitPerPack = getLong(row, COL_UNIT_PER_PACK);
+        validateRequired(unitPerPackRaw, "Number of Units per Pack Type", errors);
+        if (!isBlank(unitPerPackRaw)) {
+            if (unitPerPack == null) errors.add("Number of Units per Pack Type must be numeric");
+            else if (unitPerPack <= 0) errors.add("Number of Units per Pack Type must be a positive value");
+        }
+
+        // ── Number of Packs ───────────────────────────────────────────────
+        String numberOfPacksRaw = getString(row, COL_NUMBER_OF_PACKS);
+        Long numberOfPacks = getLong(row, COL_NUMBER_OF_PACKS);
+        validateRequired(numberOfPacksRaw, "Number of Packs", errors);
+        if (!isBlank(numberOfPacksRaw)) {
+            if (numberOfPacks == null) errors.add("Number of Packs must be numeric");
+            else if (numberOfPacks <= 0) errors.add("Number of Packs must be a positive value");
+        }
+
+        // ── Min / Max Order Quantities ────────────────────────────────────
+        String minOrderQtyRaw = getString(row, COL_MIN_ORDER_QTY);
+        Long minOrderQty = getLong(row, COL_MIN_ORDER_QTY);
+        validateRequired(minOrderQtyRaw, "Minimum Order Qty", errors);
+        if (!isBlank(minOrderQtyRaw)) {
+            if (minOrderQty == null) errors.add("Minimum Order Qty must be numeric");
+            else if (minOrderQty <= 0) errors.add("Minimum Order Qty must be a positive value");
+        }
+
+        String maxOrderQtyRaw = getString(row, COL_MAX_ORDER_QTY);
+        Long maxOrderQty = getLong(row, COL_MAX_ORDER_QTY);
+        validateRequired(maxOrderQtyRaw, "Max Order Qty", errors);
+        if (!isBlank(maxOrderQtyRaw)) {
+            if (maxOrderQty == null) errors.add("Max Order Qty must be numeric");
+            else if (maxOrderQty <= 0) errors.add("Max Order Qty must be a positive value");
+        }
+
+        if (minOrderQty != null && maxOrderQty != null
+                && minOrderQty > 0 && maxOrderQty > 0
+                && minOrderQty > maxOrderQty) {
+            errors.add("Minimum Order Qty must be ≤ Maximum Order Qty");
+        }
+
+        // ── Manufacturing Date ────────────────────────────────────────────
+        LocalDate mfgDate = getDate(row, COL_MFG_DATE);
+        validateRequired(mfgDate, "Manufacturing Date", errors);
+        if (mfgDate != null && YearMonth.from(mfgDate).isAfter(YearMonth.now())) {
+            errors.add("Manufacturing Date cannot be a future month");
+        }
+
+        // ── Stock Quantity ────────────────────────────────────────────────
+        String stockQtyRaw = getString(row, COL_STOCK_QTY);
+        Long stockQty = getLong(row, COL_STOCK_QTY);
+        validateRequired(stockQtyRaw, "Stock Quantity", errors);
+        if (!isBlank(stockQtyRaw)) {
+            if (stockQty == null) errors.add("Stock Quantity must be numeric");
+            else if (stockQty <= 0) errors.add("Stock Quantity must be a positive value");
+            else if (minOrderQty != null && stockQty < minOrderQty)
+                errors.add("Stock Quantity (" + stockQty + ") must be ≥ Minimum Order Quantity (" + minOrderQty + ")");
+        }
+
+        // ── Date of Stock Entry — ignored, always today ───────────────────
+
+        // ── MRP ───────────────────────────────────────────────────────────
+        String mrpRaw = getString(row, COL_MRP);
+        Long mrp = getLong(row, COL_MRP);
+        validateRequired(mrpRaw, "MRP", errors);
+        if (!isBlank(mrpRaw)) {
+            if (mrp == null) errors.add("MRP must be numeric");
+            else if (mrp <= 0) errors.add("MRP must be greater than 0");
+        }
+
+        // ── Selling Price ─────────────────────────────────────────────────
+        String sellingPriceRaw = getString(row, COL_SELLING_PRICE);
+        Long sellingPrice = getLong(row, COL_SELLING_PRICE);
+        validateRequired(sellingPriceRaw, "Selling Price", errors);
+        if (!isBlank(sellingPriceRaw)) {
+            if (sellingPrice == null) errors.add("Selling Price must be numeric");
+            else if (sellingPrice <= 0) errors.add("Selling Price must be greater than 0");
+            else if (mrp != null && sellingPrice > mrp) errors.add("Selling Price cannot be greater than MRP");
+        }
+
+        // ── Discount % ────────────────────────────────────────────────────
+        String discountRaw = getString(row, COL_DISCOUNT);
+        Long discount = getLong(row, COL_DISCOUNT);
+        if (!isBlank(discountRaw)) {
+            if (discount == null) errors.add("Discount % must be numeric");
+            else if (discount < 0 || discount > 100) errors.add("Discount % must be in the range 0–100");
+        }
+
+        // ── GST % ─────────────────────────────────────────────────────────
+        String gstRaw = getString(row, COL_GST);
+        Long gst = getLong(row, COL_GST);
+        validateRequired(gstRaw, "GST %", errors);
+        if (!isBlank(gstRaw)) {
+            if (gst == null) errors.add("GST % must be numeric");
+            else if (!VALID_GST_VALUES.contains(gst)) errors.add("GST % must be one of: 0, 5, 12, 18");
+        }
+
+        // ── HSN Code ──────────────────────────────────────────────────────
+        String hsnRaw = getString(row, COL_HSN);
+        Long hsn = getLong(row, COL_HSN);
+        validateRequired(hsnRaw, "HSN Code", errors);
+        if (!isBlank(hsnRaw)) {
+            if (hsn == null) {
+                errors.add("HSN Code must be numeric");
+            } else {
+                int digits = String.valueOf(hsn).length();
+                if (digits != 4 && digits != 6 && digits != 8)
+                    errors.add("HSN Code must be 4, 6, or 8 digits");
+            }
+        }
+
+        if (!errors.isEmpty()) throw new ValidationException(errors);
+    }
+
+    // =========================================================
+    // ================= CSV VALIDATION ========================
+    // =========================================================
+
+    private void validateMandatoryCsv(CSVRecord r) {
+        List<String> errors = new ArrayList<>();
+
+        // ── Product Name ──────────────────────────────────────────────────
+        String productName = getCsvString(r, H_PRODUCT_NAME);
+        validateRequired(productName, "Product Name", errors);
+        if (!isBlank(productName)) {
+            if (productName.length() < 3) errors.add("Product Name must be at least 3 characters");
+            if (productName.length() > 150) errors.add("Product Name must not exceed 150 characters");
+        }
+
+        // ── Device Category / Sub Category ────────────────────────────────
+        validateRequired(getCsvString(r, H_DEVICE_CATEGORY), "Device Category", errors);
+        validateRequired(getCsvString(r, H_DEVICE_SUBCATEGORY), "Device Sub Category", errors);
+
+        // ── Brand Name ────────────────────────────────────────────────────
+        String brandName = getCsvString(r, H_BRAND_NAME);
+        validateRequired(brandName, "Brand Name", errors);
+        if (!isBlank(brandName) && brandName.length() > 60) {
+            errors.add("Brand Name must not exceed 60 characters");
+        }
+
+        // ── Model Name ────────────────────────────────────────────────────
+        String modelName = getCsvString(r, H_MODEL_NAME);
+        validateRequired(modelName, "Model Name", errors);
+        if (!isBlank(modelName) && modelName.length() > 60) {
+            errors.add("Model Name must not exceed 60 characters");
+        }
+
+        // ── Model Number ──────────────────────────────────────────────────
+        String modelNumber = getCsvString(r, H_MODEL_NUMBER);
+        validateRequired(modelNumber, "Model Number", errors);
+        if (!isBlank(modelNumber) && modelNumber.length() > 60) {
+            errors.add("Model Number must not exceed 60 characters");
+        }
+
+        // ── Device Classification ─────────────────────────────────────────
+        validateRequired(getCsvString(r, H_DEVICE_CLASSIFICATION), "Device Classification", errors);
+
+        // ── UDI (optional) ────────────────────────────────────────────────
+        String udi = getCsvString(r, H_UDI);
+        if (!isBlank(udi) && udi.length() > 60) {
+            errors.add("UDI must not exceed 60 characters");
+        }
+
+        // ── Intended Use / Purpose ────────────────────────────────────────
+        String purpose = getCsvString(r, H_PURPOSE);
+        validateRequired(purpose, "Intended Use / Purpose", errors);
+        if (!isBlank(purpose) && purpose.length() < 10) {
+            errors.add("Intended Use / Purpose must be at least 10 characters");
+        }
+
+        // ── Key Features ──────────────────────────────────────────────────
+        String keyFeatures = getCsvString(r, H_KEY_FEATURES);
+        validateRequired(keyFeatures, "Key Features / Technical Specifications", errors);
+        if (!isBlank(keyFeatures) && keyFeatures.length() < 10) {
+            errors.add("Key Features / Technical Specifications must be at least 10 characters");
+        }
+
+        // ── Warnings / Precautions ────────────────────────────────────────
+        String warnings = getCsvString(r, H_SAFETY_PRECAUTIONS);
+        validateRequired(warnings, "Safety Instructions / Precautions", errors);
+        if (!isBlank(warnings)) {
+            if (warnings.length() < 10) errors.add("Safety Instructions / Precautions must be at least 10 characters");
+            if (warnings.length() > 1000)
+                errors.add("Safety Instructions / Precautions must not exceed 1000 characters");
+        }
+
+        // ── Certifications / Material ─────────────────────────────────────
+        validateRequired(getCsvString(r, H_CERTIFICATIONS), "Certifications", errors);
+        validateRequired(getCsvString(r, H_MATERIAL_TYPES), "Material Type", errors);
+
+        // ── Warranty Period ───────────────────────────────────────────────
+        String warrantyRaw = getCsvString(r, H_WARRANTY);
+        validateRequired(warrantyRaw, "Warranty Period", errors);
+        if (!isBlank(warrantyRaw)) {
+            validateWarrantyPeriod(warrantyRaw, errors);
+        }
+
+        // ── Service Availability / Country ────────────────────────────────
+        validateRequired(getCsvString(r, H_SERVICE_AVAILABILITY), "Service Availability", errors);
+        validateRequired(getCsvString(r, H_COUNTRY), "Country", errors);
+
+        // ── Manufacturer Name ─────────────────────────────────────────────
+        String manufacturer = getCsvString(r, H_MANUFACTURER);
+        validateRequired(manufacturer, "Manufacturer Name", errors);
+        if (!isBlank(manufacturer) && manufacturer.length() > 100) {
+            errors.add("Manufacturer Name must not exceed 100 characters");
+        }
+
+        // ── Product Description ───────────────────────────────────────────
+        String description = getCsvString(r, H_PRODUCT_DESCRIPTION);
+        validateRequired(description, "Product Description", errors);
+        if (!isBlank(description) && description.length() > 1000) {
+            errors.add("Product Description must not exceed 1000 characters");
+        }
+
+        // ── Pack Type ─────────────────────────────────────────────────────
+        validateRequired(getCsvString(r, H_PACK_TYPE), "Pack Type", errors);
+
+        // ── Unit Per Pack ─────────────────────────────────────────────────
+        String unitPerPackRaw = getCsvString(r, H_UNIT_PER_PACK);
+        Long unitPerPack = getCsvLong(r, H_UNIT_PER_PACK);
+        validateRequired(unitPerPackRaw, "Number of Units per Pack Type", errors);
+        if (!isBlank(unitPerPackRaw)) {
+            if (unitPerPack == null) errors.add("Number of Units per Pack Type must be numeric");
+            else if (unitPerPack <= 0) errors.add("Number of Units per Pack Type must be a positive value");
+        }
+
+        // ── Number of Packs ───────────────────────────────────────────────
+        String numberOfPacksRaw = getCsvString(r, H_NUMBER_OF_PACKS);
+        Long numberOfPacks = getCsvLong(r, H_NUMBER_OF_PACKS);
+        validateRequired(numberOfPacksRaw, "Number of Packs", errors);
+        if (!isBlank(numberOfPacksRaw)) {
+            if (numberOfPacks == null) errors.add("Number of Packs must be numeric");
+            else if (numberOfPacks <= 0) errors.add("Number of Packs must be a positive value");
+        }
+
+        // ── Min / Max Order Quantities ────────────────────────────────────
+        String minOrderQtyRaw = getCsvString(r, H_MIN_ORDER_QTY);
+        Long minOrderQty = getCsvLong(r, H_MIN_ORDER_QTY);
+        validateRequired(minOrderQtyRaw, "Minimum Order Qty", errors);
+        if (!isBlank(minOrderQtyRaw)) {
+            if (minOrderQty == null) errors.add("Minimum Order Qty must be numeric");
+            else if (minOrderQty <= 0) errors.add("Minimum Order Qty must be a positive value");
+        }
+
+        String maxOrderQtyRaw = getCsvString(r, H_MAX_ORDER_QTY);
+        Long maxOrderQty = getCsvLong(r, H_MAX_ORDER_QTY);
+        validateRequired(maxOrderQtyRaw, "Max Order Qty", errors);
+        if (!isBlank(maxOrderQtyRaw)) {
+            if (maxOrderQty == null) errors.add("Max Order Qty must be numeric");
+            else if (maxOrderQty <= 0) errors.add("Max Order Qty must be a positive value");
+        }
+
+        if (minOrderQty != null && maxOrderQty != null
+                && minOrderQty > 0 && maxOrderQty > 0
+                && minOrderQty > maxOrderQty) {
+            errors.add("Minimum Order Qty must be ≤ Maximum Order Qty");
+        }
+
+        // ── Manufacturing Date ────────────────────────────────────────────
+        LocalDate mfgDate = parseCsvDate(getCsvString(r, H_MFG_DATE));
+        validateRequired(mfgDate, "Manufacturing Date", errors);
+        if (mfgDate != null && YearMonth.from(mfgDate).isAfter(YearMonth.now())) {
+            errors.add("Manufacturing Date cannot be a future month");
+        }
+
+        // ── Stock Quantity ────────────────────────────────────────────────
+        String stockQtyRaw = getCsvString(r, H_STOCK_QTY);
+        Long stockQty = getCsvLong(r, H_STOCK_QTY);
+        validateRequired(stockQtyRaw, "Stock Quantity", errors);
+        if (!isBlank(stockQtyRaw)) {
+            if (stockQty == null) errors.add("Stock Quantity must be numeric");
+            else if (stockQty <= 0) errors.add("Stock Quantity must be a positive value");
+            else if (minOrderQty != null && stockQty < minOrderQty)
+                errors.add("Stock Quantity (" + stockQty + ") must be ≥ Minimum Order Quantity (" + minOrderQty + ")");
+        }
+
+        // ── Date of Stock Entry — ignored, always today ───────────────────
+
+        // ── MRP ───────────────────────────────────────────────────────────
+        String mrpRaw = getCsvString(r, H_MRP);
+        Long mrp = getCsvLong(r, H_MRP);
+        validateRequired(mrpRaw, "MRP", errors);
+        if (!isBlank(mrpRaw)) {
+            if (mrp == null) errors.add("MRP must be numeric");
+            else if (mrp <= 0) errors.add("MRP must be greater than 0");
+        }
+
+        // ── Selling Price ─────────────────────────────────────────────────
+        String sellingPriceRaw = getCsvString(r, H_SELLING_PRICE);
+        Long sellingPrice = getCsvLong(r, H_SELLING_PRICE);
+        validateRequired(sellingPriceRaw, "Selling Price", errors);
+        if (!isBlank(sellingPriceRaw)) {
+            if (sellingPrice == null) errors.add("Selling Price must be numeric");
+            else if (sellingPrice <= 0) errors.add("Selling Price must be greater than 0");
+            else if (mrp != null && sellingPrice > mrp) errors.add("Selling Price cannot be greater than MRP");
+        }
+
+        // ── Discount % ────────────────────────────────────────────────────
+        String discountRaw = getCsvString(r, H_DISCOUNT);
+        Long discount = getCsvLong(r, H_DISCOUNT);
+        if (!isBlank(discountRaw)) {
+            if (discount == null) errors.add("Discount % must be numeric");
+            else if (discount < 0 || discount > 100) errors.add("Discount % must be in the range 0–100");
+        }
+
+        // ── GST % ─────────────────────────────────────────────────────────
+        String gstRaw = getCsvString(r, H_GST);
+        Long gst = getCsvLong(r, H_GST);
+        validateRequired(gstRaw, "GST %", errors);
+        if (!isBlank(gstRaw)) {
+            if (gst == null) errors.add("GST % must be numeric");
+            else if (!VALID_GST_VALUES.contains(gst)) errors.add("GST % must be one of: 0, 5, 12, 18");
+        }
+
+        // ── HSN Code ──────────────────────────────────────────────────────
+        String hsnRaw = getCsvString(r, H_HSN);
+        Long hsn = getCsvLong(r, H_HSN);
+        validateRequired(hsnRaw, "HSN Code", errors);
+        if (!isBlank(hsnRaw)) {
+            if (hsn == null) {
+                errors.add("HSN Code must be numeric");
+            } else {
+                int digits = String.valueOf(hsn).length();
+                if (digits != 4 && digits != 6 && digits != 8)
+                    errors.add("HSN Code must be 4, 6, or 8 digits");
+            }
+        }
+
+        if (!errors.isEmpty()) throw new ValidationException(errors);
+    }
+
+    // =========================================================
+    // ================= SHARED HELPERS ========================
+    // =========================================================
+
+    /**
+     * Validates Warranty Period: must be a parseable integer in range 1–999.
+     * Stored as-is (String); no DTO type change needed.
+     */
+    private void validateWarrantyPeriod(String raw, List<String> errors) {
+        // Strip any accidental decimal part Excel might have added (e.g. "12.0")
+        String cleaned = raw.contains(".") ? raw.substring(0, raw.indexOf('.')) : raw;
+        try {
+            int value = Integer.parseInt(cleaned.trim());
+            if (value < 1 || value > 999) {
+                errors.add("Warranty Period must be between 1 and 999 months");
+            }
+        } catch (NumberFormatException e) {
+            errors.add("Warranty Period must be numeric (in months, max 3 digits)");
+        }
+    }
+
+    private void validateRequired(Object value, String field, List<String> errors) {
+        if (value == null) {
+            errors.add(field + " is mandatory");
+        } else if (value instanceof String && ((String) value).isBlank()) {
+            errors.add(field + " is mandatory");
+        }
+    }
+
+    // =========================================================
+    // ================= EXCEL HELPERS =========================
+    // =========================================================
+
+    private String getString(Row row, int col) {
+        Cell cell = row.getCell(col);
+        return cell != null ? cell.toString().trim() : null;
+    }
+
+    private Long getLong(Row row, int col) {
+        Cell cell = row.getCell(col);
+        if (cell == null) return null;
+        try {
+            switch (cell.getCellType()) {
+                case NUMERIC:
+                    return (long) cell.getNumericCellValue();
+                case STRING:
+                    String s = cell.getStringCellValue().trim();
+                    if (s.isEmpty()) return null;
+                    return Long.parseLong(s);
+                case FORMULA:
+                    return (long) cell.getNumericCellValue();
+                default:
+                    return null;
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private LocalDate getDate(Row row, int col) {
+        try {
+            return row.getCell(col).getLocalDateTimeCellValue().toLocalDate();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private LocalTime getTime(Row row, int col) {
+        try {
+            return row.getCell(col).getLocalDateTimeCellValue().toLocalTime();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    // =========================================================
+    // ================= CSV HELPERS ===========================
+    // =========================================================
 
     private String getCsvString(CSVRecord r, String header) {
         try {
@@ -629,18 +1214,15 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         } catch (Exception ignored) {
         }
         try {
-            return YearMonth.parse(raw,
-                    DateTimeFormatter.ofPattern("MMM-yy", Locale.ENGLISH)).atDay(1);
+            return YearMonth.parse(raw, DateTimeFormatter.ofPattern("MMM-yy", Locale.ENGLISH)).atDay(1);
         } catch (Exception ignored) {
         }
         try {
-            return LocalDate.parse(raw,
-                    DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+            return LocalDate.parse(raw, DateTimeFormatter.ofPattern("dd-MM-yyyy"));
         } catch (Exception ignored) {
         }
         try {
-            return LocalDate.parse(raw,
-                    DateTimeFormatter.ofPattern("M/d/yyyy"));
+            return LocalDate.parse(raw, DateTimeFormatter.ofPattern("M/d/yyyy"));
         } catch (Exception ignored) {
         }
         log.warn("Could not parse date: '{}'", raw);
@@ -657,50 +1239,8 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
     }
 
     // =========================================================
-    // ================= HELPERS ===============================
+    // ================= DATE UTILS ============================
     // =========================================================
-
-    private String getString(Row row, int col) {
-        Cell cell = row.getCell(col);
-        return cell != null ? cell.toString().trim() : null;
-    }
-
-    private Long getLong(Row row, int col) {
-        Cell cell = row.getCell(col);
-        if (cell == null) return null;
-        try {
-            switch (cell.getCellType()) {
-                case NUMERIC:
-                    return (long) cell.getNumericCellValue();
-                case STRING:
-                    String s = cell.getStringCellValue().trim();
-                    if (s.isEmpty()) return null;
-                    return Long.parseLong(s);
-                case FORMULA:
-                    return (long) cell.getNumericCellValue();
-                default:
-                    return null;
-            }
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private LocalDate getDate(Row row, int col) {
-        try {
-            return row.getCell(col).getLocalDateTimeCellValue().toLocalDate();
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private LocalTime getTime(Row row, int col) {
-        try {
-            return row.getCell(col).getLocalDateTimeCellValue().toLocalTime();
-        } catch (Exception e) {
-            return null;
-        }
-    }
 
     private LocalDateTime toStart(LocalDate d) {
         return d != null ? d.atStartOfDay() : null;
@@ -712,139 +1252,5 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
 
     private boolean isBlank(String s) {
         return s == null || s.trim().isEmpty();
-    }
-
-    private void validateMandatoryExcel(Row row) {
-
-        List<String> errors = new ArrayList<>();
-
-        // ===== PRODUCT DETAILS =====
-        validateRequired(getString(row, COL_PRODUCT_NAME), "Product Name", errors);
-        validateRequired(getString(row, COL_DEVICE_CATEGORY), "Device Category", errors);
-        validateRequired(getString(row, COL_DEVICE_SUBCATEGORY), "Device Sub Category", errors);
-        validateRequired(getString(row, COL_BRAND_NAME), "Brand Name", errors);
-        validateRequired(getString(row, COL_MODEL_NAME), "Model Name", errors);
-        validateRequired(getString(row, COL_MODEL_NUMBER), "Model Number", errors);
-        validateRequired(getString(row, COL_DEVICE_CLASSIFICATION), "Device Classification", errors);
-        validateRequired(getString(row, COL_PURPOSE), "Intended Use / Purpose", errors);
-        validateRequired(getString(row, COL_KEY_FEATURES), "Key Features", errors);
-        validateRequired(getString(row, COL_SAFETY_PRECAUTIONS), "Safety Instructions", errors);
-        validateRequired(getString(row, COL_CERTIFICATIONS), "Certifications", errors);
-        validateRequired(getString(row, COL_MATERIAL_TYPES), "Material Type", errors);
-        validateRequired(getString(row, COL_WARRANTY), "Warranty Period", errors);
-        validateRequired(getString(row, COL_SERVICE_AVAILABILITY), "Service Availability", errors);
-        validateRequired(getString(row, COL_COUNTRY), "Country", errors);
-        validateRequired(getString(row, COL_MANUFACTURER), "Manufacturer Name", errors);
-        validateRequired(getString(row, COL_PRODUCT_DESCRIPTION), "Product Description", errors);
-
-        // ===== PACKAGING =====
-        validateRequired(getLong(row, COL_UNIT_PER_PACK), "Unit Per Pack", errors);
-        validateRequired(getLong(row, COL_NUMBER_OF_PACKS), "Number Of Packs", errors);
-        validateRequired(getLong(row, COL_MIN_ORDER_QTY), "Minimum Order Qty", errors);
-        validateRequired(getLong(row, COL_MAX_ORDER_QTY), "Max Order Qty", errors);
-
-        // ===== PRICING =====
-        validateRequired(getDate(row, COL_MFG_DATE), "Manufacturing Date", errors);
-        validateRequired(getLong(row, COL_STOCK_QTY), "Stock Quantity", errors);
-        validateRequired(getDate(row, COL_DATE_OF_ENTRY), "Date of Entry", errors);
-        validateRequired(getLong(row, COL_SELLING_PRICE), "Selling Price", errors);
-        validateRequired(getLong(row, COL_MRP), "MRP", errors);
-        validateRequired(getLong(row, COL_GST), "GST", errors);
-        validateRequired(getLong(row, COL_HSN), "HSN Code", errors);
-
-        Long hsnCodeExcel = getLong(row, COL_HSN);
-        if (hsnCodeExcel != null) {
-            int digits = String.valueOf(hsnCodeExcel).length();
-            if (digits != 4 && digits != 6 && digits != 8) {
-                errors.add("HSN Code must be 4, 6, or 8 digits");
-            }
-        }
-
-        // ===== BUSINESS RULES =====
-        Long mrp = getLong(row, COL_MRP);
-        Long sellingPrice = getLong(row, COL_SELLING_PRICE);
-
-        if (mrp != null && mrp <= 0) {
-            errors.add("MRP must be greater than 0");
-        }
-
-        if (sellingPrice != null && mrp != null && sellingPrice > mrp) {
-            errors.add("Selling Price cannot be greater than MRP");
-        }
-
-        if (!errors.isEmpty()) {
-            throw new ValidationException(errors);
-        }
-    }
-
-    private void validateMandatoryCsv(CSVRecord r) {
-
-        List<String> errors = new ArrayList<>();
-
-        // ===== PRODUCT DETAILS =====
-        validateRequired(getCsvString(r, H_PRODUCT_NAME), "Product Name", errors);
-        validateRequired(getCsvString(r, H_DEVICE_CATEGORY), "Device Category", errors);
-        validateRequired(getCsvString(r, H_DEVICE_SUBCATEGORY), "Device Sub Category", errors);
-        validateRequired(getCsvString(r, H_BRAND_NAME), "Brand Name", errors);
-        validateRequired(getCsvString(r, H_MODEL_NAME), "Model Name", errors);
-        validateRequired(getCsvString(r, H_MODEL_NUMBER), "Model Number", errors);
-        validateRequired(getCsvString(r, H_DEVICE_CLASSIFICATION), "Device Classification", errors);
-        validateRequired(getCsvString(r, H_PURPOSE), "Intended Use / Purpose", errors);
-        validateRequired(getCsvString(r, H_KEY_FEATURES), "Key Features", errors);
-        validateRequired(getCsvString(r, H_SAFETY_PRECAUTIONS), "Safety Instructions", errors);
-        validateRequired(getCsvString(r, H_CERTIFICATIONS), "Certifications", errors);
-        validateRequired(getCsvString(r, H_MATERIAL_TYPES), "Material Type", errors);
-        validateRequired(getCsvString(r, H_WARRANTY), "Warranty Period", errors);
-        validateRequired(getCsvString(r, H_SERVICE_AVAILABILITY), "Service Availability", errors);
-        validateRequired(getCsvString(r, H_COUNTRY), "Country", errors);
-        validateRequired(getCsvString(r, H_MANUFACTURER), "Manufacturer Name", errors);
-        validateRequired(getCsvString(r, H_PRODUCT_DESCRIPTION), "Product Description", errors);
-
-        // ===== PACKAGING =====
-        validateRequired(getCsvLong(r, H_UNIT_PER_PACK), "Unit Per Pack", errors);
-        validateRequired(getCsvLong(r, H_NUMBER_OF_PACKS), "Number Of Packs", errors);
-        validateRequired(getCsvLong(r, H_MIN_ORDER_QTY), "Minimum Order Qty", errors);
-        validateRequired(getCsvLong(r, H_MAX_ORDER_QTY), "Max Order Qty", errors);
-
-        // ===== PRICING =====
-        validateRequired(parseCsvDate(getCsvString(r, H_MFG_DATE)), "Manufacturing Date", errors);
-        validateRequired(getCsvLong(r, H_STOCK_QTY), "Stock Quantity", errors);
-        validateRequired(parseCsvDate(getCsvString(r, H_DATE_OF_ENTRY)), "Date of Entry", errors);
-        validateRequired(getCsvLong(r, H_SELLING_PRICE), "Selling Price", errors);
-        validateRequired(getCsvLong(r, H_MRP), "MRP", errors);
-        validateRequired(getCsvLong(r, H_GST), "GST", errors);
-        validateRequired(getCsvLong(r, H_HSN), "HSN Code", errors);
-
-        Long hsnCodeCsv = getCsvLong(r, H_HSN);
-        if (hsnCodeCsv != null) {
-            int digits = String.valueOf(hsnCodeCsv).length();
-            if (digits != 4 && digits != 6 && digits != 8) {
-                errors.add("HSN Code must be 4, 6, or 8 digits");
-            }
-        }
-
-        // ===== BUSINESS RULES =====
-        Long mrp = getCsvLong(r, H_MRP);
-        Long sellingPrice = getCsvLong(r, H_SELLING_PRICE);
-
-        if (mrp != null && mrp <= 0) {
-            errors.add("MRP must be greater than 0");
-        }
-
-        if (sellingPrice != null && mrp != null && sellingPrice > mrp) {
-            errors.add("Selling Price cannot be greater than MRP");
-        }
-
-        if (!errors.isEmpty()) {
-            throw new ValidationException(errors);
-        }
-    }
-
-    private void validateRequired(Object value, String field, List<String> errors) {
-        if (value == null) {
-            errors.add(field + " is mandatory");
-        } else if (value instanceof String && ((String) value).isBlank()) {
-            errors.add(field + " is mandatory");
-        }
     }
 }
