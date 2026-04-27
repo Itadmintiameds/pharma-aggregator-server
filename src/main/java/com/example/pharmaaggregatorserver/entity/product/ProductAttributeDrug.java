@@ -1,5 +1,6 @@
 package com.example.pharmaaggregatorserver.entity.product;
 
+import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.StorageConditionMaster;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -61,4 +62,12 @@ public class ProductAttributeDrug {
     @OneToOne(mappedBy = "productAttributeDrug", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JsonIgnore
     private ProductUserManual productUserManual;
+
+    @ManyToMany
+    @JoinTable(
+            name = "tm_product_storage_condition",
+            joinColumns = @JoinColumn(name = "product_attribute_id"),
+            inverseJoinColumns = @JoinColumn(name = "storage_condition_id")
+    )
+    private Set<StorageConditionMaster> storageConditions = new HashSet<>();
 }

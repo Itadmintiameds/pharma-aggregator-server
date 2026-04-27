@@ -387,7 +387,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         pricing.setBatchLotNumber(batchNumber);
         pricing.setManufacturingDate(mfgDate);
         pricing.setExpiryDate(expiryDate);
-        pricing.setStorageCondition(storageCondition);
+//        pricing.setStorageCondition(storageCondition);
         pricing.setStockQuantity(stockQty);
         pricing.setDateOfStockEntry(dateOfEntry);
         pricing.setMrp(mrp);

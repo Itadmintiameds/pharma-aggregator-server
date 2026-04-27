@@ -32,8 +32,8 @@ public class PricingDetails {
     @Column(name = "expiry_date")
     private LocalDateTime expiryDate;
 
-    @Column(name = "storage_condition")
-    private String storageCondition;
+//    @Column(name = "storage_condition")
+//    private String storageCondition;
 
     @Column(name = "stock_quantity")
     private Long stockQuantity;

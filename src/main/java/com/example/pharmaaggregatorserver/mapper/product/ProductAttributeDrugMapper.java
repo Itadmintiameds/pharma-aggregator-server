@@ -4,10 +4,13 @@ import com.example.pharmaaggregatorserver.dto.product.PackagingDetailsDto;
 import com.example.pharmaaggregatorserver.dto.product.ProductAttributeDrugDto;
 import com.example.pharmaaggregatorserver.dto.product.ProductMoleculeDto;
 import com.example.pharmaaggregatorserver.entity.product.*;
+import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.StorageConditionMaster;
 import com.example.pharmaaggregatorserver.repository.product.MoleculeRepository;
+import com.example.pharmaaggregatorserver.repository.product.StorageConditionMasterRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -17,6 +20,7 @@ import java.util.stream.Collectors;
 public class ProductAttributeDrugMapper {
 
     private final MoleculeRepository moleculeRepository;
+    private final StorageConditionMasterRepository storageConditionRepository;
 
     public ProductAttributeDrug toEntity(ProductAttributeDrugDto dto){
         if (dto == null) return null;
@@ -63,6 +67,14 @@ public class ProductAttributeDrugMapper {
             entity.setProductUserManual(manual);
         }
 
+        if (dto.getStorageConditionIds() != null && !dto.getStorageConditionIds().isEmpty()) {
+
+            Set<StorageConditionMaster> conditions =
+                    new HashSet<>(storageConditionRepository.findAllById(dto.getStorageConditionIds()));
+
+            entity.setStorageConditions(conditions);
+        }
+
         return entity;
     }
 
@@ -97,6 +109,16 @@ public class ProductAttributeDrugMapper {
 
         if (entity.getProductUserManual() != null) {
             dto.setUserManualUrl(entity.getProductUserManual().getUserManualUrl());
+        }
+
+        if (entity.getStorageConditions() != null && !entity.getStorageConditions().isEmpty()) {
+
+            List<Long> ids = entity.getStorageConditions()
+                    .stream()
+                    .map(StorageConditionMaster::getStorageConditionId)
+                    .collect(Collectors.toList());
+
+            dto.setStorageConditionIds(ids);
         }
 
         return dto;
