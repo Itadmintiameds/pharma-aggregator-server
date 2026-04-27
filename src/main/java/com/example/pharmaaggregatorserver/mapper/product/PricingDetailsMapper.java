@@ -25,7 +25,7 @@ public class PricingDetailsMapper {
         entity.setBatchLotNumber(dto.getBatchLotNumber());
         entity.setManufacturingDate(dto.getManufacturingDate());
         entity.setExpiryDate(dto.getExpiryDate());
-        entity.setStorageCondition(dto.getStorageCondition());
+//        entity.setStorageCondition(dto.getStorageCondition());
         entity.setStockQuantity(dto.getStockQuantity());
         entity.setDateOfStockEntry(dto.getDateOfStockEntry());
         entity.setSellingPrice(dto.getSellingPrice());
@@ -62,7 +62,7 @@ public class PricingDetailsMapper {
         dto.setBatchLotNumber(entity.getBatchLotNumber());
         dto.setManufacturingDate(entity.getManufacturingDate());
         dto.setExpiryDate(entity.getExpiryDate());
-        dto.setStorageCondition(entity.getStorageCondition());
+//        dto.setStorageCondition(entity.getStorageCondition());
         dto.setStockQuantity(entity.getStockQuantity());
         dto.setDateOfStockEntry(entity.getDateOfStockEntry());
         dto.setSellingPrice(entity.getSellingPrice());

@@ -14,7 +14,7 @@ public class PricingDetailsDto {
     private String batchLotNumber;
     private LocalDateTime manufacturingDate;
     private LocalDateTime expiryDate;
-    private String storageCondition;
+//    private String storageCondition;
     private Long stockQuantity;
     private LocalDate dateOfStockEntry;
     private Long sellingPrice;

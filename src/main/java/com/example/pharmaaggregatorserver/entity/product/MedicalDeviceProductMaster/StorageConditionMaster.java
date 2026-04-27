@@ -1,10 +1,15 @@
 package com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster;
 
+import com.example.pharmaaggregatorserver.entity.product.Category;
+import com.example.pharmaaggregatorserver.entity.product.ProductAttributeDrug;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "tbl_storage_condition_master")
@@ -20,7 +25,7 @@ public class StorageConditionMaster {
     @Column(name = "storage_condition_id")
     private Long storageConditionId;
 
-    @Column(name = "condition_name", nullable = false, unique = true, length = 100)
+    @Column(name = "condition_name", nullable = false, length = 100)
     private String conditionName;
 
     @Column(name = "description", columnDefinition = "TEXT")
@@ -48,4 +53,13 @@ public class StorageConditionMaster {
 
     @Column(name = "updated_by", length = 50)
     private String updatedBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = true)
+    @JsonIgnore
+    private Category category;
+
+    @ManyToMany(mappedBy = "storageConditions")
+    @JsonIgnore
+    private Set<ProductAttributeDrug> products = new HashSet<>();
 }

@@ -20,4 +20,5 @@ public class ProductAttributeDrugDto {
     private LocalDateTime modifiedDate;
     private List<ProductMoleculeDto> molecules;
     private String userManualUrl;
+    private List<Long> storageConditionIds;
 }
