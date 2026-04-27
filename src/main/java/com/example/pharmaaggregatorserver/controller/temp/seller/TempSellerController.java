@@ -101,6 +101,7 @@ public class TempSellerController {
         return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Company registration certificate verification updated successfully", null));
     }
 
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteByID(@PathVariable Long id) {
         tempSellerService.deleteTempSeller(id);
