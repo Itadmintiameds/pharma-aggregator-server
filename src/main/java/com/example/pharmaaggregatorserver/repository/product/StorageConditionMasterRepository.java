@@ -23,4 +23,7 @@ public interface StorageConditionMasterRepository extends JpaRepository<StorageC
                 ORDER BY s.displayOrder ASC
             """)
     List<StorageConditionDropdownDTO> findByCategoryId(Long categoryId);
+
+    Optional<StorageConditionDropdownDTO> findProjectedByStorageConditionId(Long storageConditionId);
+
 }
