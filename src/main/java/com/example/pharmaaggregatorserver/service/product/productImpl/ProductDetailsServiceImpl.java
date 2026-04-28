@@ -305,155 +305,6 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
         productRepo.delete(product);
     }
 
-//    @Override
-//    @Transactional
-//    public ProductDetailsDto updateProduct(String productId, ProductDetailsDto dto, Long userId) {
-//
-//        Seller seller = sellerRepo.findByUserId(userId)
-//                .orElseThrow(() -> new RuntimeException("Seller not found"));
-//
-//        ProductDetails existingProduct = productRepo.findById(productId)
-//                .orElseThrow(() -> new RuntimeException("Product not found"));
-//
-//        if (!existingProduct.getSeller().getSellerId().equals(seller.getSellerId())) {
-//            throw new RuntimeException("Unauthorized to update this product");
-//        }
-//
-//
-//        existingProduct.setProductName(dto.getProductName());
-//        existingProduct.setWarningsPrecautions(dto.getWarningsPrecautions());
-//        existingProduct.setProductDescription(dto.getProductDescription());
-//        existingProduct.setProductMarketingUrl(dto.getProductMarketingUrl());
-//        existingProduct.setModifiedBy(seller.getSellerId());
-//        existingProduct.setModifiedDate(LocalDateTime.now());
-//
-//        if (dto.getCategoryId() != null) {
-//            Category category = categoryRepo.findById(dto.getCategoryId())
-//                    .orElseThrow(() -> new RuntimeException("Category not found"));
-//            existingProduct.setCategory(category);
-//        }
-//
-//
-//        if (dto.getPackagingDetails() != null) {
-//
-//            PackagingDetails existingPackaging = existingProduct.getPackagingDetails();
-//
-//            if (existingPackaging == null) {
-//                PackagingDetails newPackaging =
-//                        packagingDetailsMapper.toEntity(dto.getPackagingDetails());
-//
-//                newPackaging.setProductDetails(existingProduct);
-//                existingProduct.setPackagingDetails(newPackaging);
-//
-//            } else {
-//                PackagingDetailsDto pd = dto.getPackagingDetails();
-//
-//                existingPackaging.setUnitPerPack(pd.getUnitPerPack());
-//                existingPackaging.setNumberOfPacks(pd.getNumberOfPacks());
-//                existingPackaging.setPackSize(pd.getPackSize());
-//                existingPackaging.setMinimumOrderQuantity(pd.getMinimumOrderQuantity());
-//                existingPackaging.setMaximumOrderQuantity(pd.getMaximumOrderQuantity());
-//                existingPackaging.setModifiedBy(seller.getSellerId());
-//                existingPackaging.setModifiedDate(LocalDateTime.now());
-//            }
-//        }
-//
-//
-//        if (dto.getPricingDetails() != null) {
-//
-//            Set<PricingDetails> existingPricing = existingProduct.getPricingDetails();
-//
-//            Map<String, PricingDetails> existingMap = existingPricing.stream()
-//                    .collect(Collectors.toMap(PricingDetails::getPricingId, p -> p));
-//
-//            for (PricingDetailsDto dtoPricing : dto.getPricingDetails()) {
-//
-//                if (dtoPricing.getPricingId() != null &&
-//                        existingMap.containsKey(dtoPricing.getPricingId())) {
-//
-//                    PricingDetails existing = existingMap.get(dtoPricing.getPricingId());
-//
-//                    existing.setBatchLotNumber(dtoPricing.getBatchLotNumber());
-////                    existing.setManufacturerName(dtoPricing.getManufacturerName());
-//                    existing.setManufacturingDate(dtoPricing.getManufacturingDate());
-//                    existing.setExpiryDate(dtoPricing.getExpiryDate());
-//                    existing.setStorageCondition(dtoPricing.getStorageCondition());
-//                    existing.setStockQuantity(dtoPricing.getStockQuantity());
-//                    existing.setDateOfStockEntry(dtoPricing.getDateOfStockEntry());
-//                    existing.setSellingPrice(dtoPricing.getSellingPrice());
-//                    existing.setMrp(dtoPricing.getMrp());
-//                    existing.setDiscountPercentage(dtoPricing.getDiscountPercentage());
-//                    existing.setGstPercentage(dtoPricing.getGstPercentage());
-////                    existing.setMinimumPurchaseQuantity(dtoPricing.getMinimumPurchaseQuantity());
-////                    existing.setAdditionalDiscount(dtoPricing.getAdditionalDiscount());
-//                    existing.setFinalPrice(dtoPricing.getFinalPrice());
-//                    existing.setHsnCode(dtoPricing.getHsnCode());
-//                    existing.setShelfLifeMonths(dtoPricing.getShelfLifeMonths());
-//
-//                    existing.setModifiedBy(seller.getSellerId());
-//                    existing.setModifiedDate(LocalDateTime.now());
-//
-//                } else {
-//
-//                    PricingDetails newPricing = pricingDetailsMapper.toEntity(dtoPricing);
-//
-//                    newPricing.setPricingId(generatePricingId(seller.getSellerName()));
-//                    newPricing.setCreatedBy(seller.getSellerId());
-//                    newPricing.setCreatedDate(LocalDateTime.now());
-//
-//                    newPricing.setProductDetails(existingProduct);
-//
-//                    existingPricing.add(newPricing);
-//                }
-//            }
-//        }
-//
-//
-//        if (dto.getProductAttributeDrugs() != null) {
-//
-//            Set<ProductAttributeDrug> existingAttrs = existingProduct.getProductAttributeDrugs();
-//
-//            Map<String, ProductAttributeDrug> existingMap = existingAttrs.stream()
-//                    .collect(Collectors.toMap(ProductAttributeDrug::getProductAttributeId, a -> a));
-//
-//            for (ProductAttributeDrugDto dtoAttr : dto.getProductAttributeDrugs()) {
-//
-//                if (dtoAttr.getProductAttributeId() != null &&
-//                        existingMap.containsKey(dtoAttr.getProductAttributeId())) {
-//
-//                    ProductAttributeDrug existingAttr =
-//                            existingMap.get(dtoAttr.getProductAttributeId());
-//
-//                    existingAttr.setTherapeuticCategoryId(dtoAttr.getTherapeuticCategoryId());
-//                    existingAttr.setTherapeuticSubcategoryId(dtoAttr.getTherapeuticSubcategoryId());
-//                    existingAttr.setDosageForm(dtoAttr.getDosageForm());
-//                    existingAttr.setModifiedBy(seller.getSellerId());
-//                    existingAttr.setModifiedDate(LocalDateTime.now());
-//
-//                }
-//            }
-//        }
-//
-//
-////        if (dto.getProductImages() != null) {
-////
-////            existingProduct.getProductImages().clear();
-////
-////            Set<ProductImage> images = dto.getProductImages().stream()
-////                    .map(img -> {
-////                        ProductImage image = productImageMapper.toEntity(img);
-////                        image.setProductDetails(existingProduct);
-////                        return image;
-////                    })
-////                    .collect(Collectors.toSet());
-////
-////            existingProduct.getProductImages().addAll(images);
-////        }
-//
-//        ProductDetails updatedProduct = productRepo.save(existingProduct);
-//
-//        return productMapper.toDto(updatedProduct);
-//    }
 
     @Override
     @Transactional
@@ -613,6 +464,29 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
                     pm.setStrength(mDto.getStrength());
 
                     attr.getProductMolecules().add(pm);
+                }
+            }
+
+            // =====================================================
+// 🔥 STORAGE CONDITIONS (UPDATE EXISTING ROW)
+// =====================================================
+            if (attrDto.getStorageConditionIds() != null) {
+
+                // ✅ Clear old conditions
+                if (attr.getStorageConditions() != null) {
+                    attr.getStorageConditions().clear();
+                } else {
+                    attr.setStorageConditions(new HashSet<>());
+                }
+
+                // ✅ Add new ones
+                for (Long scId : attrDto.getStorageConditionIds()) {
+
+                    StorageConditionMaster sc = storageConditionMasterRepository
+                            .findById(scId)
+                            .orElseThrow(() -> new RuntimeException("Storage condition not found: " + scId));
+
+                    attr.getStorageConditions().add(sc);
                 }
             }
         }

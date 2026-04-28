@@ -7,4 +7,7 @@ import java.util.List;
 public interface StorageConditionService {
 
     List<StorageConditionDropdownDTO> getByCategoryId(Long categoryId);
+
+    StorageConditionDropdownDTO getConditionById(Long storageConditionId);
+
 }

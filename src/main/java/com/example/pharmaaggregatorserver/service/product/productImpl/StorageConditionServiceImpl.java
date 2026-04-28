@@ -19,6 +19,13 @@ public class StorageConditionServiceImpl implements StorageConditionService {
     public List<StorageConditionDropdownDTO> getByCategoryId(Long categoryId) {
         return repository.findByCategoryId(categoryId);
     }
+
+    @Override
+    public StorageConditionDropdownDTO getConditionById(Long storageConditionId) {
+
+        return repository.findProjectedByStorageConditionId(storageConditionId)
+                .orElseThrow(() -> new RuntimeException("Storage Condition not found"));
+    }
 }
 
 
