@@ -9,12 +9,14 @@ import com.example.pharmaaggregatorserver.repository.product.TherapeuticSubcateg
 import com.example.pharmaaggregatorserver.service.product.TherapeuticService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class TherapeuticServiceImpl implements TherapeuticService {
 
     private final TherapeuticCategoryRepository categoryRepo;
@@ -44,5 +46,31 @@ public class TherapeuticServiceImpl implements TherapeuticService {
                         s.getTherapeuticSubcategory()
                 ))
                 .collect(Collectors.toList());
+    }
+
+
+    @Override
+    public TherapeuticCategoryMasterDto getTherapeuticCategoryById(String therapeuticCategoryId) {
+
+        TherapeuticCategoryMaster category = categoryRepo.findById(therapeuticCategoryId)
+                .orElseThrow(() -> new RuntimeException("Therapeutic Category not found"));
+
+        return new TherapeuticCategoryMasterDto(
+                category.getTherapeuticCategoryId(),
+                category.getTherapeuticCategory()
+        );
+    }
+
+
+    @Override
+    public TherapeuticSubcategoryMasterDto getTherapeuticSubcategoryById(String therapeuticSubcategoryId) {
+
+        TherapeuticSubcategoryMaster subcategory = subcategoryRepo.findById(therapeuticSubcategoryId)
+                .orElseThrow(() -> new RuntimeException("Therapeutic Subcategory not found"));
+
+        return new TherapeuticSubcategoryMasterDto(
+                subcategory.getTherapeuticSubcategoryId(),
+                subcategory.getTherapeuticSubcategory()
+        );
     }
 }
