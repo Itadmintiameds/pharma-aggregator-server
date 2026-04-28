@@ -10,4 +10,9 @@ public interface TherapeuticService {
     List<TherapeuticCategoryMasterDto> getAllCategories();
 
     List<TherapeuticSubcategoryMasterDto> getSubcategoriesByCategory(String categoryId);
+
+    TherapeuticCategoryMasterDto getTherapeuticCategoryById(String therapeuticCategoryId);
+
+    TherapeuticSubcategoryMasterDto getTherapeuticSubcategoryById(String therapeuticSubcategoryId);
+
 }
