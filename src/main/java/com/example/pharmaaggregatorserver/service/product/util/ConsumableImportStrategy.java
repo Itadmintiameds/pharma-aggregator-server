@@ -382,7 +382,7 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
         String storage = getString(row, COL_STORAGE_CONDITION);
         if (storage != null && !storage.isBlank()) {
             dto.setStorageConditionId(
-                    storageConditionRepository.findByConditionNameAndCategory_CategoryId(storage, categoryId)
+                    storageConditionRepository.findByConditionNameIgnoreCaseAndCategory_CategoryId(storage, categoryId)
                             .orElseThrow(() -> new RuntimeException("Storage condition not found"))
                             .getStorageConditionId()
             );
@@ -465,7 +465,7 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
         String storage = getCsvString(r, H_STORAGE_CONDITION);
         if (storage != null && !storage.isBlank()) {
             dto.setStorageConditionId(
-                    storageConditionRepository.findByConditionNameAndCategory_CategoryId(storage, categoryId)
+                    storageConditionRepository.findByConditionNameIgnoreCaseAndCategory_CategoryId(storage, categoryId)
                             .orElseThrow(() -> new RuntimeException("Storage condition not found"))
                             .getStorageConditionId()
             );

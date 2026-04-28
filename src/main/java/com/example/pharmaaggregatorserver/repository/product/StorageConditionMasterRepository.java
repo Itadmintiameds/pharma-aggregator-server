@@ -13,12 +13,14 @@ public interface StorageConditionMasterRepository extends JpaRepository<StorageC
 
     Optional<StorageConditionMaster> findByConditionNameAndCategory_CategoryId(String storage, Long categoryId);
 
+    Optional<StorageConditionMaster> findByConditionNameIgnoreCaseAndCategory_CategoryId(String storage, Long categoryId);
+
     @Query("""
-        SELECT s.storageConditionId AS storageConditionId,
-               s.conditionName AS conditionName
-        FROM StorageConditionMaster s
-        WHERE s.category.categoryId = :categoryId
-        ORDER BY s.displayOrder ASC
-    """)
+                SELECT s.storageConditionId AS storageConditionId,
+                       s.conditionName AS conditionName
+                FROM StorageConditionMaster s
+                WHERE s.category.categoryId = :categoryId
+                ORDER BY s.displayOrder ASC
+            """)
     List<StorageConditionDropdownDTO> findByCategoryId(Long categoryId);
 }

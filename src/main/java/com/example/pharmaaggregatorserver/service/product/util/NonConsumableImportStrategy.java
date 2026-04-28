@@ -405,7 +405,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         if (!isBlank(storage)) {
             dto.setStorageConditionId(
                     storageConditionRepository
-                            .findByConditionNameAndCategory_CategoryId(storage, categoryId)
+                            .findByConditionNameIgnoreCaseAndCategory_CategoryId(storage, categoryId)
                             .orElseThrow(() -> new RuntimeException(
                                     "Storage condition not found: " + storage))
                             .getStorageConditionId()
@@ -517,7 +517,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         if (!isBlank(storage)) {
             dto.setStorageConditionId(
                     storageConditionRepository
-                            .findByConditionNameAndCategory_CategoryId(storage, categoryId)
+                            .findByConditionNameIgnoreCaseAndCategory_CategoryId(storage, categoryId)
                             .orElseThrow(() -> new RuntimeException(
                                     "Storage condition not found: " + storage))
                             .getStorageConditionId()

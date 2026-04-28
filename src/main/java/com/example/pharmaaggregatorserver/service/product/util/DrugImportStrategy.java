@@ -3,10 +3,7 @@ package com.example.pharmaaggregatorserver.service.product.util;
 import com.example.pharmaaggregatorserver.dto.product.*;
 import com.example.pharmaaggregatorserver.entity.product.Molecule;
 import com.example.pharmaaggregatorserver.exception.ValidationException;
-import com.example.pharmaaggregatorserver.repository.product.MoleculeRepository;
-import com.example.pharmaaggregatorserver.repository.product.PackTypeRepository;
-import com.example.pharmaaggregatorserver.repository.product.TherapeuticCategoryRepository;
-import com.example.pharmaaggregatorserver.repository.product.TherapeuticSubcategoryRepository;
+import com.example.pharmaaggregatorserver.repository.product.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVRecord;
@@ -31,6 +28,7 @@ public class DrugImportStrategy implements ProductImportStrategy {
     private final PackTypeRepository packTypeRepository;
     private final TherapeuticCategoryRepository therapeuticCategoryRepository;
     private final TherapeuticSubcategoryRepository therapeuticSubcategoryRepository;
+    private final StorageConditionMasterRepository storageConditionRepository;
 
     // ── Valid GST percentages ─────────────────────────────────────────────
     private static final Set<Long> VALID_GST_VALUES = Set.of(0L, 5L, 12L, 18L);
@@ -185,7 +183,9 @@ public class DrugImportStrategy implements ProductImportStrategy {
                 getString(row, COL_THERAPEUTIC_CAT),
                 getString(row, COL_THERAPEUTIC_SUBCAT),
                 getString(row, COL_MOLECULES),
-                getString(row, COL_STRENGTH))));
+                getString(row, COL_STRENGTH),
+                getString(row, COL_STORAGE_CONDITION),
+                categoryId)));
 
         return dto;
     }
@@ -271,7 +271,9 @@ public class DrugImportStrategy implements ProductImportStrategy {
                 getCsvString(r, H_THERAPEUTIC_CAT),
                 getCsvString(r, H_THERAPEUTIC_SUBCAT),
                 getCsvString(r, H_MOLECULES),
-                getCsvStringByIndex(r, COL_STRENGTH))));
+                getCsvStringByIndex(r, COL_STRENGTH),
+                getCsvString(r, H_STORAGE_CONDITION),
+                categoryId)));
 
         return dto;
     }
@@ -332,7 +334,9 @@ public class DrugImportStrategy implements ProductImportStrategy {
 
     private ProductAttributeDrugDto buildDrugAttr(
             String dosageForm, String therapeuticCat, String therapeuticSubCat,
-            String moleculeCell, String strengthCell) {
+            String moleculeCell, String strengthCell,
+            String storage,
+            Long categoryId) {
 
         ProductAttributeDrugDto attr = new ProductAttributeDrugDto();
         attr.setDosageForm(dosageForm);
@@ -375,6 +379,22 @@ public class DrugImportStrategy implements ProductImportStrategy {
                 molecules.add(pm);
             }
             attr.setMolecules(molecules);
+        }
+
+        if (storage != null && !storage.isBlank()) {
+
+            List<Long> storageConditionIds = Arrays.stream(storage.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .map(condition -> storageConditionRepository
+                            .findByConditionNameIgnoreCaseAndCategory_CategoryId(condition, categoryId)
+                            .orElseThrow(() -> new RuntimeException(
+                                    "Storage condition not found: " + condition))
+                            .getStorageConditionId())
+                    .distinct()
+                    .toList();
+
+            attr.setStorageConditionIds(storageConditionIds);
         }
 
         return attr;
