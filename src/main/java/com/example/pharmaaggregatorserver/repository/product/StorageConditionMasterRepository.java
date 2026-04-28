@@ -9,15 +9,19 @@ import java.util.List;
 import java.util.Optional;
 
 public interface StorageConditionMasterRepository extends JpaRepository<StorageConditionMaster, Long> {
-    Optional<StorageConditionMaster> findByConditionName(String storage);
+//    Optional<StorageConditionMaster> findByConditionName(String storage);
+
+    Optional<StorageConditionMaster> findByConditionNameAndCategory_CategoryId(String storage, Long categoryId);
+
+    Optional<StorageConditionMaster> findByConditionNameIgnoreCaseAndCategory_CategoryId(String storage, Long categoryId);
 
     @Query("""
-        SELECT s.storageConditionId AS storageConditionId,
-               s.conditionName AS conditionName
-        FROM StorageConditionMaster s
-        WHERE s.category.categoryId = :categoryId
-        ORDER BY s.displayOrder ASC
-    """)
+                SELECT s.storageConditionId AS storageConditionId,
+                       s.conditionName AS conditionName
+                FROM StorageConditionMaster s
+                WHERE s.category.categoryId = :categoryId
+                ORDER BY s.displayOrder ASC
+            """)
     List<StorageConditionDropdownDTO> findByCategoryId(Long categoryId);
 
     Optional<StorageConditionDropdownDTO> findProjectedByStorageConditionId(Long storageConditionId);

@@ -3,10 +3,7 @@ package com.example.pharmaaggregatorserver.service.product.util;
 import com.example.pharmaaggregatorserver.dto.product.*;
 import com.example.pharmaaggregatorserver.entity.product.Molecule;
 import com.example.pharmaaggregatorserver.exception.ValidationException;
-import com.example.pharmaaggregatorserver.repository.product.MoleculeRepository;
-import com.example.pharmaaggregatorserver.repository.product.PackTypeRepository;
-import com.example.pharmaaggregatorserver.repository.product.TherapeuticCategoryRepository;
-import com.example.pharmaaggregatorserver.repository.product.TherapeuticSubcategoryRepository;
+import com.example.pharmaaggregatorserver.repository.product.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVRecord;
@@ -19,6 +16,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Slf4j
@@ -30,6 +28,10 @@ public class DrugImportStrategy implements ProductImportStrategy {
     private final PackTypeRepository packTypeRepository;
     private final TherapeuticCategoryRepository therapeuticCategoryRepository;
     private final TherapeuticSubcategoryRepository therapeuticSubcategoryRepository;
+    private final StorageConditionMasterRepository storageConditionRepository;
+
+    // ── Valid GST percentages ─────────────────────────────────────────────
+    private static final Set<Long> VALID_GST_VALUES = Set.of(0L, 5L, 12L, 18L);
 
     // ── Column indices (0-based, data starts at row index 2) ──────────────
     private static final int COL_THERAPEUTIC_CAT = 0;
@@ -52,13 +54,13 @@ public class DrugImportStrategy implements ProductImportStrategy {
     private static final int COL_EXPIRY_DATE = 17;
     private static final int COL_STORAGE_CONDITION = 18;
     private static final int COL_STOCK_QTY = 19;
-    private static final int COL_DATE_OF_ENTRY = 20;
+    private static final int COL_DATE_OF_ENTRY = 20; // ignored — always LocalDate.now()
     private static final int COL_MRP = 21;
     private static final int COL_SELLING_PRICE = 22;
     private static final int COL_DISCOUNT_PCT = 23;
     private static final int COL_GST_PCT = 24;
     private static final int COL_HSN_CODE = 25;
-    private static final int COL_SHELF_LIFE_MONTHS = 26;
+    private static final int COL_SHELF_LIFE_MONTHS = 26; // ignored — always computed
     // Additional discount slabs — 4 slabs × 7 cols each, starting at col 27
     private static final int COL_ADD_DISCOUNT_START = 27;
     private static final int ADD_DISCOUNT_SLAB_SIZE = 7;
@@ -85,17 +87,16 @@ public class DrugImportStrategy implements ProductImportStrategy {
     private static final String H_EXPIRY_DATE = "Expiry Date*";
     private static final String H_STORAGE_CONDITION = "Storage Condition*";
     private static final String H_STOCK_QTY = "Stock Quantity*";
-    private static final String H_DATE_OF_ENTRY = "Date of Entry*";
+    private static final String H_DATE_OF_ENTRY = "Date of Entry*"; // ignored — always LocalDate.now()
     private static final String H_MRP = "MRP (INR)*";
     private static final String H_SELLING_PRICE = "Selling Price(INR)*";
     private static final String H_DISCOUNT_PCT = "Discount %";
     private static final String H_GST_PCT = "GST %";
     private static final String H_HSN_CODE = "HSN Code*";
-    private static final String H_SHELF_LIFE_MONTHS = "Shelf Life Months";
+    private static final String H_SHELF_LIFE_MONTHS = "Shelf Life Months"; // ignored — always computed
     private static final String H_MARKETING_URL = "Product Marketing URL";
 
-    // Additional discount cols accessed by index — duplicate header names in CSV
-    // make name-based access unreliable, so index is used for all 4 slabs
+    // Additional discount cols accessed by index
     private static final int[] CSV_SLAB_MIN_QTY_COLS = {28, 35, 42, 49};
     private static final int[] CSV_SLAB_DISCOUNT_COLS = {29, 36, 43, 50};
     private static final int[] CSV_SLAB_START_DATE_COLS = {30, 37, 44, 51};
@@ -103,6 +104,7 @@ public class DrugImportStrategy implements ProductImportStrategy {
     private static final int[] CSV_SLAB_END_DATE_COLS = {32, 39, 46, 53};
     private static final int[] CSV_SLAB_END_TIME_COLS = {33, 40, 47, 54};
 
+    // ── Excel entry point ─────────────────────────────────────────────────
     @Override
     public ProductDetailsDto mapRow(Row row, Long categoryId) {
         log.info("Drugs Excel import Called");
@@ -115,7 +117,6 @@ public class DrugImportStrategy implements ProductImportStrategy {
         dto.setWarningsPrecautions(getString(row, COL_WARNINGS));
         dto.setProductDescription(getString(row, COL_DESCRIPTION));
         dto.setManufacturerName(getString(row, COL_MANUFACTURER));
-//        dto.setProductMarketingUrl(getString(row, COL_MARKETING_URL));
 
         Long unitPerPack = getNullSafeLong(row, COL_UNIT_PER_PACK);
         Long numberOfPacks = getNullSafeLong(row, COL_NUMBER_OF_PACKS);
@@ -128,12 +129,29 @@ public class DrugImportStrategy implements ProductImportStrategy {
                 getNullSafeLong(row, COL_MAX_ORDER_QTY),
                 packTypeName, categoryId, dosageFormName)));
 
+        LocalDate mfgDate = getLocalDate(row, COL_MFG_DATE);
+        LocalDate expiryDate = getLocalDate(row, COL_EXPIRY_DATE);
+        // Shelf life always computed — file column ignored
+        Long shelfLifeMonths = computeShelfLifeMonths(mfgDate, expiryDate);
+
         Set<AdditionalDiscountDto> additionalDiscounts = new HashSet<>();
+        Long mainDiscountPct = getNullSafeLong(row, COL_DISCOUNT_PCT);
+        Long mainMinOrderQty = getNullSafeLong(row, COL_MIN_ORDER_QTY);
+        Long mainMaxOrderQty = getNullSafeLong(row, COL_MAX_ORDER_QTY);
+        Set<Long> seenSlabMpqs = new HashSet<>();
+
         for (int slab = 0; slab < ADD_DISCOUNT_SLAB_COUNT; slab++) {
             int base = COL_ADD_DISCOUNT_START + (slab * ADD_DISCOUNT_SLAB_SIZE);
             Long minQty = getNullSafeLong(row, base + 1);
             Long discountPct = getNullSafeLong(row, base + 2);
+
             if ((minQty == null || minQty == 0) && (discountPct == null || discountPct == 0)) continue;
+
+            validateAdditionalDiscountSlab(
+                    slab + 1, minQty, discountPct,
+                    mainMinOrderQty, mainMaxOrderQty, mainDiscountPct,
+                    getLocalDate(row, base + 3), getLocalDate(row, base + 5),
+                    seenSlabMpqs);
 
             AdditionalDiscountDto ad = new AdditionalDiscountDto();
             ad.setMinimumPurchaseQuantity(minQty);
@@ -147,17 +165,17 @@ public class DrugImportStrategy implements ProductImportStrategy {
 
         dto.setPricingDetails(Set.of(buildPricing(
                 getString(row, COL_BATCH_NUMBER),
-                toStartOfDay(getLocalDate(row, COL_MFG_DATE)),
-                toEndOfDay(getLocalDate(row, COL_EXPIRY_DATE)),
+                toStartOfDay(mfgDate),
+                toEndOfDay(expiryDate),
                 getString(row, COL_STORAGE_CONDITION),
                 getNullSafeLong(row, COL_STOCK_QTY),
-                getLocalDate(row, COL_DATE_OF_ENTRY),
+                LocalDate.now(),                         // Date of Stock Entry — always today
                 getNullSafeLong(row, COL_MRP),
                 getNullSafeLong(row, COL_SELLING_PRICE),
-                getNullSafeLong(row, COL_DISCOUNT_PCT),
+                mainDiscountPct,
                 getNullSafeLong(row, COL_GST_PCT),
                 getNullSafeLong(row, COL_HSN_CODE),
-                getNullSafeLong(row, COL_SHELF_LIFE_MONTHS),
+                shelfLifeMonths,                         // computed, not from file
                 additionalDiscounts)));
 
         dto.setProductAttributeDrugs(Set.of(buildDrugAttr(
@@ -165,7 +183,9 @@ public class DrugImportStrategy implements ProductImportStrategy {
                 getString(row, COL_THERAPEUTIC_CAT),
                 getString(row, COL_THERAPEUTIC_SUBCAT),
                 getString(row, COL_MOLECULES),
-                getString(row, COL_STRENGTH))));
+                getString(row, COL_STRENGTH),
+                getString(row, COL_STORAGE_CONDITION),
+                categoryId)));
 
         return dto;
     }
@@ -183,7 +203,6 @@ public class DrugImportStrategy implements ProductImportStrategy {
         dto.setWarningsPrecautions(getCsvString(r, H_WARNINGS));
         dto.setProductDescription(getCsvString(r, H_DESCRIPTION));
         dto.setManufacturerName(getCsvString(r, H_MANUFACTURER));
-//        dto.setProductMarketingUrl(getCsvString(r, H_MARKETING_URL));
 
         Long unitPerPack = getCsvLong(r, H_UNIT_PER_PACK);
         Long numberOfPacks = getCsvLong(r, H_NUMBER_OF_PACKS);
@@ -196,35 +215,55 @@ public class DrugImportStrategy implements ProductImportStrategy {
                 getCsvLong(r, H_MAX_ORDER_QTY),
                 packTypeName, categoryId, dosageFormName)));
 
+        LocalDate mfgDate = parseCsvDate(getCsvString(r, H_MFG_DATE));
+        LocalDate expiryDate = parseCsvDate(getCsvString(r, H_EXPIRY_DATE));
+        // Shelf life always computed — file column ignored
+        Long shelfLifeMonths = computeShelfLifeMonths(mfgDate, expiryDate);
+
         Set<AdditionalDiscountDto> additionalDiscounts = new HashSet<>();
+        Long mainDiscountPct = getCsvLong(r, H_DISCOUNT_PCT);
+        Long mainMinOrderQty = getCsvLong(r, H_MIN_ORDER_QTY);
+        Long mainMaxOrderQty = getCsvLong(r, H_MAX_ORDER_QTY);
+        Set<Long> seenSlabMpqs = new HashSet<>();
+
         for (int slab = 0; slab < ADD_DISCOUNT_SLAB_COUNT; slab++) {
             Long minQty = getCsvLongByIndex(r, CSV_SLAB_MIN_QTY_COLS[slab]);
             Long discountPct = getCsvLongByIndex(r, CSV_SLAB_DISCOUNT_COLS[slab]);
+
             if ((minQty == null || minQty == 0) && (discountPct == null || discountPct == 0)) continue;
+
+            LocalDate slabStartDate = parseCsvDate(getCsvStringByIndex(r, CSV_SLAB_START_DATE_COLS[slab]));
+            LocalDate slabEndDate = parseCsvDate(getCsvStringByIndex(r, CSV_SLAB_END_DATE_COLS[slab]));
+
+            validateAdditionalDiscountSlab(
+                    slab + 1, minQty, discountPct,
+                    mainMinOrderQty, mainMaxOrderQty, mainDiscountPct,
+                    slabStartDate, slabEndDate,
+                    seenSlabMpqs);
 
             AdditionalDiscountDto ad = new AdditionalDiscountDto();
             ad.setMinimumPurchaseQuantity(minQty);
             ad.setAdditionalDiscountPercentage(discountPct);
-            ad.setEffectiveStartDate(parseCsvDate(getCsvStringByIndex(r, CSV_SLAB_START_DATE_COLS[slab])));
+            ad.setEffectiveStartDate(slabStartDate);
             ad.setEffectiveStartTime(parseCsvTime(getCsvStringByIndex(r, CSV_SLAB_START_TIME_COLS[slab])));
-            ad.setEffectiveEndDate(parseCsvDate(getCsvStringByIndex(r, CSV_SLAB_END_DATE_COLS[slab])));
+            ad.setEffectiveEndDate(slabEndDate);
             ad.setEffectiveEndTime(parseCsvTime(getCsvStringByIndex(r, CSV_SLAB_END_TIME_COLS[slab])));
             additionalDiscounts.add(ad);
         }
 
         dto.setPricingDetails(Set.of(buildPricing(
                 getCsvString(r, H_BATCH_NUMBER),
-                toStartOfDay(parseCsvDate(getCsvString(r, H_MFG_DATE))),
-                toEndOfDay(parseCsvDate(getCsvString(r, H_EXPIRY_DATE))),
+                toStartOfDay(mfgDate),
+                toEndOfDay(expiryDate),
                 getCsvString(r, H_STORAGE_CONDITION),
                 getCsvLong(r, H_STOCK_QTY),
-                parseCsvDate(getCsvString(r, H_DATE_OF_ENTRY)),
+                LocalDate.now(),                         // Date of Stock Entry — always today
                 getCsvLong(r, H_MRP),
                 getCsvLong(r, H_SELLING_PRICE),
-                getCsvLong(r, H_DISCOUNT_PCT),
+                mainDiscountPct,
                 getCsvLong(r, H_GST_PCT),
                 getCsvLong(r, H_HSN_CODE),
-                getCsvLong(r, H_SHELF_LIFE_MONTHS),
+                shelfLifeMonths,                         // computed, not from file
                 additionalDiscounts)));
 
         dto.setProductAttributeDrugs(Set.of(buildDrugAttr(
@@ -232,7 +271,9 @@ public class DrugImportStrategy implements ProductImportStrategy {
                 getCsvString(r, H_THERAPEUTIC_CAT),
                 getCsvString(r, H_THERAPEUTIC_SUBCAT),
                 getCsvString(r, H_MOLECULES),
-                getCsvStringByIndex(r, COL_STRENGTH))));
+                getCsvStringByIndex(r, COL_STRENGTH),
+                getCsvString(r, H_STORAGE_CONDITION),
+                categoryId)));
 
         return dto;
     }
@@ -255,7 +296,8 @@ public class DrugImportStrategy implements ProductImportStrategy {
         if (packTypeName != null && !packTypeName.isBlank()
                 && dosageFormName != null && !dosageFormName.isBlank()) {
             Long packId = packTypeRepository
-                    .findByPackTypeAndCategory_CategoryIdAndDosageForm_DosageName(packTypeName, categoryId, dosageFormName)
+                    .findByPackTypeAndCategory_CategoryIdAndDosageForm_DosageName(
+                            packTypeName, categoryId, dosageFormName)
                     .orElseThrow(() -> new RuntimeException(
                             "Pack type '" + packTypeName + "' not found for dosage form '" + dosageFormName + "'"))
                     .getPackId();
@@ -292,7 +334,9 @@ public class DrugImportStrategy implements ProductImportStrategy {
 
     private ProductAttributeDrugDto buildDrugAttr(
             String dosageForm, String therapeuticCat, String therapeuticSubCat,
-            String moleculeCell, String strengthCell) {
+            String moleculeCell, String strengthCell,
+            String storage,
+            Long categoryId) {
 
         ProductAttributeDrugDto attr = new ProductAttributeDrugDto();
         attr.setDosageForm(dosageForm);
@@ -337,7 +381,485 @@ public class DrugImportStrategy implements ProductImportStrategy {
             attr.setMolecules(molecules);
         }
 
+        if (storage != null && !storage.isBlank()) {
+
+            List<Long> storageConditionIds = Arrays.stream(storage.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .map(condition -> storageConditionRepository
+                            .findByConditionNameIgnoreCaseAndCategory_CategoryId(condition, categoryId)
+                            .orElseThrow(() -> new RuntimeException(
+                                    "Storage condition not found: " + condition))
+                            .getStorageConditionId())
+                    .distinct()
+                    .toList();
+
+            attr.setStorageConditionIds(storageConditionIds);
+        }
+
         return attr;
+    }
+
+    // ── Shelf life computation ────────────────────────────────────────────
+
+    /**
+     * Computes shelf life in whole months between mfg and expiry.
+     * Returns null if either date is absent.
+     */
+    private Long computeShelfLifeMonths(LocalDate mfgDate, LocalDate expiryDate) {
+        if (mfgDate == null || expiryDate == null) return null;
+        return ChronoUnit.MONTHS.between(mfgDate, expiryDate);
+    }
+
+    // ── Additional-discount slab validation ───────────────────────────────
+
+    /**
+     * Validates a single additional discount slab.
+     * Throws ValidationException immediately on the first bad slab so the
+     * error message clearly identifies which slab (1-based) is at fault.
+     *
+     * @param slabNumber      1-based slab index, for error messages
+     * @param mpq             Minimum Purchase Quantity for this slab
+     * @param discountPct     Discount % for this slab
+     * @param mainMoq         The product's main Minimum Order Quantity
+     * @param mainMaxQty      The product's main Maximum Order Quantity
+     * @param mainDiscountPct The product's base Discount %
+     * @param startDate       Effective Start Date for this slab
+     * @param endDate         Effective End Date for this slab
+     * @param seenMpqs        Set of MPQ values already seen (duplicate detection)
+     */
+    private void validateAdditionalDiscountSlab(
+            int slabNumber,
+            Long mpq, Long discountPct,
+            Long mainMoq, Long mainMaxQty, Long mainDiscountPct,
+            LocalDate startDate, LocalDate endDate,
+            Set<Long> seenMpqs) {
+
+        List<String> errors = new ArrayList<>();
+        String prefix = "Additional Discount Slab " + slabNumber + ": ";
+
+        // MPQ validations
+        if (mpq == null) {
+            errors.add(prefix + "MPQ is required");
+        } else {
+            if (mpq <= 0) {
+                errors.add(prefix + "MPQ must be greater than 0");
+            }
+            if (mainMoq != null && mpq <= mainMoq) {
+                errors.add(prefix + "MPQ (" + mpq + ") must be greater than main Minimum Order Quantity (" + mainMoq + ")");
+            }
+            if (mainMaxQty != null && mpq > mainMaxQty) {
+                errors.add(prefix + "MPQ (" + mpq + ") must be ≤ main Maximum Order Quantity (" + mainMaxQty + ")");
+            }
+            if (!seenMpqs.add(mpq)) {
+                errors.add(prefix + "Duplicate MPQ value (" + mpq + ") — each slab must have a unique MPQ");
+            }
+        }
+
+        // Discount % validations
+        if (discountPct == null) {
+            // Discount is mandatory when MPQ is provided
+            if (mpq != null) {
+                errors.add(prefix + "Discount % cannot be blank when MPQ is entered");
+            }
+        } else {
+            if (discountPct <= 0 || discountPct > 100) {
+                errors.add(prefix + "Discount % must be between 1 and 100");
+            }
+            if (mainDiscountPct != null && discountPct < mainDiscountPct) {
+                errors.add(prefix + "Discount % (" + discountPct + ") must be ≥ main Discount % (" + mainDiscountPct + ")");
+            }
+        }
+
+        // Effective date validations
+        if (startDate == null) {
+            errors.add(prefix + "Effective Start Date is mandatory for an additional discount slab");
+        }
+        if (endDate == null) {
+            errors.add(prefix + "Effective End Date is mandatory for an additional discount slab");
+        }
+        if (startDate != null && endDate != null && endDate.isBefore(startDate)) {
+            errors.add(prefix + "Effective End Date cannot be before Effective Start Date");
+        }
+
+        if (!errors.isEmpty()) {
+            throw new ValidationException(errors);
+        }
+    }
+
+    // ── Excel validation ──────────────────────────────────────────────────
+    private void validateMandatoryExcel(Row row) {
+        List<String> errors = new ArrayList<>();
+
+        // ── Product Name ──────────────────────────────────────────────────
+        String productName = getString(row, COL_PRODUCT_NAME);
+        validateRequired(productName, "Product Name", errors);
+        if (productName != null && !productName.isBlank()) {
+            if (productName.length() < 3) {
+                errors.add("Product Name must be at least 3 characters");
+            }
+            if (productName.length() > 150) {
+                errors.add("Product Name must not exceed 150 characters");
+            }
+        }
+
+        // ── Product Description ───────────────────────────────────────────
+        String description = getString(row, COL_DESCRIPTION);
+        validateRequired(description, "Product Description", errors);
+        if (description != null && description.length() > 1000) {
+            errors.add("Product Description must not exceed 1000 characters");
+        }
+
+        // ── Warnings / Precautions ────────────────────────────────────────
+        String warnings = getString(row, COL_WARNINGS);
+        validateRequired(warnings, "Warnings / Precautions", errors);
+        if (warnings != null && warnings.length() > 1000) {
+            errors.add("Warnings / Precautions must not exceed 1000 characters");
+        }
+
+        // ── Other mandatory text fields ───────────────────────────────────
+        validateRequired(getString(row, COL_THERAPEUTIC_CAT), "Therapeutic Category", errors);
+        validateRequired(getString(row, COL_THERAPEUTIC_SUBCAT), "Therapeutic Sub Category", errors);
+        validateRequired(getString(row, COL_MOLECULES), "Molecule", errors);
+        validateRequired(getString(row, COL_DOSAGE_FORM), "Dosage Form", errors);
+        validateRequired(getString(row, COL_STORAGE_CONDITION), "Storage Condition", errors);
+
+        // ── Pack Type ─────────────────────────────────────────────────────
+        validateRequired(getString(row, COL_PACK_TYPE), "Pack Type", errors);
+
+        // ── Unit Per Pack ─────────────────────────────────────────────────────
+        String unitPerPackRaw = getString(row, COL_UNIT_PER_PACK);
+        Long unitPerPack = getNullSafeLong(row, COL_UNIT_PER_PACK);
+        validateRequired(unitPerPackRaw, "Number of Units per Pack Type", errors);
+        if (unitPerPackRaw != null && !unitPerPackRaw.isBlank()) {
+            if (unitPerPack == null) {
+                errors.add("Number of Units per Pack Type must be numeric");
+            } else if (unitPerPack <= 0) {
+                errors.add("Number of Units per Pack Type must be a positive value");
+            }
+        }
+
+        // ── Number of Packs ───────────────────────────────────────────────
+        Long numberOfPacks = getNullSafeLong(row, COL_NUMBER_OF_PACKS);
+        validateRequired(numberOfPacks, "Number of Packs", errors);
+        if (numberOfPacks != null && numberOfPacks <= 0) {
+            errors.add("Number of Packs must be a positive value");
+        }
+
+        // ── Min / Max Order Quantities ────────────────────────────────────
+        Long minOrderQty = getNullSafeLong(row, COL_MIN_ORDER_QTY);
+        Long maxOrderQty = getNullSafeLong(row, COL_MAX_ORDER_QTY);
+
+        validateRequired(minOrderQty, "Minimum Order Qty", errors);
+        if (minOrderQty != null && minOrderQty <= 0) {
+            errors.add("Minimum Order Qty must be a positive value");
+        }
+
+        validateRequired(maxOrderQty, "Max Order Qty", errors);
+        if (maxOrderQty != null && maxOrderQty <= 0) {
+            errors.add("Max Order Qty must be a positive value");
+        }
+
+        if (minOrderQty != null && maxOrderQty != null
+                && minOrderQty > 0 && maxOrderQty > 0
+                && minOrderQty > maxOrderQty) {
+            errors.add("Minimum Order Qty must be ≤ Maximum Order Qty");
+        }
+
+        // ── Batch Number ──────────────────────────────────────────────────
+        String batchNumber = getString(row, COL_BATCH_NUMBER);
+        validateRequired(batchNumber, "Batch Number", errors);
+        if (batchNumber != null && !batchNumber.isBlank()) {
+            if (!batchNumber.matches("[A-Za-z0-9]+")) {
+                errors.add("Batch Number must be alphanumeric only (no special characters)");
+            }
+            if (batchNumber.length() < 3) {
+                errors.add("Batch Number must be at least 3 characters");
+            }
+            if (batchNumber.length() > 20) {
+                errors.add("Batch Number must not exceed 20 characters");
+            }
+        }
+
+        // ── Manufacturing Date ────────────────────────────────────────────
+        LocalDate mfgDate = getLocalDate(row, COL_MFG_DATE);
+        validateRequired(mfgDate, "Manufacturing Date", errors);
+        if (mfgDate != null && YearMonth.from(mfgDate).isAfter(YearMonth.now())) {
+            errors.add("Manufacturing Date cannot be a future month");
+        }
+
+        // ── Expiry Date ───────────────────────────────────────────────────
+        LocalDate expiryDate = getLocalDate(row, COL_EXPIRY_DATE);
+        validateRequired(expiryDate, "Expiry Date", errors);
+
+        if (mfgDate != null && expiryDate != null && expiryDate.isBefore(mfgDate)) {
+            errors.add("Expiry Date cannot be before Manufacturing Date");
+        }
+
+        // ── Stock Quantity ────────────────────────────────────────────────
+        Long stockQty = getNullSafeLong(row, COL_STOCK_QTY);
+        validateRequired(stockQty, "Stock Quantity", errors);
+        if (stockQty != null && stockQty <= 0) {
+            errors.add("Stock Quantity must be a positive value");
+        }
+        if (stockQty != null && minOrderQty != null && stockQty < minOrderQty) {
+            errors.add("Stock Quantity (" + stockQty + ") must be ≥ Minimum Order Quantity (" + minOrderQty + ")");
+        }
+
+        // ── MRP ───────────────────────────────────────────────────────────
+        Long mrp = getNullSafeLong(row, COL_MRP);
+        validateRequired(mrp, "MRP", errors);
+        if (mrp != null && mrp <= 0) {
+            errors.add("MRP must be greater than 0");
+        }
+
+        // ── Selling Price ─────────────────────────────────────────────────
+        Long sellingPrice = getNullSafeLong(row, COL_SELLING_PRICE);
+        validateRequired(sellingPrice, "Selling Price", errors);
+        if (sellingPrice != null && sellingPrice <= 0) {
+            errors.add("Selling Price must be greater than 0");
+        }
+        if (sellingPrice != null && mrp != null && sellingPrice > mrp) {
+            errors.add("Selling Price cannot be greater than MRP");
+        }
+
+        // ── Discount % ────────────────────────────────────────────────────
+        Long discountPct = getNullSafeLong(row, COL_DISCOUNT_PCT);
+        if (discountPct != null && (discountPct < 0 || discountPct > 100)) {
+            errors.add("Discount % must be in the range 0–100");
+        }
+
+        // ── GST % ─────────────────────────────────────────────────────────
+        Long gstPct = getNullSafeLong(row, COL_GST_PCT);
+        validateRequired(gstPct, "GST %", errors);
+        if (gstPct != null && !VALID_GST_VALUES.contains(gstPct)) {
+            errors.add("GST % must be one of: 0, 5, 12, 18");
+        }
+
+        // ── HSN Code ──────────────────────────────────────────────────────
+        Long hsnCode = getNullSafeLong(row, COL_HSN_CODE);
+        validateRequired(hsnCode, "HSN Code", errors);
+        if (hsnCode != null) {
+            int digits = String.valueOf(hsnCode).length();
+            if (digits != 4 && digits != 6 && digits != 8) {
+                errors.add("HSN Code must be 4, 6, or 8 digits");
+            }
+        }
+
+        // ── Date of Entry — ignored, always today; no validation needed ───
+
+        // ── Molecule + Strength ───────────────────────────────────────────
+        String moleculeCell = getString(row, COL_MOLECULES);
+        String strengthCell = getString(row, COL_STRENGTH);
+        validateMoleculeStrength(moleculeCell, strengthCell, errors);
+
+        if (!errors.isEmpty()) {
+            throw new ValidationException(errors);
+        }
+    }
+
+    // ── CSV validation ────────────────────────────────────────────────────
+    private void validateMandatoryCsv(CSVRecord r) {
+        List<String> errors = new ArrayList<>();
+
+        // ── Product Name ──────────────────────────────────────────────────
+        String productName = getCsvString(r, H_PRODUCT_NAME);
+        validateRequired(productName, "Product Name", errors);
+        if (productName != null && !productName.isBlank()) {
+            if (productName.length() < 3) {
+                errors.add("Product Name must be at least 3 characters");
+            }
+            if (productName.length() > 150) {
+                errors.add("Product Name must not exceed 150 characters");
+            }
+        }
+
+        // ── Product Description ───────────────────────────────────────────
+        String description = getCsvString(r, H_DESCRIPTION);
+        validateRequired(description, "Product Description", errors);
+        if (description != null && description.length() > 1000) {
+            errors.add("Product Description must not exceed 1000 characters");
+        }
+
+        // ── Warnings / Precautions ────────────────────────────────────────
+        String warnings = getCsvString(r, H_WARNINGS);
+        validateRequired(warnings, "Warnings", errors);
+        if (warnings != null && warnings.length() > 1000) {
+            errors.add("Warnings / Precautions must not exceed 1000 characters");
+        }
+
+        // ── Other mandatory text fields ───────────────────────────────────
+        validateRequired(getCsvString(r, H_THERAPEUTIC_CAT), "Therapeutic Category", errors);
+        validateRequired(getCsvString(r, H_THERAPEUTIC_SUBCAT), "Therapeutic Sub Category", errors);
+        validateRequired(getCsvString(r, H_MOLECULES), "Molecule", errors);
+        validateRequired(getCsvString(r, H_DOSAGE_FORM), "Dosage Form", errors);
+        validateRequired(getCsvString(r, H_STORAGE_CONDITION), "Storage Condition", errors);
+
+        // ── Pack Type ─────────────────────────────────────────────────────
+        validateRequired(getCsvString(r, H_PACK_TYPE), "Pack Type", errors);
+
+        // ── Unit Per Pack ─────────────────────────────────────────────────────
+        String unitPerPackRaw = getCsvString(r, H_UNIT_PER_PACK);
+        Long unitPerPack = getCsvLong(r, H_UNIT_PER_PACK);
+        validateRequired(unitPerPackRaw, "Number of Units per Pack Type", errors);
+        if (unitPerPackRaw != null && !unitPerPackRaw.isBlank()) {
+            if (unitPerPack == null) {
+                errors.add("Number of Units per Pack Type must be numeric");
+            } else if (unitPerPack <= 0) {
+                errors.add("Number of Units per Pack Type must be a positive value");
+            }
+        }
+
+        // ── Number of Packs ───────────────────────────────────────────────
+        Long numberOfPacks = getCsvLong(r, H_NUMBER_OF_PACKS);
+        validateRequired(numberOfPacks, "Number of Packs", errors);
+        if (numberOfPacks != null && numberOfPacks <= 0) {
+            errors.add("Number of Packs must be a positive value");
+        }
+
+        // ── Min / Max Order Quantities ────────────────────────────────────
+        Long minOrderQty = getCsvLong(r, H_MIN_ORDER_QTY);
+        Long maxOrderQty = getCsvLong(r, H_MAX_ORDER_QTY);
+
+        validateRequired(minOrderQty, "Minimum Order Qty", errors);
+        if (minOrderQty != null && minOrderQty <= 0) {
+            errors.add("Minimum Order Qty must be a positive value");
+        }
+
+        validateRequired(maxOrderQty, "Max Order Qty", errors);
+        if (maxOrderQty != null && maxOrderQty <= 0) {
+            errors.add("Max Order Qty must be a positive value");
+        }
+
+        if (minOrderQty != null && maxOrderQty != null
+                && minOrderQty > 0 && maxOrderQty > 0
+                && minOrderQty > maxOrderQty) {
+            errors.add("Minimum Order Qty must be ≤ Maximum Order Qty");
+        }
+
+        // ── Batch Number ──────────────────────────────────────────────────
+        String batchNumber = getCsvString(r, H_BATCH_NUMBER);
+        validateRequired(batchNumber, "Batch Number", errors);
+        if (batchNumber != null && !batchNumber.isBlank()) {
+            if (!batchNumber.matches("[A-Za-z0-9]+")) {
+                errors.add("Batch Number must be alphanumeric only (no special characters)");
+            }
+            if (batchNumber.length() < 3) {
+                errors.add("Batch Number must be at least 3 characters");
+            }
+            if (batchNumber.length() > 20) {
+                errors.add("Batch Number must not exceed 20 characters");
+            }
+        }
+
+        // ── Manufacturing Date ────────────────────────────────────────────
+        LocalDate mfgDate = parseCsvDate(getCsvString(r, H_MFG_DATE));
+        validateRequired(mfgDate, "Manufacturing Date", errors);
+        if (mfgDate != null && YearMonth.from(mfgDate).isAfter(YearMonth.now())) {
+            errors.add("Manufacturing Date cannot be a future month");
+        }
+
+        // ── Expiry Date ───────────────────────────────────────────────────
+        LocalDate expiryDate = parseCsvDate(getCsvString(r, H_EXPIRY_DATE));
+        validateRequired(expiryDate, "Expiry Date", errors);
+
+        if (mfgDate != null && expiryDate != null && expiryDate.isBefore(mfgDate)) {
+            errors.add("Expiry Date cannot be before Manufacturing Date");
+        }
+
+        // ── Stock Quantity ────────────────────────────────────────────────
+        Long stockQty = getCsvLong(r, H_STOCK_QTY);
+        validateRequired(stockQty, "Stock Quantity", errors);
+        if (stockQty != null && stockQty <= 0) {
+            errors.add("Stock Quantity must be a positive value");
+        }
+        if (stockQty != null && minOrderQty != null && stockQty < minOrderQty) {
+            errors.add("Stock Quantity (" + stockQty + ") must be ≥ Minimum Order Quantity (" + minOrderQty + ")");
+        }
+
+        // ── MRP ───────────────────────────────────────────────────────────
+        Long mrp = getCsvLong(r, H_MRP);
+        validateRequired(mrp, "MRP", errors);
+        if (mrp != null && mrp <= 0) {
+            errors.add("MRP must be greater than 0");
+        }
+
+        // ── Selling Price ─────────────────────────────────────────────────
+        Long sellingPrice = getCsvLong(r, H_SELLING_PRICE);
+        validateRequired(sellingPrice, "Selling Price", errors);
+        if (sellingPrice != null && sellingPrice <= 0) {
+            errors.add("Selling Price must be greater than 0");
+        }
+        if (sellingPrice != null && mrp != null && sellingPrice > mrp) {
+            errors.add("Selling Price cannot be greater than MRP");
+        }
+
+        // ── Discount % ────────────────────────────────────────────────────
+        Long discountPct = getCsvLong(r, H_DISCOUNT_PCT);
+        if (discountPct != null && (discountPct < 0 || discountPct > 100)) {
+            errors.add("Discount % must be in the range 0–100");
+        }
+
+        // ── GST % ─────────────────────────────────────────────────────────
+        Long gstPct = getCsvLong(r, H_GST_PCT);
+        validateRequired(gstPct, "GST %", errors);
+        if (gstPct != null && !VALID_GST_VALUES.contains(gstPct)) {
+            errors.add("GST % must be one of: 0, 5, 12, 18");
+        }
+
+        // ── HSN Code ──────────────────────────────────────────────────────
+        Long hsnCode = getCsvLong(r, H_HSN_CODE);
+        validateRequired(hsnCode, "HSN Code", errors);
+        if (hsnCode != null) {
+            int digits = String.valueOf(hsnCode).length();
+            if (digits != 4 && digits != 6 && digits != 8) {
+                errors.add("HSN Code must be 4, 6, or 8 digits");
+            }
+        }
+
+        // ── Date of Entry — ignored, always today; no validation needed ───
+
+        // ── Molecule + Strength ───────────────────────────────────────────
+        String moleculeCell = getCsvString(r, H_MOLECULES);
+        String strengthCell = getCsvStringByIndex(r, COL_STRENGTH);
+        validateMoleculeStrength(moleculeCell, strengthCell, errors);
+
+        if (!errors.isEmpty()) {
+            throw new ValidationException(errors);
+        }
+    }
+
+    // ── Shared molecule+strength validation ───────────────────────────────
+    private void validateMoleculeStrength(String moleculeCell, String strengthCell, List<String> errors) {
+        if (moleculeCell == null || moleculeCell.isBlank()) return;
+
+        String[] molecules = Arrays.stream(moleculeCell.split(","))
+                .map(String::trim)
+                .toArray(String[]::new);
+
+        if (strengthCell == null || strengthCell.isBlank()) {
+            errors.add("Strength is mandatory for molecules: " + String.join(", ", molecules));
+            return;
+        }
+
+        String[] strengths = Arrays.stream(strengthCell.split(","))
+                .map(String::trim)
+                .toArray(String[]::new);
+
+        if (molecules.length != strengths.length) {
+            errors.add("Mismatch: " + molecules.length + " molecule(s) but "
+                    + strengths.length + " strength value(s) provided for molecules: "
+                    + String.join(", ", molecules));
+        }
+
+        int max = Math.max(molecules.length, strengths.length);
+        for (int i = 0; i < max; i++) {
+            String molecule = (i < molecules.length) ? molecules[i] : "UNKNOWN";
+            String strength = (i < strengths.length) ? strengths[i] : null;
+            if (strength == null || strength.isBlank()) {
+                errors.add("Strength missing for molecule: " + molecule);
+            }
+        }
     }
 
     // ── Excel helpers ─────────────────────────────────────────────────────
@@ -471,191 +993,6 @@ public class DrugImportStrategy implements ProductImportStrategy {
 
     private LocalDateTime toEndOfDay(LocalDate date) {
         return date != null ? date.atTime(23, 59, 59) : null;
-    }
-
-    private void validateMandatoryExcel(Row row) {
-        List<String> errors = new ArrayList<>();
-
-        validateRequired(getString(row, COL_PRODUCT_NAME), "Product Name", errors);
-        validateRequired(getString(row, COL_THERAPEUTIC_CAT), "Therapeutic Category", errors);
-        validateRequired(getString(row, COL_THERAPEUTIC_SUBCAT), "Therapeutic Sub Category", errors);
-        validateRequired(getString(row, COL_MOLECULES), "Molecule", errors);
-        validateRequired(getString(row, COL_DOSAGE_FORM), "Dosage Form", errors);
-        validateRequired(getString(row, COL_WARNINGS), "Warnings / Precautions", errors);
-        validateRequired(getString(row, COL_DESCRIPTION), "Product Description", errors);
-        validateRequired(getString(row, COL_BATCH_NUMBER), "Batch Number", errors);
-        validateRequired(getString(row, COL_STORAGE_CONDITION), "Storage Condition", errors);
-
-        validateRequired(getNullSafeLong(row, COL_MIN_ORDER_QTY), "Minimum Order Qty", errors);
-        validateRequired(getNullSafeLong(row, COL_MAX_ORDER_QTY), "Max Order Qty", errors);
-        validateRequired(getNullSafeLong(row, COL_STOCK_QTY), "Stock Quantity", errors);
-        validateRequired(getNullSafeLong(row, COL_MRP), "MRP", errors);
-        validateRequired(getNullSafeLong(row, COL_SELLING_PRICE), "Selling Price", errors);
-        validateRequired(getNullSafeLong(row, COL_HSN_CODE), "HSN Code", errors);
-
-        Long hsnCodeExcel = getNullSafeLong(row, COL_HSN_CODE);
-        if (hsnCodeExcel != null) {
-            int digits = String.valueOf(hsnCodeExcel).length();
-            if (digits != 4 && digits != 6 && digits != 8) {
-                errors.add("HSN Code must be 4, 6, or 8 digits");
-            }
-        }
-
-        validateRequired(getLocalDate(row, COL_MFG_DATE), "Manufacturing Date", errors);
-        validateRequired(getLocalDate(row, COL_EXPIRY_DATE), "Expiry Date", errors);
-        validateRequired(getLocalDate(row, COL_DATE_OF_ENTRY), "Date of Entry", errors);
-
-        // Business validations
-        Long mrp = getNullSafeLong(row, COL_MRP);
-        Long sellingPrice = getNullSafeLong(row, COL_SELLING_PRICE);
-
-        if (mrp != null && mrp <= 0) {
-            errors.add("MRP must be greater than 0");
-        }
-
-        if (sellingPrice != null && mrp != null && sellingPrice > mrp) {
-            errors.add("Selling Price cannot be greater than MRP");
-        }
-
-        LocalDate mfg = getLocalDate(row, COL_MFG_DATE);
-        LocalDate exp = getLocalDate(row, COL_EXPIRY_DATE);
-
-        if (mfg != null && exp != null && exp.isBefore(mfg)) {
-            errors.add("Expiry Date cannot be before Manufacturing Date");
-        }
-
-        String moleculeCell = getString(row, COL_MOLECULES);
-        String strengthCell = getString(row, COL_STRENGTH);
-
-        if (moleculeCell != null && !moleculeCell.isBlank()) {
-
-            String[] molecules = Arrays.stream(moleculeCell.split(","))
-                    .map(String::trim)
-                    .toArray(String[]::new);
-
-            if (strengthCell == null || strengthCell.isBlank()) {
-                errors.add("Strength is mandatory for molecules: " + String.join(", ", molecules));
-            } else {
-
-                String[] strengths = Arrays.stream(strengthCell.split(","))
-                        .map(String::trim)
-                        .toArray(String[]::new);
-
-                if (molecules.length != strengths.length) {
-                    errors.add("Mismatch: " + molecules.length + " molecule(s) but "
-                            + strengths.length + " strength value(s) provided for molecules: "
-                            + String.join(", ", molecules));
-                }
-
-                int max = Math.max(molecules.length, strengths.length);
-
-                for (int i = 0; i < max; i++) {
-
-                    String molecule = (i < molecules.length) ? molecules[i] : "UNKNOWN";
-                    String strength = (i < strengths.length) ? strengths[i] : null;
-
-                    if (strength == null || strength.isBlank()) {
-                        errors.add("Strength missing for molecule: " + molecule);
-                    }
-                }
-            }
-        }
-
-        if (!errors.isEmpty()) {
-            throw new ValidationException(errors);
-        }
-    }
-
-    private void validateMandatoryCsv(CSVRecord r) {
-        List<String> errors = new ArrayList<>();
-
-        validateRequired(getCsvString(r, H_PRODUCT_NAME), "Product Name", errors);
-        validateRequired(getCsvString(r, H_THERAPEUTIC_CAT), "Therapeutic Category", errors);
-        validateRequired(getCsvString(r, H_THERAPEUTIC_SUBCAT), "Therapeutic Sub Category", errors);
-        validateRequired(getCsvString(r, H_MOLECULES), "Molecule", errors);
-        validateRequired(getCsvString(r, H_DOSAGE_FORM), "Dosage Form", errors);
-        validateRequired(getCsvString(r, H_WARNINGS), "Warnings", errors);
-        validateRequired(getCsvString(r, H_DESCRIPTION), "Product Description", errors);
-        validateRequired(getCsvString(r, H_BATCH_NUMBER), "Batch Number", errors);
-        validateRequired(getCsvString(r, H_STORAGE_CONDITION), "Storage Condition", errors);
-
-        validateRequired(getCsvLong(r, H_MIN_ORDER_QTY), "Minimum Order Qty", errors);
-        validateRequired(getCsvLong(r, H_MAX_ORDER_QTY), "Max Order Qty", errors);
-        validateRequired(getCsvLong(r, H_STOCK_QTY), "Stock Quantity", errors);
-        validateRequired(getCsvLong(r, H_MRP), "MRP", errors);
-        validateRequired(getCsvLong(r, H_SELLING_PRICE), "Selling Price", errors);
-        validateRequired(getCsvLong(r, H_HSN_CODE), "HSN Code", errors);
-
-        Long hsnCodeCsv = getCsvLong(r, H_HSN_CODE);
-        if (hsnCodeCsv != null) {
-            int digits = String.valueOf(hsnCodeCsv).length();
-            if (digits != 4 && digits != 6 && digits != 8) {
-                errors.add("HSN Code must be 4, 6, or 8 digits");
-            }
-        }
-
-        validateRequired(parseCsvDate(getCsvString(r, H_MFG_DATE)), "Manufacturing Date", errors);
-        validateRequired(parseCsvDate(getCsvString(r, H_EXPIRY_DATE)), "Expiry Date", errors);
-        validateRequired(parseCsvDate(getCsvString(r, H_DATE_OF_ENTRY)), "Date of Entry", errors);
-
-        Long mrp = getCsvLong(r, H_MRP);
-        Long sellingPrice = getCsvLong(r, H_SELLING_PRICE);
-
-        if (mrp != null && mrp <= 0) {
-            errors.add("MRP must be greater than 0");
-        }
-
-        if (sellingPrice != null && mrp != null && sellingPrice > mrp) {
-            errors.add("Selling Price cannot be greater than MRP");
-        }
-
-        LocalDate mfg = parseCsvDate(getCsvString(r, H_MFG_DATE));
-        LocalDate exp = parseCsvDate(getCsvString(r, H_EXPIRY_DATE));
-
-        if (mfg != null && exp != null && exp.isBefore(mfg)) {
-            errors.add("Expiry Date cannot be before Manufacturing Date");
-        }
-
-        String moleculeCell = getCsvString(r, H_MOLECULES);
-        String strengthCell = getCsvStringByIndex(r, COL_STRENGTH);
-
-        if (moleculeCell != null && !moleculeCell.isBlank()) {
-
-            String[] molecules = Arrays.stream(moleculeCell.split(","))
-                    .map(String::trim)
-                    .toArray(String[]::new);
-
-            if (strengthCell == null || strengthCell.isBlank()) {
-                errors.add("Strength is mandatory for molecules: " + String.join(", ", molecules));
-            } else {
-
-                String[] strengths = Arrays.stream(strengthCell.split(","))
-                        .map(String::trim)
-                        .toArray(String[]::new);
-
-                if (molecules.length != strengths.length) {
-                    errors.add("Mismatch: " + molecules.length + " molecule(s) but "
-                            + strengths.length + " strength value(s) provided for molecules: "
-                            + String.join(", ", molecules));
-                }
-
-                int max = Math.max(molecules.length, strengths.length);
-
-                for (int i = 0; i < max; i++) {
-
-                    String molecule = (i < molecules.length) ? molecules[i] : "UNKNOWN";
-                    String strength = (i < strengths.length) ? strengths[i] : null;
-
-                    if (strength == null || strength.isBlank()) {
-                        errors.add("Strength missing for molecule: " + molecule);
-                    }
-                }
-            }
-        }
-
-        if (!errors.isEmpty()) {
-            throw new ValidationException(errors);
-        }
     }
 
     private void validateRequired(Object value, String field, List<String> errors) {
