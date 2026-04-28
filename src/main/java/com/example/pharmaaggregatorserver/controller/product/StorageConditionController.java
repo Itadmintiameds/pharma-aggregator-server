@@ -27,4 +27,6 @@ public class StorageConditionController {
     public StorageConditionDropdownDTO getConditionById(@PathVariable Long storageConditionId) {
         return storageConditionService.getConditionById(storageConditionId);
     }
+
+
 }
