@@ -468,8 +468,8 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
             }
 
             // =====================================================
-// 🔥 STORAGE CONDITIONS (UPDATE EXISTING ROW)
-// =====================================================
+           // 🔥 STORAGE CONDITIONS (UPDATE EXISTING ROW)
+           // =====================================================
             if (attrDto.getStorageConditionIds() != null) {
 
                 // ✅ Clear old conditions
@@ -487,6 +487,30 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
                             .orElseThrow(() -> new RuntimeException("Storage condition not found: " + scId));
 
                     attr.getStorageConditions().add(sc);
+                }
+            }
+
+            // =====================================================
+            // 🔥 USER MANUAL (REPLACE OLD WITH NEW)
+            // =====================================================
+            if (attrDto.getUserManualUrl() != null) {
+
+                // ❌ Remove existing manual (if any)
+                if (attr.getProductUserManual() != null) {
+                    attr.setProductUserManual(null); // orphanRemoval will delete it
+                }
+
+                // ✅ Add new manual
+                ProductUserManual newManual = new ProductUserManual();
+                newManual.setUserManualUrl(attrDto.getUserManualUrl());
+                newManual.setProductAttributeDrug(attr);
+
+                attr.setProductUserManual(newManual);
+            } else {
+
+                // ❌ If explicitly removed from UI → delete existing
+                if (attr.getProductUserManual() != null) {
+                    attr.setProductUserManual(null);
                 }
             }
         }
