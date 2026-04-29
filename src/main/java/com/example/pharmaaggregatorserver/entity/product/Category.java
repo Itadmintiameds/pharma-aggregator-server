@@ -45,4 +45,8 @@ public class Category {
     @JsonIgnore
     private Set<StorageConditionMaster> storageConditionMasters;
 
+    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private Set<ProductCategoryMaster> productCategoryMasters;
+
 }
