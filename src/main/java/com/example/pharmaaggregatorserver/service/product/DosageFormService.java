@@ -10,9 +10,10 @@ public interface DosageFormService {
 
     List<DosageFormDto> getAllDosageForms();
 
+    List<DosageFormDto> getDosageFormsByCategoryId(Long categoryId);
+
     List<PackTypeDto> getPackTypesByDosageId(Long dosageId);
 
     List<PackTypeDto> getPackTypesByCategoryId(Long categoryId);
-
 
 }
