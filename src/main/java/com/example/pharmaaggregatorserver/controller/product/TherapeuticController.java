@@ -29,6 +29,22 @@ public class TherapeuticController {
 
         return therapeuticService.getSubcategoriesByCategory(categoryId);
     }
+
+
+    @GetMapping("/therapeuticCategoriesById/{therapeuticCategorieId}")
+    public TherapeuticCategoryMasterDto getTherapeuticCategoryById(
+            @PathVariable("therapeuticCategorieId") String therapeuticCategorieId) {
+
+        return therapeuticService.getTherapeuticCategoryById(therapeuticCategorieId);
+    }
+
+
+    @GetMapping("/therapeuticSubcategoriesById/{therapeuticSubCategorieId}")
+    public TherapeuticSubcategoryMasterDto getTherapeuticSubcategoryById(
+            @PathVariable("therapeuticSubCategorieId") String therapeuticSubCategorieId) {
+
+        return therapeuticService.getTherapeuticSubcategoryById(therapeuticSubCategorieId);
+    }
 }
 
 

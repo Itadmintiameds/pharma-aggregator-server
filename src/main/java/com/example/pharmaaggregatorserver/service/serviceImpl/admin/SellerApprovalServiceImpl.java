@@ -242,7 +242,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 "Seller Application Status: Rejected",
                 body
         );
-        tempSellerService.deleteTempSeller(seller.getTempSellerId());
+//        tempSellerService.deleteTempSeller(seller.getTempSellerId());
     }
 
     /**

@@ -1,11 +1,10 @@
 package com.example.pharmaaggregatorserver.service.product.productImpl;
 
-import com.example.pharmaaggregatorserver.dto.product.StorageConditionResponseDTO;
+import com.example.pharmaaggregatorserver.dto.product.StorageConditionDropdownDTO;
 import com.example.pharmaaggregatorserver.repository.product.StorageConditionMasterRepository;
 import com.example.pharmaaggregatorserver.service.product.StorageConditionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import com.example.pharmaaggregatorserver.dto.product.StorageConditionDropdownDTO;
 
 import java.util.List;
 
@@ -18,6 +17,13 @@ public class StorageConditionServiceImpl implements StorageConditionService {
     @Override
     public List<StorageConditionDropdownDTO> getByCategoryId(Long categoryId) {
         return repository.findByCategoryId(categoryId);
+    }
+
+    @Override
+    public StorageConditionDropdownDTO getConditionById(Long storageConditionId) {
+
+        return repository.findProjectedByStorageConditionId(storageConditionId)
+                .orElseThrow(() -> new RuntimeException("Storage Condition not found"));
     }
 }
 

@@ -22,4 +22,9 @@ public class StorageConditionController {
     public List<StorageConditionDropdownDTO> getByCategoryId(@PathVariable Long categoryId) {
         return storageConditionService.getByCategoryId(categoryId);
     }
+
+    @GetMapping("/storageConditionsById/{storageConditionId}")
+    public StorageConditionDropdownDTO getConditionById(@PathVariable Long storageConditionId) {
+        return storageConditionService.getConditionById(storageConditionId);
+    }
 }
