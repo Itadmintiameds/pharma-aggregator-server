@@ -23,6 +23,11 @@ public class TherapeuticController {
         return therapeuticService.getAllCategories();
     }
 
+    @GetMapping("/therapeuticCategories/categoryId/{categoryId}")
+    public List<TherapeuticCategoryMasterDto> getTherapeuticCategoriesByCategoryId(@PathVariable("categoryId") Long categoryId) {
+        return therapeuticService.getTherapeuticCategoriesByCategoryId(categoryId);
+    }
+
     @GetMapping("/therapeuticSubcategories/{categoryId}")
     public List<TherapeuticSubcategoryMasterDto> getSubcategories(
             @PathVariable String categoryId) {
