@@ -30,6 +30,21 @@ public class DosageFormServiceImpl implements DosageFormService {
             DosageFormDto dto = new DosageFormDto();
             dto.setDosageId(d.getDosageId());
             dto.setDosageName(d.getDosageName());
+            dto.setCategoryId(d.getCategory().getCategoryId());
+            dto.setCategoryName(d.getCategory().getCategoryName());
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<DosageFormDto> getDosageFormsByCategoryId(Long categoryId) {
+        List<DosageForm> dosageForms = dosageFormRepository.findByCategory_CategoryId(categoryId);
+        return dosageForms.stream().map(d -> {
+            DosageFormDto dto = new DosageFormDto();
+            dto.setDosageId(d.getDosageId());
+            dto.setDosageName(d.getDosageName());
+            dto.setCategoryId(d.getCategory().getCategoryId());
+            dto.setCategoryName(d.getCategory().getCategoryName());
             return dto;
         }).collect(Collectors.toList());
     }

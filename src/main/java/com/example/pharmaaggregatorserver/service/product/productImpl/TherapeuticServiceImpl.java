@@ -29,7 +29,23 @@ public class TherapeuticServiceImpl implements TherapeuticService {
         return categories.stream()
                 .map(c -> new TherapeuticCategoryMasterDto(
                         c.getTherapeuticCategoryId(),
-                        c.getTherapeuticCategory()
+                        c.getTherapeuticCategory(),
+                        c.getCategory().getCategoryId(),
+                        c.getCategory().getCategoryName()
+                ))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<TherapeuticCategoryMasterDto> getTherapeuticCategoriesByCategoryId(Long categoryId) {
+        List<TherapeuticCategoryMaster> categories = categoryRepo.findByCategory_CategoryId(categoryId);
+
+        return categories.stream()
+                .map(c -> new TherapeuticCategoryMasterDto(
+                        c.getTherapeuticCategoryId(),
+                        c.getTherapeuticCategory(),
+                        c.getCategory().getCategoryId(),
+                        c.getCategory().getCategoryName()
                 ))
                 .collect(Collectors.toList());
     }
@@ -57,7 +73,9 @@ public class TherapeuticServiceImpl implements TherapeuticService {
 
         return new TherapeuticCategoryMasterDto(
                 category.getTherapeuticCategoryId(),
-                category.getTherapeuticCategory()
+                category.getTherapeuticCategory(),
+                category.getCategory().getCategoryId(),
+                category.getCategory().getCategoryName()
         );
     }
 

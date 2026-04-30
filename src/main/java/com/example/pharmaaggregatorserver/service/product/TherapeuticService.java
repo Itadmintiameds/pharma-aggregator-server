@@ -8,6 +8,8 @@ import java.util.List;
 public interface TherapeuticService {
 
     List<TherapeuticCategoryMasterDto> getAllCategories();
+    
+    List<TherapeuticCategoryMasterDto> getTherapeuticCategoriesByCategoryId(Long categoryId);
 
     List<TherapeuticSubcategoryMasterDto> getSubcategoriesByCategory(String categoryId);
 

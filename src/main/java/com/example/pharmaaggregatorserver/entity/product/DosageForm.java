@@ -23,6 +23,11 @@ public class DosageForm {
     @Column(name = "dosage_name")
     private String dosageName;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = true)
+    @JsonIgnore
+    private Category category;
+
     @OneToMany(mappedBy = "dosageForm", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private Set<PackType> packTypes;

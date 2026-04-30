@@ -9,4 +9,6 @@ public class CertificationDto {
 
     private Long certificationId;
     private String certificationName;
+    private Long categoryId;
+    private String categoryName;
 }

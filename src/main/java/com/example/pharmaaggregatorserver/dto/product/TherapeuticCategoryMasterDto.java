@@ -14,11 +14,15 @@ public class TherapeuticCategoryMasterDto {
 
     private String therapeuticCategoryId;
     private String therapeuticCategory;
+    private Long categoryId;
+    private String categoryName;
     private Set<TherapeuticSubcategoryMaster> therapeuticSubcategoryMasters;
 
-    public TherapeuticCategoryMasterDto(String id, String name) {
+    public TherapeuticCategoryMasterDto(String id, String name, Long categoryId, String categoryName) {
         this.therapeuticCategoryId = id;
         this.therapeuticCategory = name;
+        this.categoryId = categoryId;
+        this.categoryName = categoryName;
     }
 
 }

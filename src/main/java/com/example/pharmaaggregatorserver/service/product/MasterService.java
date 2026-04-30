@@ -152,10 +152,20 @@ public class MasterService {
                 .collect(Collectors.toList());
     }
 
+    public List<CertificationDto> getCertificationsByCategoryId(Long categoryId) {
+        List<Certification> certifications = certificationRepository.findByCategory_CategoryId(categoryId);
+
+        return certifications.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
     private CertificationDto convertToDTO(Certification certification) {
         return CertificationDto.builder()
                 .certificationId(certification.getCertificationId())
                 .certificationName(certification.getCertificationName())
+                .categoryId(certification.getCategory().getCategoryId())
+                .categoryName(certification.getCategory().getCategoryName())
                 .build();
     }
 

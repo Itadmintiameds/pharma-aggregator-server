@@ -67,6 +67,11 @@ public class MastersController {
         return ResponseEntity.ok(masterService.getAllCertifications());
     }
 
+    @GetMapping("/certifications/categoryId/{categoryId}")
+    public ResponseEntity<List<CertificationDto>> getCertificationsByCategoryId(@PathVariable("categoryId") Long categoryId) {
+        return ResponseEntity.ok(masterService.getCertificationsByCategoryId(categoryId));
+    }
+
     @GetMapping("/power-sources")
     public ResponseEntity<List<PowerSourceDto>> getAllPowerSources() {
         return ResponseEntity.ok(masterService.getAllPowerSources());

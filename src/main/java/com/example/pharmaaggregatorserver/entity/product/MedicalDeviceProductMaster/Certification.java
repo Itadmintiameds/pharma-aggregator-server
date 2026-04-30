@@ -1,7 +1,12 @@
 package com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster;
 
+import com.example.pharmaaggregatorserver.entity.product.Category;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -18,6 +23,11 @@ public class Certification {
 
     @Column(name = "certification_name", nullable = false)
     private String certificationName;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = true)
+    @JsonIgnore
+    private Category category;
 
     @Column(name = "is_active")
     private Boolean isActive = true;

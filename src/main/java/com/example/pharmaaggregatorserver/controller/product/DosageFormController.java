@@ -17,9 +17,15 @@ import java.util.List;
 public class DosageFormController {
 
     private final DosageFormService dosageFormService;
+
     @GetMapping("/allDosage")
     public List<DosageFormDto> getAllDosageForms() {
         return dosageFormService.getAllDosageForms();
+    }
+
+    @GetMapping("/categoryId/{categoryId}")
+    public List<DosageFormDto> getDosageFormsByCategoryId(@PathVariable("categoryId") Long categoryId) {
+        return dosageFormService.getDosageFormsByCategoryId(categoryId);
     }
 
 
