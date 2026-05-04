@@ -1,10 +1,12 @@
 package com.example.pharmaaggregatorserver.dto.product;
 
-import lombok.Builder;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
-@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class FlavourMasterDto {
 
     private Long flavourId;

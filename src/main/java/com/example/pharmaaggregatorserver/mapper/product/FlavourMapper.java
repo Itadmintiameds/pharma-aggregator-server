@@ -5,17 +5,15 @@ import com.example.pharmaaggregatorserver.entity.product.Flavour;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Component
 public class FlavourMapper {
 
     public FlavourMasterDto toDto(Flavour f) {
-        return FlavourMasterDto
-                .builder()
-                .flavourId(f.getFlavourId())
-                .flavourName(f.getFlavourName())
-                .build();
+        FlavourMasterDto dto = new FlavourMasterDto();
+        dto.setFlavourId(f.getFlavourId());
+        dto.setFlavourName(f.getFlavourName());
+        return dto;
     }
 
     public List<FlavourMasterDto> toDtoList(List<Flavour> flavours) {
