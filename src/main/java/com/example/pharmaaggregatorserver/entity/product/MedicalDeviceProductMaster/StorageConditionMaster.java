@@ -2,6 +2,7 @@ package com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMa
 
 import com.example.pharmaaggregatorserver.entity.product.Category;
 import com.example.pharmaaggregatorserver.entity.product.ProductAttributeDrug;
+import com.example.pharmaaggregatorserver.entity.product.ProductAttributeFoodInfant;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
@@ -9,6 +10,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -62,4 +64,10 @@ public class StorageConditionMaster {
     @ManyToMany(mappedBy = "storageConditions")
     @JsonIgnore
     private Set<ProductAttributeDrug> products = new HashSet<>();
+
+    @OneToMany(mappedBy = "storageConditionMaster")
+    @JsonIgnore
+    private List<ProductAttributeFoodInfant> productAttributeFoodInfants;
+
+
 }

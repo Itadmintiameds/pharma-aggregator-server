@@ -59,4 +59,9 @@ public class ProductCertificateDocument {
     @UpdateTimestamp
     @Column(name = "modified_date")
     private LocalDateTime modifiedDate;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_attribute_id")
+    @JsonIgnore
+    private ProductAttributeFoodInfant productAttributeFoodInfant;
 }

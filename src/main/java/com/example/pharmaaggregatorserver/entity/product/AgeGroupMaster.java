@@ -1,13 +1,13 @@
 package com.example.pharmaaggregatorserver.entity.product;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.Set;
 
 @Getter
 @Setter
@@ -23,4 +23,8 @@ public class AgeGroupMaster {
 
     @Column(name = "age_group")
     private String ageGroup;
+
+//    @OneToMany(mappedBy = "ageGroupMaster", cascade = CascadeType.ALL, orphanRemoval = true)
+//    @JsonIgnore
+//    private Set<ProductAttributeFoodInfant> productAttributeFoodInfants;
 }

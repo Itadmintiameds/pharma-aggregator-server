@@ -28,4 +28,8 @@ public class ProductUserManual {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_attribute_id", nullable = false)
     private ProductAttributeDrug productAttributeDrug;
+
+//    @OneToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "product_attribute_id", nullable = false)
+//    private ProductAttributeFoodInfant productAttributeFoodInfant;
 }

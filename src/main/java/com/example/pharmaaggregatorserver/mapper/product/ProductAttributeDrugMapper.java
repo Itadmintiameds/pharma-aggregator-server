@@ -1,6 +1,5 @@
 package com.example.pharmaaggregatorserver.mapper.product;
 
-import com.example.pharmaaggregatorserver.dto.product.PackagingDetailsDto;
 import com.example.pharmaaggregatorserver.dto.product.ProductAttributeDrugDto;
 import com.example.pharmaaggregatorserver.dto.product.ProductMoleculeDto;
 import com.example.pharmaaggregatorserver.entity.product.*;
@@ -61,8 +60,6 @@ public class ProductAttributeDrugMapper {
 
             ProductUserManual manual = new ProductUserManual();
             manual.setUserManualUrl(dto.getUserManualUrl());
-
-            // set relation BOTH SIDES
             manual.setProductAttributeDrug(entity);
             entity.setProductUserManual(manual);
         }
