@@ -173,6 +173,34 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
             });
         }
 
+        // ================= Non CONSUMABLE MEDICAL =================
+
+        if (product.getProductAttributeSupplementsOrNutraceuticals() != null) {
+            product.getProductAttributeSupplementsOrNutraceuticals().forEach(a -> {
+
+                if (a.getTherapeuticCategory() == null) {
+                    throw new RuntimeException("Therapeutic Category is required");
+                }
+                if (a.getCertifications() == null || a.getCertifications().isEmpty()) {
+                    throw new RuntimeException("At least one certification is required");
+                }
+
+                a.setProductAttributeId(UUID.randomUUID().toString());
+                a.setProductDetails(product);
+                a.setCreatedBy(sellerId);
+                a.setCreatedDate(LocalDateTime.now());
+
+                // Bind each certificate document back to the now-ID'd entity
+                if (a.getCertificateDocuments() != null) {
+                    a.getCertificateDocuments().forEach(doc -> {
+                        doc.setSupplementsOrNutraceuticals(a);
+                        doc.setCreatedBy(sellerId);
+                        doc.setCreatedDate(LocalDateTime.now());
+                    });
+                }
+            });
+        }
+
     }
 
 
@@ -468,8 +496,8 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
             }
 
             // =====================================================
-           // 🔥 STORAGE CONDITIONS (UPDATE EXISTING ROW)
-           // =====================================================
+            // 🔥 STORAGE CONDITIONS (UPDATE EXISTING ROW)
+            // =====================================================
             if (attrDto.getStorageConditionIds() != null) {
 
                 // ✅ Clear old conditions
@@ -547,7 +575,7 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
         //consumable
         if (dto.getProductAttributeConsumableMedicals() != null && !dto.getProductAttributeConsumableMedicals().isEmpty()) {
 
-          ConsumableProductAttributeDTO ConsumableDto =
+            ConsumableProductAttributeDTO ConsumableDto =
                     dto.getProductAttributeConsumableMedicals().iterator().next();
 
             Set<ProductAttributeConsumableMedical> existingConsumables =
@@ -583,8 +611,6 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
 
         return productMapper.toDto(updatedProduct);
     }
-
-
 
 
     @Override
