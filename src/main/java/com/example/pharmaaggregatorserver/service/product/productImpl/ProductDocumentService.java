@@ -4,9 +4,11 @@ import com.example.pharmaaggregatorserver.dto.product.CertificateDocumentDto;
 import com.example.pharmaaggregatorserver.dto.product.CertificateUploadResponse;
 import com.example.pharmaaggregatorserver.entity.product.ProductAttributeConsumableMedical;
 import com.example.pharmaaggregatorserver.entity.product.ProductAttributeNonConsumableMedical;
+import com.example.pharmaaggregatorserver.entity.product.ProductAttributeSupplementsOrNutraceuticals;
 import com.example.pharmaaggregatorserver.entity.product.ProductCertificateDocument;
 import com.example.pharmaaggregatorserver.repository.product.ProductAttributeConsumableMedicalRepository;
 import com.example.pharmaaggregatorserver.repository.product.ProductAttributeNonConsumableMedicalRepository;
+import com.example.pharmaaggregatorserver.repository.product.ProductAttributeSupplementsOrNutraceuticalsRepository;
 import com.example.pharmaaggregatorserver.repository.product.ProductCertificateDocumentRepository;
 import com.example.pharmaaggregatorserver.service.S3Service;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +35,7 @@ public class ProductDocumentService {
     private final ProductCertificateDocumentRepository certificateDocumentRepository;
     private final ProductAttributeNonConsumableMedicalRepository nonConsumableRepository;
     private final ProductAttributeConsumableMedicalRepository consumableRepository;
+    private final ProductAttributeSupplementsOrNutraceuticalsRepository supplementsOrNutraceuticalsRepository;
 
     // ─────────────────────────────────────────────────────────────
     // NON-CONSUMABLE — CERTIFICATES
@@ -277,6 +280,107 @@ public class ProductDocumentService {
         return CertificateUploadResponse.builder()
                 .productAttributeId(productAttributeId)
                 .attributeType("consumable")
+                .uploadedCertificates(List.of())
+                .brochureUrl(url)
+                .build();
+    }
+
+    public CertificateUploadResponse uploadSupplementsOrNutraceuticalsCertificates(
+            String productAttributeId,
+            List<Long> documentIds,
+            List<MultipartFile> certificateFiles,
+            String username) {
+
+        validateParallelLists(certificateFiles, documentIds);
+
+        ProductAttributeSupplementsOrNutraceuticals attribute = supplementsOrNutraceuticalsRepository
+                .findById(productAttributeId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Supplements/Nutraceuticals attribute not found: " + productAttributeId));
+
+        String now = LocalDateTime.now().format(TS_FORMATTER);
+        List<CertificateDocumentDto> uploaded = new ArrayList<>();
+
+        for (int i = 0; i < certificateFiles.size(); i++) {
+
+            MultipartFile file = certificateFiles.get(i);
+            Long docId = documentIds.get(i);
+
+            if (!hasFile(file)) continue;
+
+            ProductCertificateDocument doc = certificateDocumentRepository
+                    .findById(docId)
+                    .orElseThrow(() -> new RuntimeException(
+                            "Certificate document not found: " + docId));
+
+            // Guard: document must belong to this attribute
+            if (doc.getSupplementsOrNutraceuticals() == null ||
+                    !doc.getSupplementsOrNutraceuticals().getProductAttributeId().equals(productAttributeId)) {
+                throw new IllegalArgumentException(
+                        "Certificate document id=" + docId
+                                + " does not belong to productAttributeId=" + productAttributeId);
+            }
+
+            deleteIfRealUrl(doc.getCertificateUrl());
+
+            String productId = attribute.getProductDetails().getProductId();
+
+            String key = buildCertKey("supplements-or-nutraceuticals", productId, productAttributeId,
+                    doc.getCertification().getCertificationName(), now, file);
+
+            String url = s3Service.uploadFile(key, file);
+            log.info("Supplements/Nutraceuticals certificate '{}' uploaded → {}",
+                    doc.getCertification().getCertificationName(), url);
+
+            doc.setCertificateUrl(url);
+            doc.setModifiedBy(username);
+            certificateDocumentRepository.save(doc);
+
+            uploaded.add(CertificateDocumentDto.builder()
+                    .productCertificateDocumentId(docId)
+                    .certificationId(doc.getCertification().getCertificationId())
+                    .certificationName(doc.getCertification().getCertificationName())
+                    .certificateUrl(url)
+                    .build());
+        }
+
+        return CertificateUploadResponse.builder()
+                .productAttributeId(productAttributeId)
+                .attributeType("supplements-or-nutraceuticals")
+                .uploadedCertificates(uploaded)
+                .brochureUrl(null)
+                .build();
+    }
+
+    public CertificateUploadResponse uploadSupplementsOrNutraceuticalsBrochure(
+            String productAttributeId,
+            MultipartFile brochureFile,
+            String username) {
+
+        if (!hasFile(brochureFile)) {
+            throw new RuntimeException("Brochure file is empty or missing");
+        }
+
+        ProductAttributeSupplementsOrNutraceuticals attribute = supplementsOrNutraceuticalsRepository
+                .findById(productAttributeId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Supplements/Nutraceuticals attribute not found: " + productAttributeId));
+
+        deleteIfRealUrl(attribute.getBrochurePath());
+
+        String productId = attribute.getProductDetails().getProductId();
+        String now = LocalDateTime.now().format(TS_FORMATTER);
+        String key = buildBrochureKey("supplements-or-nutraceuticals", productId, productAttributeId, now, brochureFile);
+        String url = s3Service.uploadFile(key, brochureFile);
+        log.info("Supplements/Nutraceuticals brochure uploaded → {}", url);
+
+        attribute.setBrochurePath(url);
+        attribute.setModifiedBy(username);
+        supplementsOrNutraceuticalsRepository.save(attribute);
+
+        return CertificateUploadResponse.builder()
+                .productAttributeId(productAttributeId)
+                .attributeType("supplements-or-nutraceuticals")
                 .uploadedCertificates(List.of())
                 .brochureUrl(url)
                 .build();
