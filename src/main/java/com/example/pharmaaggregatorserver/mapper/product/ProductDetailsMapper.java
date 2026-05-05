@@ -1,6 +1,5 @@
 package com.example.pharmaaggregatorserver.mapper.product;
 
-import com.example.pharmaaggregatorserver.dto.product.MoleculeDto;
 import com.example.pharmaaggregatorserver.dto.product.ProductDetailsDto;
 import com.example.pharmaaggregatorserver.entity.product.*;
 import lombok.RequiredArgsConstructor;
@@ -20,9 +19,10 @@ public class ProductDetailsMapper {
     private final ProductAttributeConsumableMedicalMapper attributeConsumableMapper;
     private final ProductImageMapper imageMapper;
     private final MoleculeMapper moleculeMapper;
+    private final ProductAttributeSupplementsOrNutraceuticalsMapper attributeSupplementsOrNutraceuticalsMapper;
 
 
-    public ProductDetails toEntity(ProductDetailsDto dto){
+    public ProductDetails toEntity(ProductDetailsDto dto) {
         if (dto == null) return null;
 
         ProductDetails entity = new ProductDetails();
@@ -80,6 +80,15 @@ public class ProductDetailsMapper {
                     .collect(Collectors.toSet());
 
             entity.setProductAttributeConsumables(attrSet);
+        }
+
+        if (dto.getProductAttributeSupplementsOrNutraceuticals() != null) {
+            Set<ProductAttributeSupplementsOrNutraceuticals> attrSet = dto.getProductAttributeSupplementsOrNutraceuticals().stream()
+                    .map(attributeSupplementsOrNutraceuticalsMapper::toEntity)
+                    .peek(a -> a.setProductDetails(entity))
+                    .collect(Collectors.toSet());
+
+            entity.setProductAttributeSupplementsOrNutraceuticals(attrSet);
         }
 
         if (dto.getProductImages() != null) {
@@ -149,6 +158,14 @@ public class ProductDetailsMapper {
             dto.setProductAttributeConsumableMedicals(
                     entity.getProductAttributeConsumables().stream()
                             .map(attributeConsumableMapper::toDto)
+                            .collect(Collectors.toSet())
+            );
+        }
+
+        if (entity.getProductAttributeSupplementsOrNutraceuticals() != null) {
+            dto.setProductAttributeSupplementsOrNutraceuticals(
+                    entity.getProductAttributeSupplementsOrNutraceuticals().stream()
+                            .map(attributeSupplementsOrNutraceuticalsMapper::toDto)
                             .collect(Collectors.toSet())
             );
         }

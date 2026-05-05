@@ -43,6 +43,12 @@ public class ProductCertificateDocument {
     @JsonIgnore
     private ProductAttributeConsumableMedical consumableMedical;
 
+    // Link back to supplements_or_nutraceuticals — nullable if consumable or non-consumable
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supplements_or_nutraceuticals_attribute_id")
+    @JsonIgnore
+    private ProductAttributeSupplementsOrNutraceuticals supplementsOrNutraceuticals;
+
     @Column(name = "is_active")
     private Boolean isActive = true;
 

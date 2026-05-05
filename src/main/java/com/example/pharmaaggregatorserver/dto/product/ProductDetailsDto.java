@@ -1,9 +1,5 @@
 package com.example.pharmaaggregatorserver.dto.product;
 
-import com.example.pharmaaggregatorserver.entity.product.PackagingDetails;
-import com.example.pharmaaggregatorserver.entity.product.PricingDetails;
-import com.example.pharmaaggregatorserver.entity.product.ProductAttributeDrug;
-import com.example.pharmaaggregatorserver.entity.product.ProductImage;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -27,5 +23,6 @@ public class ProductDetailsDto {
     private Set<ProductAttributeDrugDto> productAttributeDrugs;
     private Set<ConsumableProductAttributeDTO> productAttributeConsumableMedicals;
     private Set<ProductAttributeNonConsumableMedicalDto> productAttributeNonConsumableMedicals;
+    private Set<ProductAttributeSupplementsOrNutraceuticalsDto> productAttributeSupplementsOrNutraceuticals;
     private Set<ProductImageDto> productImages;
 }
