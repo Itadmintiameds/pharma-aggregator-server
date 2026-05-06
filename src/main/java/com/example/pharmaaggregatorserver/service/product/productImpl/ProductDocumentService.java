@@ -3,10 +3,12 @@ package com.example.pharmaaggregatorserver.service.product.productImpl;
 import com.example.pharmaaggregatorserver.dto.product.CertificateDocumentDto;
 import com.example.pharmaaggregatorserver.dto.product.CertificateUploadResponse;
 import com.example.pharmaaggregatorserver.entity.product.ProductAttributeConsumableMedical;
+import com.example.pharmaaggregatorserver.entity.product.ProductAttributeCosmeticandPersonalCare;
 import com.example.pharmaaggregatorserver.entity.product.ProductAttributeNonConsumableMedical;
 import com.example.pharmaaggregatorserver.entity.product.ProductAttributeSupplementsOrNutraceuticals;
 import com.example.pharmaaggregatorserver.entity.product.ProductCertificateDocument;
 import com.example.pharmaaggregatorserver.repository.product.ProductAttributeConsumableMedicalRepository;
+import com.example.pharmaaggregatorserver.repository.product.ProductAttributeCosmeticAndPersonalUseRepository;
 import com.example.pharmaaggregatorserver.repository.product.ProductAttributeNonConsumableMedicalRepository;
 import com.example.pharmaaggregatorserver.repository.product.ProductAttributeSupplementsOrNutraceuticalsRepository;
 import com.example.pharmaaggregatorserver.repository.product.ProductCertificateDocumentRepository;
@@ -36,6 +38,9 @@ public class ProductDocumentService {
     private final ProductAttributeNonConsumableMedicalRepository nonConsumableRepository;
     private final ProductAttributeConsumableMedicalRepository consumableRepository;
     private final ProductAttributeSupplementsOrNutraceuticalsRepository supplementsOrNutraceuticalsRepository;
+    private final ProductAttributeCosmeticAndPersonalUseRepository cosmeticRepository;
+
+
 
     // ─────────────────────────────────────────────────────────────
     // NON-CONSUMABLE — CERTIFICATES
@@ -385,6 +390,129 @@ public class ProductDocumentService {
                 .brochureUrl(url)
                 .build();
     }
+
+    // ─────────────────────────────────────────────────────────────
+    // COSMETIC — CERTIFICATES
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Replaces the certificateUrl on existing ProductCertificateDocument rows
+     * for a consumable attribute.
+     * <p>
+     * documentIds    → productCertificateDocumentId values from the createProduct response
+     * certificateFiles → actual files, same order as documentIds
+     */
+    @Transactional
+    public CertificateUploadResponse uploadCosmeticCertificates(
+            String productAttributeId,
+            List<Long> documentIds,
+            List<MultipartFile> certificateFiles,
+            String uploadedBy
+    ) {
+        validateParallelLists(certificateFiles, documentIds);
+
+        ProductAttributeCosmeticandPersonalCare attribute = cosmeticRepository
+                .findById(productAttributeId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Cosmetic attribute not found: " + productAttributeId));
+
+        String now = LocalDateTime.now().format(TS_FORMATTER);
+        List<CertificateDocumentDto> uploaded = new ArrayList<>();
+
+        for (int i = 0; i < certificateFiles.size(); i++) {
+
+            MultipartFile file = certificateFiles.get(i);
+            Long docId = documentIds.get(i);
+
+            if (!hasFile(file)) continue;
+
+            ProductCertificateDocument doc = certificateDocumentRepository
+                    .findById(docId)
+                    .orElseThrow(() -> new RuntimeException(
+                            "Certificate document not found: " + docId));
+
+            // Guard: document must belong to this attribute
+            if (doc.getCosmeticAndPersonalUse() == null ||
+                    !doc.getCosmeticAndPersonalUse().getProductAttributeId().equals(productAttributeId)) {
+                throw new IllegalArgumentException(
+                        "Certificate document id=" + docId
+                                + " does not belong to productAttributeId=" + productAttributeId);
+            }
+
+            deleteIfRealUrl(doc.getCertificateUrl());
+
+            String productId = attribute.getProductDetails().getProductId();
+
+            String key = buildCertKey("cosmetic", productId, productAttributeId,
+                    doc.getCertification().getCertificationName(), now, file);
+
+            String url = s3Service.uploadFile(key, file);
+            log.info("Cosmetic certificate '{}' uploaded → {}",
+                    doc.getCertification().getCertificationName(), url);
+
+            doc.setCertificateUrl(url);
+            doc.setModifiedBy(uploadedBy);
+            certificateDocumentRepository.save(doc);
+
+            uploaded.add(CertificateDocumentDto.builder()
+                    .productCertificateDocumentId(docId)
+                    .certificationId(doc.getCertification().getCertificationId())
+                    .certificationName(doc.getCertification().getCertificationName())
+                    .certificateUrl(url)
+                    .build());
+        }
+
+        return CertificateUploadResponse.builder()
+                .productAttributeId(productAttributeId)
+                .attributeType("cosmetic")
+                .uploadedCertificates(uploaded)
+                .brochureUrl(null)
+                .build();
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // COSMETIC — BROCHURE
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Replaces the brochurePath on an existing consumable attribute.
+     */
+    @Transactional
+    public CertificateUploadResponse uploadCosmeticBrochure(
+            String productAttributeId,
+            MultipartFile brochureFile,
+            String uploadedBy
+    ) {
+        if (!hasFile(brochureFile)) {
+            throw new RuntimeException("Brochure file is empty or missing");
+        }
+
+        ProductAttributeCosmeticandPersonalCare attribute = cosmeticRepository
+                .findById(productAttributeId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Cosmetic attribute not found: " + productAttributeId));
+
+        deleteIfRealUrl(attribute.getBrochurePath());
+
+        String productId = attribute.getProductDetails().getProductId();
+        String now = LocalDateTime.now().format(TS_FORMATTER);
+        String key = buildBrochureKey("cosmetic", productId, productAttributeId, now, brochureFile);
+        String url = s3Service.uploadFile(key, brochureFile);
+        log.info("Cosmetic brochure uploaded → {}", url);
+
+        attribute.setBrochurePath(url);
+        attribute.setModifiedBy(uploadedBy);
+        cosmeticRepository.save(attribute);
+
+        return CertificateUploadResponse.builder()
+                .productAttributeId(productAttributeId)
+                .attributeType("cosmetic")
+                .uploadedCertificates(List.of())
+                .brochureUrl(url)
+                .build();
+    }
+
+
 
     // ─────────────────────────────────────────────────────────────
     // S3 KEY BUILDERS

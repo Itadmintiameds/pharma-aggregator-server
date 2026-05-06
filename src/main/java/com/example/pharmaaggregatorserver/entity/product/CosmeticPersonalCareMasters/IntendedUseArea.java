@@ -1,5 +1,7 @@
 package com.example.pharmaaggregatorserver.entity.product.CosmeticPersonalCareMasters;
 
+import com.example.pharmaaggregatorserver.entity.product.ProductAttributeConsumableMedical;
+import com.example.pharmaaggregatorserver.entity.product.ProductAttributeCosmeticandPersonalCare;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -54,4 +56,9 @@ public class IntendedUseArea {
     public void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
+
+    // Bi-directional mapping (optional but recommended)
+    @ManyToMany(mappedBy = "IntendedUseArea")
+    @ToString.Exclude
+    private java.util.List<ProductAttributeCosmeticandPersonalCare> productAttributes;
 }
