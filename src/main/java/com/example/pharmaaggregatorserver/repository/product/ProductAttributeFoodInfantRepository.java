@@ -5,5 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.UUID;
 
-public interface ProductAttributeFoodInfantRepository extends JpaRepository<ProductAttributeFoodInfant, UUID> {
+public interface ProductAttributeFoodInfantRepository extends JpaRepository<ProductAttributeFoodInfant, String> {
 }

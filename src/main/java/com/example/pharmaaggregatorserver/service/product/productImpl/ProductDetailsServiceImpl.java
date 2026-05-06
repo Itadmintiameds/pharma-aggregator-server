@@ -173,7 +173,7 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
             });
         }
 
-        // ================= Non CONSUMABLE MEDICAL =================
+        // ================= Supplements/ Nutraceuticals =================
 
         if (product.getProductAttributeSupplementsOrNutraceuticals() != null) {
             product.getProductAttributeSupplementsOrNutraceuticals().forEach(a -> {
@@ -196,6 +196,37 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
                         doc.setSupplementsOrNutraceuticals(a);
                         doc.setCreatedBy(sellerId);
                         doc.setCreatedDate(LocalDateTime.now());
+                    });
+                }
+            });
+        }
+
+
+        // ================= FOOD INFANT =================
+
+        if (product.getProductAttributeFoodInfants() != null) {
+            product.getProductAttributeFoodInfants().forEach(a -> {
+
+                // ✅ Basic validation (optional but recommended)
+                if (a.getProductCategoryMaster() == null) {
+                    throw new RuntimeException("Product Category is required for food infant");
+                }
+
+                if (a.getCertifications() == null || a.getCertifications().isEmpty()) {
+                    throw new RuntimeException("At least one certification is required for food infant");
+                }
+
+                a.setProductDetails(product);
+                //a.setProductAttributeId(UUID.randomUUID().toString());
+                a.setCreatedBy(sellerId);
+                a.setCreatedDate(LocalDateTime.now());
+                if (a.getCertificateDocuments() != null) {
+                    a.getCertificateDocuments().forEach(doc -> {
+
+                        doc.setProductAttributeFoodInfant(a);
+                        doc.setCreatedBy(sellerId);
+                        doc.setCreatedDate(LocalDateTime.now());
+
                     });
                 }
             });
