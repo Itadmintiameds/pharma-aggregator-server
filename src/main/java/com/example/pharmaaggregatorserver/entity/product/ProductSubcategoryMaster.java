@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.Set;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -16,6 +18,7 @@ import lombok.Setter;
 public class ProductSubcategoryMaster {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "product_subcategory_id")
     private Long productSubcategoryId;
 
@@ -26,4 +29,8 @@ public class ProductSubcategoryMaster {
     @JoinColumn(name = "product_category_id", nullable = false)
     @JsonIgnore
     private ProductCategoryMaster productCategoryMaster;
+
+//    @OneToMany(mappedBy = "productSubcategoryMaster", cascade = CascadeType.ALL, orphanRemoval = true)
+//    @JsonIgnore
+//    private Set<ProductAttributeFoodInfant> productAttributeFoodInfants;
 }

@@ -20,6 +20,7 @@ public class ProductDetailsMapper {
     private final ProductImageMapper imageMapper;
     private final MoleculeMapper moleculeMapper;
     private final ProductAttributeSupplementsOrNutraceuticalsMapper attributeSupplementsOrNutraceuticalsMapper;
+    private final ProductAttributeFoodInfantMapper productAttributeFoodInfantMapper;
 
 
     public ProductDetails toEntity(ProductDetailsDto dto) {
@@ -89,6 +90,15 @@ public class ProductDetailsMapper {
                     .collect(Collectors.toSet());
 
             entity.setProductAttributeSupplementsOrNutraceuticals(attrSet);
+        }
+
+        if (dto.getProductAttributeFoodInfants() != null) {
+            Set<ProductAttributeFoodInfant> attrSet = dto.getProductAttributeFoodInfants().stream()
+                    .map(productAttributeFoodInfantMapper::toEntity)
+                    .peek(a -> a.setProductDetails(entity))
+                    .collect(Collectors.toSet());
+
+            entity.setProductAttributeFoodInfants(attrSet);
         }
 
         if (dto.getProductImages() != null) {
