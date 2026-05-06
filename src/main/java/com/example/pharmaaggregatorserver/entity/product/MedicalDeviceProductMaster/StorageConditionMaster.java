@@ -70,4 +70,5 @@ public class StorageConditionMaster {
     private List<ProductAttributeFoodInfant> productAttributeFoodInfants;
 
 
+
 }
