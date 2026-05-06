@@ -18,6 +18,7 @@ import java.util.Set;
 public class ProductCategoryMaster {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "product_category_id")
     private Long productCategoryId;
 
@@ -32,4 +33,8 @@ public class ProductCategoryMaster {
     @OneToMany(mappedBy = "productCategoryMaster", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private Set<ProductSubcategoryMaster> productSubcategoryMasters;
+
+//    @OneToMany(mappedBy = "productCategoryMaster", cascade = CascadeType.ALL, orphanRemoval = true)
+//    @JsonIgnore
+//    private Set<ProductAttributeFoodInfant> productAttributeFoodInfants;
 }

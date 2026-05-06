@@ -43,6 +43,12 @@ public class ProductCertificateDocument {
     @JsonIgnore
     private ProductAttributeConsumableMedical consumableMedical;
 
+    // Link back to supplements_or_nutraceuticals — nullable if consumable or non-consumable
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supplements_or_nutraceuticals_attribute_id")
+    @JsonIgnore
+    private ProductAttributeSupplementsOrNutraceuticals supplementsOrNutraceuticals;
+
     // Link back to cosmetic — nullable if non-consumable
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cosmetic_attribute_id")
@@ -65,4 +71,9 @@ public class ProductCertificateDocument {
     @UpdateTimestamp
     @Column(name = "modified_date")
     private LocalDateTime modifiedDate;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_attribute_id")
+    @JsonIgnore
+    private ProductAttributeFoodInfant productAttributeFoodInfant;
 }

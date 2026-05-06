@@ -148,6 +148,69 @@ public class ProductDocumentController {
     }
 
     // ─────────────────────────────────────────────────────────────
+    // Supplements / Nutraceuticals — CERTIFICATES
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * POST /product-documents/supplements/{productAttributeId}/certificates
+     * <p>
+     * multipart/form-data:
+     * certificateFiles  → file1, file2, ...         (@RequestPart, repeated)
+     * documentIds       → 4, 5, 6                   (@RequestParam, repeated, same order)
+     * (productCertificateDocumentId from createProduct response)
+     */
+    @PostMapping(
+            value = "/supplements/{productAttributeId}/certificates",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<ApiResponse<CertificateUploadResponse>> uploadSupplementsOrNutraceuticalsCertificates(
+            @PathVariable String productAttributeId,
+            @RequestPart(value = "certificateFiles") List<MultipartFile> certificateFiles,
+            @RequestParam(value = "documentIds") List<Long> documentIds,
+            Authentication authentication
+    ) {
+        CertificateUploadResponse response = productDocumentService.uploadSupplementsOrNutraceuticalsCertificates(
+                productAttributeId, documentIds, certificateFiles, getUsername(authentication)
+        );
+
+        return ResponseEntity.ok(new ApiResponse<>(
+                HttpStatus.OK.toString(),
+                "Supplements Or Nutraceuticals certificates uploaded successfully",
+                response
+        ));
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Supplements / Nutraceuticals — BROCHURE
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * POST /product-documents/supplements/{productAttributeId}/brochure
+     * <p>
+     * multipart/form-data:
+     * brochureFile → single PDF file (@RequestPart)
+     */
+    @PostMapping(
+            value = "/supplements/{productAttributeId}/brochure",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<ApiResponse<CertificateUploadResponse>> uploadSupplementsOrNutraceuticalsBrochure(
+            @PathVariable String productAttributeId,
+            @RequestPart(value = "brochureFile") MultipartFile brochureFile,
+            Authentication authentication
+    ) {
+        CertificateUploadResponse response = productDocumentService.uploadSupplementsOrNutraceuticalsBrochure(
+                productAttributeId, brochureFile, getUsername(authentication)
+        );
+
+        return ResponseEntity.ok(new ApiResponse<>(
+                HttpStatus.OK.toString(),
+                "Supplements Or Nutraceuticals brochure uploaded successfully",
+                response
+        ));
+    }
+
+    // ─────────────────────────────────────────────────────────────
     // CONSUMABLE — CERTIFICATES
     // ─────────────────────────────────────────────────────────────
 
