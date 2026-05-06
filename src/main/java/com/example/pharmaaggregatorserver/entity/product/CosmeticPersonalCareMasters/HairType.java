@@ -1,6 +1,5 @@
 package com.example.pharmaaggregatorserver.entity.product.CosmeticPersonalCareMasters;
 
-
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -9,21 +8,21 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "tm_skin_hair_type_master")
+@Table(name = "tm_hair_type_master")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SkinHairType {
 
+public class HairType {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "type_id")
     private Long typeId;
 
-    @Column(name = "category", nullable = false, length = 20)
-    @Enumerated(EnumType.STRING)
-    private Category category;
+//    @Column(name = "category", nullable = false, length = 20)
+//    @Enumerated(EnumType.STRING)
+//    private SkinType.Category category;
 
     @Column(name = "type_name", nullable = false, unique = true, length = 50)
     private String typeName;
@@ -49,9 +48,9 @@ public class SkinHairType {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    public enum Category {
-        SKIN, HAIR
-    }
+//    public enum Category {
+//        SKIN, HAIR
+//    }
 
     @PrePersist
     public void onCreate() {

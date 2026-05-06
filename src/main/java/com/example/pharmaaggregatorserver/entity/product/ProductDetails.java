@@ -85,4 +85,8 @@ public class ProductDetails {
     @JsonIgnore
     private Set<ProductAttributeConsumableMedical> productAttributeConsumables;
 
+    @OneToMany(mappedBy = "productDetails", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private Set<ProductAttributeCosmeticandPersonalCare> productAttributeCosmeticandPersonalCare;
+
 }

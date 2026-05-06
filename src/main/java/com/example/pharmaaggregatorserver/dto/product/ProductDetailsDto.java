@@ -27,5 +27,7 @@ public class ProductDetailsDto {
     private Set<ProductAttributeDrugDto> productAttributeDrugs;
     private Set<ConsumableProductAttributeDTO> productAttributeConsumableMedicals;
     private Set<ProductAttributeNonConsumableMedicalDto> productAttributeNonConsumableMedicals;
+    private Set<CosmeticAndPersonalUseProductAttributeDTO> productAttributeCosmeticAndPersonalUse;
+
     private Set<ProductImageDto> productImages;
 }

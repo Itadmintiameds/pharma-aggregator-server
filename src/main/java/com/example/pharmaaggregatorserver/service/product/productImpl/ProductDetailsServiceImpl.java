@@ -172,6 +172,33 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
                 }
             });
         }
+        // ================= Cosmetic and Personal use =================
+        if (product.getProductAttributeCosmeticandPersonalCare() != null) {
+            product.getProductAttributeCosmeticandPersonalCare().forEach(a -> {
+
+//                if (a.getDeviceCategory() == null) {
+//                    throw new RuntimeException("deviceCategoryId is required for consumable medical attribute");
+//                }
+
+                if (a.getCertifications() == null) {
+                    throw new RuntimeException("At least one certification is required");
+                }
+
+                a.setProductAttributeId(UUID.randomUUID().toString());
+                a.setProductDetails(product);
+                a.setCreatedBy(sellerId);
+                a.setCreatedDate(LocalDateTime.now());
+
+                // Bind certificate documents back to the entity
+                if (a.getCertificateDocuments() != null) {
+                    a.getCertificateDocuments().forEach(doc -> {
+                        doc.setCosmeticAndPersonalUse(a);
+                        doc.setCreatedBy(sellerId);
+                        doc.setCreatedDate(LocalDateTime.now());
+                    });
+                }
+            });
+        }
 
     }
 

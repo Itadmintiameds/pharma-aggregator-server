@@ -1,36 +1,44 @@
 package com.example.pharmaaggregatorserver.entity.product.CosmeticPersonalCareMasters;
 
+
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
-@Table(name = "tm_gender_master")
+@Table(name = "tm_skin_type_master")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Gender {
+public class SkinType {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "gender_id")
-    private Long genderId;
+    @Column(name = "type_id")
+    private Long skintypeId;
 
-    @Column(name = "gender_name", nullable = false, unique = true, length = 20)
-    private String genderName;
+//    @Column(name = "category", nullable = false, length = 20)
+//    @Enumerated(EnumType.STRING)
+//    private Category category;
 
-    @Column(name = "gender_code", unique = true, length = 10)
-    private String genderCode;
+    @Column(name = "type_name", nullable = false, unique = true, length = 50)
+    private String typeName;
 
-    @Column(name = "description", length = 255)
+    @Column(name = "type_code", unique = true, length = 30)
+    private String typeCode;
+
+    @Column(name = "description", length = 500)
     private String description;
 
     @Column(name = "display_order")
     private Integer displayOrder = 0;
+
+    @Column(name = "icon_class", length = 100)
+    private String iconClass;
 
     @Column(name = "is_active")
     private Boolean isActive = true;
@@ -40,6 +48,10 @@ public class Gender {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+//    public enum Category {
+//        SKIN, HAIR
+//    }
 
     @PrePersist
     public void onCreate() {

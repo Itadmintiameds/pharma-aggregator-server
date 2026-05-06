@@ -148,6 +148,70 @@ public class ProductDocumentController {
     }
 
     // ─────────────────────────────────────────────────────────────
+    // CONSUMABLE — CERTIFICATES
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * POST /product-documents/cosmetic/{productAttributeId}/certificates
+     * <p>
+     * multipart/form-data:
+     * certificateFiles  → file1, file2, ...         (@RequestPart, repeated)
+     * documentIds       → 4, 5, 6                   (@RequestParam, repeated, same order)
+     * (productCertificateDocumentId from createProduct response)
+     */
+    @PostMapping(
+            value = "/cosmetic/{productAttributeId}/certificates",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<ApiResponse<CertificateUploadResponse>> uploadCosmeticCertificates(
+            @PathVariable String productAttributeId,
+            @RequestPart(value = "certificateFiles") List<MultipartFile> certificateFiles,
+            @RequestParam(value = "documentIds") List<Long> documentIds,
+            Authentication authentication
+    ) {
+        CertificateUploadResponse response = productDocumentService.uploadCosmeticCertificates(
+                productAttributeId, documentIds, certificateFiles, getUsername(authentication)
+        );
+
+        return ResponseEntity.ok(new ApiResponse<>(
+                HttpStatus.OK.toString(),
+                "Cosmetic certificates uploaded successfully",
+                response
+        ));
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Cosmetic — BROCHURE
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * POST /product-documents/cosmetic/{productAttributeId}/brochure
+     * <p>
+     * multipart/form-data:
+     * brochureFile → single PDF file (@RequestPart)
+     */
+    @PostMapping(
+            value = "/cosmetic/{productAttributeId}/brochure",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<ApiResponse<CertificateUploadResponse>> uploadCosmeticBrochure(
+            @PathVariable String productAttributeId,
+            @RequestPart(value = "brochureFile") MultipartFile brochureFile,
+            Authentication authentication
+    ) {
+        CertificateUploadResponse response = productDocumentService.uploadCosmeticBrochure(
+                productAttributeId, brochureFile, getUsername(authentication)
+        );
+
+        return ResponseEntity.ok(new ApiResponse<>(
+                HttpStatus.OK.toString(),
+                "Cosmetic brochure uploaded successfully",
+                response
+        ));
+    }
+
+
+    // ─────────────────────────────────────────────────────────────
     // HELPER
     // ─────────────────────────────────────────────────────────────
 
