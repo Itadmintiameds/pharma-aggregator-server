@@ -25,4 +25,5 @@ public class ProductDetailsDto {
     private Set<ProductAttributeNonConsumableMedicalDto> productAttributeNonConsumableMedicals;
     private Set<ProductAttributeSupplementsOrNutraceuticalsDto> productAttributeSupplementsOrNutraceuticals;
     private Set<ProductImageDto> productImages;
+    private Set<ProductAttributeFoodInfantDto> productAttributeFoodInfants;
 }
