@@ -87,4 +87,16 @@ public class MastersController {
     public ResponseEntity<List<PowerSourceDto>> getAllPowerSources() {
         return ResponseEntity.ok(masterService.getAllPowerSources());
     }
+
+    @GetMapping("/hair-types")
+    public ResponseEntity<List<HairTypeResponseDTO>> getAllHairTypes() {
+        return ResponseEntity.ok(masterService.getAllHairTypes());
+    }
+
+    @GetMapping("/skin-types")
+    public ResponseEntity<List<SkinTypeResponseDTO>> getAllSkinTypes() {
+        return ResponseEntity.ok(masterService.getAllSkinTypes());
+    }
+
+
 }
