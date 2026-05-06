@@ -1,6 +1,6 @@
 package com.example.pharmaaggregatorserver.controller.product;
 
-import com.example.pharmaaggregatorserver.service.product.productImpl.NutritionalInformationImageSevice;
+import com.example.pharmaaggregatorserver.service.product.productImpl.NutritionalInformationImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,7 +14,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class NutritionalInformationImageController {
 
-    private final NutritionalInformationImageSevice nutritionalInformationImageSevice;
+    private final NutritionalInformationImageService nutritionalInformationImageService;
 
     @PostMapping(
             value = "/{productAttributeId}",
@@ -22,12 +22,14 @@ public class NutritionalInformationImageController {
     )
     public ResponseEntity<?> uploadNutritionalImage(
             @PathVariable String productAttributeId,
+            @RequestParam("categoryId") Long categoryId,
             @RequestParam("images") MultipartFile file
     ) {
 
         String imageUrl =
-                nutritionalInformationImageSevice.uploadNutritionalInfoImage(
+                nutritionalInformationImageService.uploadNutritionalInfoImage(
                         productAttributeId,
+                        categoryId,
                         file
                 );
 
