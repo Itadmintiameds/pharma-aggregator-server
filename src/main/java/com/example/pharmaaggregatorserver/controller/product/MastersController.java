@@ -87,6 +87,4 @@ public class MastersController {
     public ResponseEntity<List<PowerSourceDto>> getAllPowerSources() {
         return ResponseEntity.ok(masterService.getAllPowerSources());
     }
-
-
 }
