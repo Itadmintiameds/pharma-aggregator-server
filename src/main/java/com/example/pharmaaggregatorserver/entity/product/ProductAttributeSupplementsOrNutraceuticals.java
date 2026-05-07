@@ -104,8 +104,8 @@ public class ProductAttributeSupplementsOrNutraceuticals {
     @JsonIgnore
     private StorageConditionMaster storageConditionMaster;      // Storage Condition*
 
-    @Column(name = "manufacturer_name", nullable = false, length = 100)
-    private String manufacturerName;        // Manufacturer Name*
+//    @Column(name = "manufacturer_name", nullable = false, length = 100)
+//    private String manufacturerName;        // Manufacturer Name*
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "country_id", nullable = false)
