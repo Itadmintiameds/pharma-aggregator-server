@@ -2,6 +2,8 @@ package com.example.pharmaaggregatorserver.mapper.product;
 
 import com.example.pharmaaggregatorserver.dto.product.AdditionalDiscountDto;
 import com.example.pharmaaggregatorserver.dto.product.PricingDetailsDto;
+import com.example.pharmaaggregatorserver.dto.product.SpecialSchemesDto;
+import com.example.pharmaaggregatorserver.entity.SpecialSchemes;
 import com.example.pharmaaggregatorserver.entity.product.AdditionalDiscount;
 
 import com.example.pharmaaggregatorserver.entity.product.PricingDetails;
@@ -16,6 +18,7 @@ import java.util.stream.Collectors;
 public class PricingDetailsMapper {
 
     private final AdditionalDiscountMapper additionalDiscountMapper;
+    private final SpecialSchemesMapper specialSchemesMapper;
 
     public PricingDetails toEntity(PricingDetailsDto dto) {
         if (dto == null) return null;
@@ -25,7 +28,6 @@ public class PricingDetailsMapper {
         entity.setBatchLotNumber(dto.getBatchLotNumber());
         entity.setManufacturingDate(dto.getManufacturingDate());
         entity.setExpiryDate(dto.getExpiryDate());
-//        entity.setStorageCondition(dto.getStorageCondition());
         entity.setStockQuantity(dto.getStockQuantity());
         entity.setDateOfStockEntry(dto.getDateOfStockEntry());
         entity.setSellingPrice(dto.getSellingPrice());
@@ -49,6 +51,17 @@ public class PricingDetailsMapper {
             discounts.forEach(d -> d.setPricingDetails(entity));
 
             entity.setAdditionalDiscounts(discounts);
+        }
+
+        if (dto.getSpecialSchemes() != null) {
+            Set<SpecialSchemes> specialSchemes = dto.getSpecialSchemes()
+                    .stream()
+                    .map(specialSchemesMapper::toEntity)
+                    .collect(Collectors.toSet());
+
+            specialSchemes.forEach(d -> d.setPricingDetails(entity));
+
+            entity.setSpecialSchemes(specialSchemes);
         }
 
         return entity;
@@ -84,6 +97,15 @@ public class PricingDetailsMapper {
                     .collect(Collectors.toSet());
 
             dto.setAdditionalDiscounts(discounts);
+        }
+
+        if (entity.getSpecialSchemes() != null) {
+            Set<SpecialSchemesDto> specialSchemesDtos = entity.getSpecialSchemes()
+                    .stream()
+                    .map(specialSchemesMapper::toDTO)
+                    .collect(Collectors.toSet());
+
+            dto.setSpecialSchemes(specialSchemesDtos);
         }
 
         return dto;

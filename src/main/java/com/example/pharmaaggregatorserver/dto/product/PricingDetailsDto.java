@@ -1,5 +1,6 @@
 package com.example.pharmaaggregatorserver.dto.product;
 
+import com.example.pharmaaggregatorserver.entity.SpecialSchemes;
 import com.example.pharmaaggregatorserver.entity.product.AdditionalDiscount;
 import lombok.Data;
 
@@ -14,7 +15,6 @@ public class PricingDetailsDto {
     private String batchLotNumber;
     private LocalDateTime manufacturingDate;
     private LocalDateTime expiryDate;
-//    private String storageCondition;
     private Long stockQuantity;
     private LocalDate dateOfStockEntry;
     private Long sellingPrice;
@@ -29,5 +29,5 @@ public class PricingDetailsDto {
     private LocalDateTime createdDate;
     private LocalDateTime modifiedDate;
     private Set<AdditionalDiscountDto> additionalDiscounts;
-
+    private Set<SpecialSchemesDto> specialSchemes;
 }
