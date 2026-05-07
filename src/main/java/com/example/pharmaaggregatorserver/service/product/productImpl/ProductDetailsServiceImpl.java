@@ -601,6 +601,7 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
             }
         }
 
+        // Non-Consumable Attribute Update
         if (dto.getProductAttributeNonConsumableMedicals() != null && !dto.getProductAttributeNonConsumableMedicals().isEmpty()) {
 
             ProductAttributeNonConsumableMedicalDto nonConsumableDto =
@@ -652,6 +653,34 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
                 if (ConsumableDto.getStorageConditionId() != null) {
                     StorageConditionMaster storageCondition = storageConditionMasterRepository
                             .findById(ConsumableDto.getStorageConditionId())
+                            .orElseThrow(() -> new RuntimeException("Storage condition not found"));
+                    existing.setStorageConditionMaster(storageCondition);
+                }
+
+                existing.setModifiedBy(seller.getSellerId());
+                existing.setModifiedDate(LocalDateTime.now());
+            }
+        }
+
+        // Supplements Or Nutraceuticals Attribute Update
+        if (dto.getProductAttributeSupplementsOrNutraceuticals() != null && !dto.getProductAttributeSupplementsOrNutraceuticals().isEmpty()) {
+            ProductAttributeSupplementsOrNutraceuticalsDto supplementsDto =
+                    dto.getProductAttributeSupplementsOrNutraceuticals().iterator().next();
+
+            Set<ProductAttributeSupplementsOrNutraceuticals> existingSupplements =
+                    existingProduct.getProductAttributeSupplementsOrNutraceuticals();
+
+            if (existingSupplements != null && !existingSupplements.isEmpty()) {
+
+                ProductAttributeSupplementsOrNutraceuticals existing =
+                        existingSupplements.iterator().next();
+
+                // ✅ ONLY UPDATE THESE 2 FIELDS
+                existing.setProductClaims(supplementsDto.getProductClaims());
+
+                if (supplementsDto.getStorageConditionId() != null) {
+                    StorageConditionMaster storageCondition = storageConditionMasterRepository
+                            .findById(supplementsDto.getStorageConditionId())
                             .orElseThrow(() -> new RuntimeException("Storage condition not found"));
                     existing.setStorageConditionMaster(storageCondition);
                 }
