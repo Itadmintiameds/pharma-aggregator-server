@@ -87,7 +87,7 @@ public class ProductAttributeSupplementsOrNutraceuticalsMapper {
                             "StorageCondition not found: " + dto.getStorageConditionId())));
         }
 
-        entity.setManufacturerName(dto.getManufacturerName());
+//        entity.setManufacturerName(dto.getManufacturerName());
 
         if (dto.getCountryId() != null) {
             entity.setCountryMaster(countryMasterRepository.findById(dto.getCountryId())
@@ -177,7 +177,7 @@ public class ProductAttributeSupplementsOrNutraceuticalsMapper {
             dto.setStorageConditionName(entity.getStorageConditionMaster().getConditionName());
         }
 
-        dto.setManufacturerName(entity.getManufacturerName());
+//        dto.setManufacturerName(entity.getManufacturerName());
 
         if (entity.getCountryMaster() != null) {
             dto.setCountryId(entity.getCountryMaster().getCountryId());

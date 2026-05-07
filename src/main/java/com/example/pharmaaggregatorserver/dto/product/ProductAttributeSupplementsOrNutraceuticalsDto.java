@@ -35,7 +35,7 @@ public class ProductAttributeSupplementsOrNutraceuticalsDto {
     private String productClaims;
     private Long storageConditionId;
     private String storageConditionName;
-    private String manufacturerName;
+//    private String manufacturerName;
     private Long countryId;
     private String countryName;
     private List<ProductCertificateDocumentDto> certificateDocuments;

@@ -1,5 +1,6 @@
 package com.example.pharmaaggregatorserver.entity.product;
 
+import com.example.pharmaaggregatorserver.entity.SpecialSchemes;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -82,5 +83,9 @@ public class PricingDetails {
     @OneToMany(mappedBy = "pricingDetails", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private Set<AdditionalDiscount> additionalDiscounts;
+
+    @OneToMany(mappedBy = "pricingDetails", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private Set<SpecialSchemes> specialSchemes;
 
 }
