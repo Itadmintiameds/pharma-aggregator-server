@@ -40,6 +40,7 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
     private final MoleculeRepository moleculeRepository;
     private final AdditionalDiscountMapper additionalDiscountMapper;
     private final StorageConditionMasterRepository storageConditionMasterRepository;
+    private final ProductAttributeFoodInfantMapper productAttributeFoodInfantMapper;
 
 
     @Override
@@ -481,8 +482,54 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
 
                     pricing.setAdditionalDiscounts(discounts);
                 }
+
+                // 🔥 SPECIAL SCHEMES
+                if (pDto.getSpecialSchemes() != null) {
+
+                    Set<SpecialSchemes> schemes = pDto.getSpecialSchemes().stream()
+                            .map(s -> {
+
+                                SpecialSchemes scheme;
+
+                                // ✅ UPDATE existing row
+                                if (s.getSpecialSchemesId() != null &&
+                                        !s.getSpecialSchemesId().isBlank()) {
+
+                                    scheme = pricing.getSpecialSchemes() != null
+                                            ? pricing.getSpecialSchemes()
+                                            .stream()
+                                            .filter(existing ->
+                                                    existing.getSpecialSchemesId()
+                                                            .equals(s.getSpecialSchemesId()))
+                                            .findFirst()
+                                            .orElse(new SpecialSchemes())
+                                            : new SpecialSchemes();
+
+                                } else {
+                                    // ✅ CREATE new row
+                                    scheme = new SpecialSchemes();
+                                }
+
+                                scheme.setSchemeName(s.getSchemeName());
+                                scheme.setSchemeType(s.getSchemeType());
+                                scheme.setBuyQuantity(s.getBuyQuantity());
+                                scheme.setFreeQuantity(s.getFreeQuantity());
+                                scheme.setEffectiveStartDate(s.getEffectiveStartDate());
+                                scheme.setEffectiveStartTime(s.getEffectiveStartTime());
+                                scheme.setEffectiveEndDate(s.getEffectiveEndDate());
+                                scheme.setEffectiveEndTime(s.getEffectiveEndTime());
+
+                                scheme.setPricingDetails(pricing);
+
+                                return scheme;
+                            })
+                            .collect(Collectors.toSet());
+
+                    pricing.setSpecialSchemes(schemes);
+                }
             }
-        }
+            }
+
 
         // =========================================================
         // ✅ PRODUCT ATTRIBUTE DRUG + MOLECULES
@@ -690,6 +737,54 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
             }
         }
 
+
+// ✅ FOOD & INFANT ATTRIBUTE UPDATE
+        if (dto.getProductAttributeFoodInfants() != null
+                && !dto.getProductAttributeFoodInfants().isEmpty()) {
+
+            ProductAttributeFoodInfantDto foodDto =
+                    dto.getProductAttributeFoodInfants().iterator().next();
+
+            Set<ProductAttributeFoodInfant> existingFoodAttrs =
+                    existingProduct.getProductAttributeFoodInfants();
+
+            ProductAttributeFoodInfant foodAttr;
+
+
+            if (existingFoodAttrs != null && !existingFoodAttrs.isEmpty()) {
+
+                foodAttr = existingFoodAttrs.iterator().next();
+
+                foodDto.setProductAttributeId(
+                        foodAttr.getProductAttributeId());
+
+                foodDto.setCreatedBy(foodAttr.getCreatedBy());
+                foodDto.setCreatedDate(foodAttr.getCreatedDate());
+
+            } else {
+
+                foodDto.setCreatedBy(seller.getSellerId());
+                foodDto.setCreatedDate(LocalDateTime.now());
+            }
+
+            ProductAttributeFoodInfant mapped =
+                    productAttributeFoodInfantMapper.toEntity(foodDto);
+
+            mapped.setProductDetails(existingProduct);
+
+            mapped.setModifiedBy(seller.getSellerId());
+            mapped.setModifiedDate(LocalDateTime.now());
+
+
+            if (existingFoodAttrs == null) {
+                existingFoodAttrs = new HashSet<>();
+                existingProduct.setProductAttributeFoodInfants(existingFoodAttrs);
+            } else {
+                existingFoodAttrs.clear();
+            }
+
+            existingFoodAttrs.add(mapped);
+        }
 
         // =========================================================
         // ✅ SAVE

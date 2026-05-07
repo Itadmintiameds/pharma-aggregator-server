@@ -1,7 +1,5 @@
 package com.example.pharmaaggregatorserver.dto.product;
 
-import com.example.pharmaaggregatorserver.entity.SpecialSchemes;
-import com.example.pharmaaggregatorserver.entity.product.AdditionalDiscount;
 import lombok.Data;
 
 import java.time.LocalDate;
