@@ -97,8 +97,8 @@ public class ProductAttributeFoodInfant {
     @OneToMany(mappedBy = "productAttributeFoodInfant", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProductCertificateDocument> certificateDocuments = new ArrayList<>();
 
-//    @Column(name = "product_user_manual")
-//    private String productUserManual;
+    @Column(name = "product_user_manual")
+    private String productUserManual;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)

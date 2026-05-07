@@ -1,8 +1,10 @@
 package com.example.pharmaaggregatorserver.service.product.productImpl;
 
 import com.example.pharmaaggregatorserver.entity.product.ProductAttributeDrug;
+import com.example.pharmaaggregatorserver.entity.product.ProductAttributeFoodInfant;
 import com.example.pharmaaggregatorserver.entity.product.ProductUserManual;
 import com.example.pharmaaggregatorserver.repository.product.ProductAttributeDrugRepository;
+import com.example.pharmaaggregatorserver.repository.product.ProductAttributeFoodInfantRepository;
 import com.example.pharmaaggregatorserver.repository.product.ProductUserManualRepository;
 import com.example.pharmaaggregatorserver.service.S3Service;
 import com.example.pharmaaggregatorserver.service.product.ProductUserManualService;
@@ -16,6 +18,7 @@ public class ProductUserManualServiceImpl implements ProductUserManualService {
 
     private final ProductAttributeDrugRepository drugRepository;
     private final ProductUserManualRepository manualRepository;
+    private final ProductAttributeFoodInfantRepository productAttributeFoodInfantRepository;
     private final S3Service s3Service;
 
     @Override
@@ -47,5 +50,29 @@ public class ProductUserManualServiceImpl implements ProductUserManualService {
     }
 
 
+    @Override
+    public String uploadUserManual(String productAttributeId, MultipartFile file) {
+
+        ProductAttributeFoodInfant entity = productAttributeFoodInfantRepository.findById(productAttributeId)
+                .orElseThrow(() ->
+                        new RuntimeException("Food Infant Product Attribute not found"));
+
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("File is empty");
+        }
+
+        String key = "productUserManual/"
+                + productAttributeId + "/"
+                + System.currentTimeMillis() + "_"
+                + file.getOriginalFilename();
+
+        String fileUrl = s3Service.uploadFile(key, file);
+
+        entity.setProductUserManual(fileUrl);
+
+        productAttributeFoodInfantRepository.save(entity);
+
+        return fileUrl;
+    }
 
 }
