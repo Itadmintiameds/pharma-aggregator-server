@@ -49,6 +49,12 @@ public class ProductCertificateDocument {
     @JsonIgnore
     private ProductAttributeSupplementsOrNutraceuticals supplementsOrNutraceuticals;
 
+    // Link back to cosmetic — nullable if non-consumable
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cosmetic_attribute_id")
+    @JsonIgnore
+    private ProductAttributeCosmeticandPersonalCare cosmeticAndPersonalUse;
+
     @Column(name = "is_active")
     private Boolean isActive = true;
 

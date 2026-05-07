@@ -38,6 +38,17 @@ public class MastersController {
         return ResponseEntity.ok(masterService.getAllDeviceCategories());
     }
 
+    @GetMapping("/intended-use-areas")
+    public ResponseEntity<List<IntendedUseAreaResponseDTO>> getAllIntendedUseAreas() {
+        return ResponseEntity.ok(masterService.getAllIntendedUseAreas());
+    }
+
+   // GET all skin/hair types
+//    @GetMapping("/skin-hair-types")
+//    public ResponseEntity<List<SkinHairTypeResponseDTO>> getAllSkinHairTypes() {
+//        return ResponseEntity.ok(masterService.getAllSkinHairTypes());
+//    }
+
     // GET ALL Device Sub Categories
     @GetMapping("/device-sub-categories")
     public ResponseEntity<List<DeviceSubCategoryResponseDTO>> getAllDeviceSubCategories() {
@@ -76,4 +87,16 @@ public class MastersController {
     public ResponseEntity<List<PowerSourceDto>> getAllPowerSources() {
         return ResponseEntity.ok(masterService.getAllPowerSources());
     }
+
+    @GetMapping("/hair-types")
+    public ResponseEntity<List<HairTypeResponseDTO>> getAllHairTypes() {
+        return ResponseEntity.ok(masterService.getAllHairTypes());
+    }
+
+    @GetMapping("/skin-types")
+    public ResponseEntity<List<SkinTypeResponseDTO>> getAllSkinTypes() {
+        return ResponseEntity.ok(masterService.getAllSkinTypes());
+    }
+
+
 }

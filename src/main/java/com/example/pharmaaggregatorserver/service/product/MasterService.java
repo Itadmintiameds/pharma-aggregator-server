@@ -1,6 +1,9 @@
 package com.example.pharmaaggregatorserver.service.product;
 
 import com.example.pharmaaggregatorserver.dto.product.*;
+import com.example.pharmaaggregatorserver.entity.product.CosmeticPersonalCareMasters.HairType;
+import com.example.pharmaaggregatorserver.entity.product.CosmeticPersonalCareMasters.IntendedUseArea;
+import com.example.pharmaaggregatorserver.entity.product.CosmeticPersonalCareMasters.SkinType;
 import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.*;
 import com.example.pharmaaggregatorserver.repository.product.*;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +24,10 @@ public class MasterService {
     private final NonConsumableMaterialTypeRepository nonConsumableMaterialTypeRepository;
     private final CertificationRepository certificationRepository;
     private final PowerSourceMasterRepository powerSourceRepository;
+    private final intendedUseAreaRepository intendedUseAreaRepository;
+    private final hairTypeRepository hairTypeRepository;
+    private final skinTypeRepository skinTypeRepository;
+
 
     public List<CountryResponseDTO> getAllCountries() {
         return countryRepository.findAll()
@@ -152,6 +159,7 @@ public class MasterService {
                 .collect(Collectors.toList());
     }
 
+
     public List<CertificationDto> getCertificationsByCategoryId(Long categoryId) {
         List<Certification> certifications = certificationRepository.findByCategory_CategoryId(categoryId);
 
@@ -182,4 +190,94 @@ public class MasterService {
                 .powerSourceName(powerSource.getPowerSourceName())
                 .build();
     }
+
+    // Get all intended use areas
+    public List<IntendedUseAreaResponseDTO> getAllIntendedUseAreas() {
+        return intendedUseAreaRepository.findAll()
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    private IntendedUseAreaResponseDTO convertToDTO(IntendedUseArea area) {
+        return IntendedUseAreaResponseDTO.builder()
+                .useAreaId(area.getUseAreaId())
+                .areaName(area.getAreaName())
+                .areaCode(area.getAreaCode())
+                .description(area.getDescription())
+                .iconClass(area.getIconClass())
+                .displayOrder(area.getDisplayOrder())
+                .isActive(area.getIsActive())
+                .createdAt(area.getCreatedAt())
+                .updatedAt(area.getUpdatedAt())
+                .build();
+    }
+
+    // Get all skin/hair types
+//    public List<SkinHairTypeResponseDTO> getAllSkinHairTypes() {
+//        return skinHairTypeRepository.findAll()
+//                .stream()
+//                .map(this::convertToDTO)
+//                .collect(Collectors.toList());
+//    }
+//
+//    private SkinHairTypeResponseDTO convertToDTO(SkinHairType skinHairType) {
+//        return SkinHairTypeResponseDTO.builder()
+//                .typeId(skinHairType.getTypeId())
+//                .category(skinHairType.getCategory().name())
+//                .typeName(skinHairType.getTypeName())
+//                .typeCode(skinHairType.getTypeCode())
+//                .description(skinHairType.getDescription())
+//                .displayOrder(skinHairType.getDisplayOrder())
+//                .iconClass(skinHairType.getIconClass())
+//                .isActive(skinHairType.getIsActive())
+//                .createdAt(skinHairType.getCreatedAt())
+//                .updatedAt(skinHairType.getUpdatedAt())
+//                .build();
+//    }
+    // Get all hair types
+    public List<HairTypeResponseDTO> getAllHairTypes() {
+        return hairTypeRepository.findAll()
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    private HairTypeResponseDTO convertToDTO(HairType hairType) {
+        return HairTypeResponseDTO.builder()
+                .typeId(hairType.getTypeId())
+                .typeName(hairType.getTypeName())
+                .typeCode(hairType.getTypeCode())
+                .description(hairType.getDescription())
+                .displayOrder(hairType.getDisplayOrder())
+                .iconClass(hairType.getIconClass())
+                .isActive(hairType.getIsActive())
+                .createdAt(hairType.getCreatedAt())
+                .updatedAt(hairType.getUpdatedAt())
+                .build();
+    }
+
+    // Get all skin types
+    public List<SkinTypeResponseDTO> getAllSkinTypes() {
+        return skinTypeRepository.findAll()
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    private SkinTypeResponseDTO convertToDTO(SkinType skinType) {
+        return SkinTypeResponseDTO.builder()
+                .typeId(skinType.getSkintypeId())
+                .typeName(skinType.getTypeName())
+                .typeCode(skinType.getTypeCode())
+                .description(skinType.getDescription())
+                .displayOrder(skinType.getDisplayOrder())
+                .iconClass(skinType.getIconClass())
+                .isActive(skinType.getIsActive())
+                .createdAt(skinType.getCreatedAt())
+                .updatedAt(skinType.getUpdatedAt())
+                .build();
+    }
+
+
 }

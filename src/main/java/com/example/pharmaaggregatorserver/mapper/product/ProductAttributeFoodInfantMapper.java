@@ -46,6 +46,7 @@ public class ProductAttributeFoodInfantMapper {
         entity.setActiveIngredients(dto.getActiveIngredients());
         entity.setAdditivesPreservatives(dto.getAdditivesPreservatives());
         entity.setProductClaims(dto.getProductClaims());
+//        entity.setProductUserManual(dto.getProductUserManual());
         entity.setCreatedBy(dto.getCreatedBy());
         entity.setModifiedBy(dto.getModifiedBy());
         entity.setCreatedDate(dto.getCreatedDate());
@@ -114,14 +115,6 @@ public class ProductAttributeFoodInfantMapper {
             entity.setCertificateDocuments(documents);
         }
 
-//        if (dto.getUserManualUrl() != null) {
-//
-//            ProductUserManual manual = new ProductUserManual();
-//            manual.setUserManualUrl(dto.getUserManualUrl());
-//            manual.setProductAttributeFoodInfant(entity);
-//            entity.setProductUserManual(manual);
-//        }
-
         return entity;
     }
 
@@ -144,6 +137,7 @@ public class ProductAttributeFoodInfantMapper {
         dto.setActiveIngredients(entity.getActiveIngredients());
         dto.setAdditivesPreservatives(entity.getAdditivesPreservatives());
         dto.setProductClaims(entity.getProductClaims());
+//        dto.setProductUserManual(entity.getProductUserManual());
         dto.setCreatedBy(entity.getCreatedBy());
         dto.setModifiedBy(entity.getModifiedBy());
         dto.setCreatedDate(entity.getCreatedDate());
@@ -201,10 +195,6 @@ public class ProductAttributeFoodInfantMapper {
                     .toList();
             dto.setCertificateDocuments(certDtos);
         }
-
-//        if (entity.getProductUserManual() != null) {
-//            dto.setUserManualUrl(entity.getProductUserManual().getUserManualUrl());
-//        }
 
         return dto;
     }

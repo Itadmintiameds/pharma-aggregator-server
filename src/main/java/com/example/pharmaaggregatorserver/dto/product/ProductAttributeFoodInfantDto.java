@@ -28,11 +28,11 @@ public class ProductAttributeFoodInfantDto {
     private String activeIngredients;
     private String additivesPreservatives;
     private String productClaims;
+//    private String productUserManual;
     private Long storageConditionId;
     private Long countryId;
     private List<Long> certificationIds;
     private List<ProductCertificateDocumentDto> certificateDocuments;
-//    private String userManualUrl;
     private String createdBy;
     private String modifiedBy;
     private LocalDateTime createdDate;

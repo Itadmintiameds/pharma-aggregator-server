@@ -17,6 +17,7 @@ public class ProductDetailsMapper {
     private final ProductAttributeDrugMapper attributeMapper;
     private final ProductAttributeNonConsumableMedicalMapper attributeNonConsumableMapper;
     private final ProductAttributeConsumableMedicalMapper attributeConsumableMapper;
+    private final ProductAttributeCosmeticAndPersonalUseMapper attributeCosmeticAndPersonalUseMapper;
     private final ProductImageMapper imageMapper;
     private final MoleculeMapper moleculeMapper;
     private final ProductAttributeSupplementsOrNutraceuticalsMapper attributeSupplementsOrNutraceuticalsMapper;
@@ -99,6 +100,15 @@ public class ProductDetailsMapper {
                     .collect(Collectors.toSet());
 
             entity.setProductAttributeFoodInfants(attrSet);
+        }
+
+        if (dto.getProductAttributeCosmeticAndPersonalUse() != null) {
+            Set<ProductAttributeCosmeticandPersonalCare> attrSet = dto.getProductAttributeCosmeticAndPersonalUse().stream()
+                    .map(attributeCosmeticAndPersonalUseMapper::toEntity)
+                    .peek(a -> a.setProductDetails(entity))
+                    .collect(Collectors.toSet());
+
+            entity.setProductAttributeCosmeticandPersonalCare(attrSet);
         }
 
         if (dto.getProductImages() != null) {
