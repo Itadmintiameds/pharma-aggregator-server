@@ -43,7 +43,9 @@ public class ProductUserManualServiceImpl implements ProductUserManualService {
         drug.setProductUserManual(manual);
 
         manualRepository.save(manual);
-
         return fileUrl;
     }
+
+
+
 }
