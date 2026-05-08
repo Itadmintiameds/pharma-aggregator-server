@@ -737,6 +737,36 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
             }
         }
 
+        // Cosmetic and personal use Update
+        if (dto.getProductAttributeCosmeticAndPersonalUse() != null && !dto.getProductAttributeCosmeticAndPersonalUse().isEmpty()) {
+            CosmeticAndPersonalUseProductAttributeDTO cosmeticDto =
+                    dto.getProductAttributeCosmeticAndPersonalUse().iterator().next();
+
+            Set<ProductAttributeCosmeticandPersonalCare> existingCosmetic =
+                    existingProduct.getProductAttributeCosmeticandPersonalCare();
+
+            if (existingCosmetic != null && !existingCosmetic.isEmpty()) {
+
+                ProductAttributeCosmeticandPersonalCare existing =
+                        existingCosmetic.iterator().next();
+
+                //  ONLY UPDATE THESE 3 FIELDS
+                existing.setProductClaims(cosmeticDto.getProductClaims());
+                existing.setActiveIngredients(cosmeticDto.getActiveIngredients());
+
+
+                if (cosmeticDto.getStorageConditionId() != null) {
+                    StorageConditionMaster storageCondition = storageConditionMasterRepository
+                            .findById(cosmeticDto.getStorageConditionId())
+                            .orElseThrow(() -> new RuntimeException("Storage condition not found"));
+                    existing.setStorageConditionMaster(storageCondition);
+                }
+
+                existing.setModifiedBy(seller.getSellerId());
+                existing.setModifiedDate(LocalDateTime.now());
+            }
+        }
+
 
 // ✅ FOOD & INFANT ATTRIBUTE UPDATE
         if (dto.getProductAttributeFoodInfants() != null
