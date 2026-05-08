@@ -27,4 +27,6 @@ public interface TempSellerService {
     void deleteTempSeller(Long tempSellerId);
 
     void deleteBothSellerAndTempSeller(Long tempSellerId);
+
+    TempSellerResponseDTO updateTempSeller(Long tempSellerId, TempSellerRequestDTO requestDTO);
 }

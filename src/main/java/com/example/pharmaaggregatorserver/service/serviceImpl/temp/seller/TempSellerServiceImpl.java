@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -479,6 +480,110 @@ public class TempSellerServiceImpl implements TempSellerService {
         deleteTempSellerS3Files(tempSeller);
         tempSellerRepository.delete(tempSeller);
 //        log.info("TempSeller deleted with id: {}", tempSellerId);
+    }
+
+    @Override
+    @Transactional
+    public TempSellerResponseDTO updateTempSeller(Long tempSellerId, TempSellerRequestDTO requestDTO) {
+        TempSeller seller = tempSellerRepository.findById(tempSellerId)
+                .orElseThrow(() -> new NotFoundException("TempSeller not found for id: " + tempSellerId));
+
+        List<ProductTypeMaster> productType = productTypeMasterRepository.findAllById(requestDTO.getProductTypeId());
+
+        CompanyTypeMaster companyType = companyTypeMasterRepository.findById(requestDTO.getCompanyTypeId())
+                .orElseThrow(() -> new RuntimeException("Company type not found"));
+
+        SellerTypeMaster sellerType = sellerTypeMasterRepository.findById(requestDTO.getSellerTypeId())
+                .orElseThrow(() -> new RuntimeException("Seller type not found"));
+
+        // ── Core fields ───────────────────────────────────────────────────────────
+        seller.setSellerName(requestDTO.getSellerName());
+        seller.setProductTypes(productType);
+        seller.setCompanyType(companyType);
+        seller.setSellerType(sellerType);
+        seller.setPhone(requestDTO.getPhone());
+        seller.setEmail(requestDTO.getEmail());
+        seller.setWebsite(requestDTO.getWebsite());
+        seller.setStatus("RESUBMITTED");
+        seller.setGstNumber(requestDTO.getGstNumber());
+        seller.setTermsAccepted(requestDTO.isTermsAccepted());
+        seller.setUpdatedBy("SYSTEM");
+
+        // ── Address ───────────────────────────────────────────────────────────────
+        if (requestDTO.getAddress() != null) {
+            if (seller.getAddress() == null) {
+                seller.setAddress(createAddress(requestDTO.getAddress(), seller));
+            } else {
+                TempSellerAddress address = seller.getAddress();
+
+                if (!Objects.equals(address.getState().getStateId(), requestDTO.getAddress().getStateId())) {
+                    StateMaster state = stateMasterRepository.findById(requestDTO.getAddress().getStateId())
+                            .orElseThrow(() -> new RuntimeException("State not found"));
+                    address.setState(state);
+                }
+                if (!Objects.equals(address.getDistrict().getDistrictId(), requestDTO.getAddress().getDistrictId())) {
+                    DistrictMaster district = districtMasterRepository.findById(requestDTO.getAddress().getDistrictId())
+                            .orElseThrow(() -> new RuntimeException("District not found"));
+                    address.setDistrict(district);
+                }
+                if (!Objects.equals(address.getTaluka().getTalukaId(), requestDTO.getAddress().getTalukaId())) {
+                    TalukaMaster taluka = talukaMasterRepository.findById(requestDTO.getAddress().getTalukaId())
+                            .orElseThrow(() -> new RuntimeException("Taluka not found"));
+                    address.setTaluka(taluka);
+                }
+
+                address.setCity(requestDTO.getAddress().getCity());
+                address.setStreet(requestDTO.getAddress().getStreet());
+                address.setBuildingNo(requestDTO.getAddress().getBuildingNo());
+                address.setLandmark(requestDTO.getAddress().getLandmark());
+                address.setPinCode(requestDTO.getAddress().getPinCode());
+                address.setUpdatedBy("SYSTEM");
+            }
+        }
+
+        // ── Coordinator ───────────────────────────────────────────────────────────
+        if (requestDTO.getCoordinator() != null) {
+            if (seller.getCoordinator() == null) {
+                seller.setCoordinator(createCoordinator(requestDTO.getCoordinator(), seller));
+            } else {
+                TempSellerCoordinator coordinator = seller.getCoordinator();
+                coordinator.setName(requestDTO.getCoordinator().getName());
+                coordinator.setDesignation(requestDTO.getCoordinator().getDesignation());
+                coordinator.setEmail(requestDTO.getCoordinator().getEmail());
+                coordinator.setMobile(requestDTO.getCoordinator().getMobile());
+                coordinator.setUpdatedBy("SYSTEM");
+            }
+        }
+
+        // ── Bank Details ──────────────────────────────────────────────────────────
+        if (requestDTO.getBankDetails() != null) {
+            if (seller.getBankDetails() == null) {
+                seller.setBankDetails(createBankDetails(requestDTO.getBankDetails(), seller));
+            } else {
+                TempSellerBankDetails bank = seller.getBankDetails();
+                TempSellerBankDetailsDTO bankDTO = requestDTO.getBankDetails();
+
+                bank.setBankName(bankDTO.getBankName());
+                bank.setBranch(bankDTO.getBranch());
+                bank.setIfscCode(bankDTO.getIfscCode());
+                bank.setAccountNumber(bankDTO.getAccountNumber());
+                bank.setAccountHolderName(bankDTO.getAccountHolderName());
+                bank.setUpdatedBy("SYSTEM");
+            }
+        }
+
+        // ── Documents ─────────────────────────────────────────────────────────────
+        if (requestDTO.getDocuments() != null && !requestDTO.getDocuments().isEmpty()) {
+            if (seller.getDocuments() != null) {
+                seller.getDocuments().clear(); // requires orphanRemoval = true
+            }
+            for (TempSellerDocumentDTO docDTO : requestDTO.getDocuments()) {
+                seller.addDocument(createDocument(docDTO, seller));
+            }
+        }
+
+        TempSeller savedSeller = tempSellerRepository.save(seller);
+        return mapToResponseDTO(savedSeller);
     }
 
     // ─── Private Helpers ──────────────────────────────────────────────────────────
