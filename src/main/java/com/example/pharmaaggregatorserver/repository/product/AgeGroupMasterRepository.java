@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface AgeGroupMasterRepository extends JpaRepository<AgeGroupMaster, Long> {
-    Optional<AgeGroupMaster> findByAgeGroup(String ageGroupName);
+    Optional<AgeGroupMaster> findByAgeGroupIgnoreCase(String ageGroupName);
 }

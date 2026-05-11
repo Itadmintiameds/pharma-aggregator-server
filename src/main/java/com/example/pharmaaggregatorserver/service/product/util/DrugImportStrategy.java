@@ -296,7 +296,7 @@ public class DrugImportStrategy implements ProductImportStrategy {
         if (packTypeName != null && !packTypeName.isBlank()
                 && dosageFormName != null && !dosageFormName.isBlank()) {
             Long packId = packTypeRepository
-                    .findByPackTypeAndCategory_CategoryIdAndDosageForm_DosageName(
+                    .findByPackTypeIgnoreCaseAndCategory_CategoryIdAndDosageForm_DosageName(
                             packTypeName, categoryId, dosageFormName)
                     .orElseThrow(() -> new RuntimeException(
                             "Pack type '" + packTypeName + "' not found for dosage form '" + dosageFormName + "'"))
@@ -344,7 +344,7 @@ public class DrugImportStrategy implements ProductImportStrategy {
         if (therapeuticCat != null && !therapeuticCat.isBlank()) {
             attr.setTherapeuticCategoryId(
                     therapeuticCategoryRepository
-                            .findByTherapeuticCategory(therapeuticCat)
+                            .findByTherapeuticCategoryIgnoreCaseAndCategory_CategoryId(therapeuticCat, categoryId)
                             .orElseThrow(() -> new RuntimeException(
                                     "Therapeutic category not found: " + therapeuticCat))
                             .getTherapeuticCategoryId());
@@ -353,7 +353,7 @@ public class DrugImportStrategy implements ProductImportStrategy {
         if (therapeuticSubCat != null && !therapeuticSubCat.isBlank()) {
             attr.setTherapeuticSubcategoryId(
                     therapeuticSubcategoryRepository
-                            .findByTherapeuticSubcategory(therapeuticSubCat)
+                            .findByTherapeuticSubcategoryIgnoreCaseAndTherapeuticCategoryMaster_TherapeuticCategoryId(therapeuticSubCat, attr.getTherapeuticCategoryId())
                             .orElseThrow(() -> new RuntimeException(
                                     "Therapeutic subcategory not found: " + therapeuticSubCat))
                             .getTherapeuticSubcategoryId());
@@ -370,7 +370,7 @@ public class DrugImportStrategy implements ProductImportStrategy {
                 String strength = (i < strengths.length) ? strengths[i].trim() : null;
 
                 Molecule m = moleculeRepository
-                        .findByMoleculeName(name)
+                        .findByMoleculeNameIgnoreCase(name)
                         .orElseThrow(() -> new RuntimeException("Molecule not found: " + name));
 
                 ProductMoleculeDto pm = new ProductMoleculeDto();

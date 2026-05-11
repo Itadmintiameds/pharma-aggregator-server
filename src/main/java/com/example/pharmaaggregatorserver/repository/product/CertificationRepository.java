@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface CertificationRepository extends JpaRepository<Certification, Long> {
-    Optional<Certification> findByCertificationName(String trimmed);
+    Optional<Certification> findByCertificationNameIgnoreCaseAndCategory_CategoryId(String trimmed, Long categoryId);
 
     List<Certification> findByCategory_CategoryId(Long categoryId);
 }

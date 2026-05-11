@@ -320,13 +320,13 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
         ConsumableProductAttributeDTO dto = new ConsumableProductAttributeDTO();
 
         dto.setDeviceCatId(
-                deviceCategoryRepository.findByDeviceName(getString(row, COL_DEVICE_CATEGORY))
+                deviceCategoryRepository.findByDeviceNameIgnoreCase(getString(row, COL_DEVICE_CATEGORY))
                         .orElseThrow(() -> new RuntimeException("Device category not found"))
                         .getDeviceCatId()
         );
 
         dto.setDeviceSubCatId(
-                deviceSubCategoryRepository.findBySubCategoryName(getString(row, COL_DEVICE_SUBCATEGORY))
+                deviceSubCategoryRepository.findBySubCategoryNameIgnoreCase(getString(row, COL_DEVICE_SUBCATEGORY))
                         .orElseThrow(() -> new RuntimeException("Device subcategory not found"))
                         .getDeviceSubCatId()
         );
@@ -350,7 +350,7 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
             List<ProductCertificateDocumentDto> docs = new ArrayList<>();
             for (String c : certCell.split(",")) {
                 Certification cert = certificationRepository
-                        .findByCertificationName(c.trim())
+                        .findByCertificationNameIgnoreCaseAndCategory_CategoryId(c.trim(), categoryId)
                         .orElseThrow(() -> new RuntimeException("Certification not found: " + c));
                 ProductCertificateDocumentDto d = new ProductCertificateDocumentDto();
                 d.setCertificationId(cert.getCertificationId());
@@ -365,7 +365,7 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
             List<Long> ids = new ArrayList<>();
             for (String m : materialCell.split(",")) {
                 ids.add(
-                        materialTypeRepository.findByMaterialTypeName(m.trim())
+                        materialTypeRepository.findByMaterialTypeNameIgnoreCase(m.trim())
                                 .orElseThrow(() -> new RuntimeException("Material not found: " + m))
                                 .getMaterialTypeId()
                 );
@@ -374,7 +374,7 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
         }
 
         dto.setCountryId(
-                countryRepository.findByCountryName(getString(row, COL_COUNTRY))
+                countryRepository.findByCountryNameIgnoreCase(getString(row, COL_COUNTRY))
                         .orElseThrow(() -> new RuntimeException("Country not found"))
                         .getCountryId()
         );
@@ -403,13 +403,13 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
         ConsumableProductAttributeDTO dto = new ConsumableProductAttributeDTO();
 
         dto.setDeviceCatId(
-                deviceCategoryRepository.findByDeviceName(getCsvString(r, H_DEVICE_CATEGORY))
+                deviceCategoryRepository.findByDeviceNameIgnoreCase(getCsvString(r, H_DEVICE_CATEGORY))
                         .orElseThrow(() -> new RuntimeException("Device category not found"))
                         .getDeviceCatId()
         );
 
         dto.setDeviceSubCatId(
-                deviceSubCategoryRepository.findBySubCategoryName(getCsvString(r, H_DEVICE_SUBCATEGORY))
+                deviceSubCategoryRepository.findBySubCategoryNameIgnoreCase(getCsvString(r, H_DEVICE_SUBCATEGORY))
                         .orElseThrow(() -> new RuntimeException("Device subcategory not found"))
                         .getDeviceSubCatId()
         );
@@ -433,7 +433,7 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
             List<ProductCertificateDocumentDto> docs = new ArrayList<>();
             for (String c : certCell.split(",")) {
                 Certification cert = certificationRepository
-                        .findByCertificationName(c.trim())
+                        .findByCertificationNameIgnoreCaseAndCategory_CategoryId(c.trim(), categoryId)
                         .orElseThrow(() -> new RuntimeException("Certification not found: " + c));
                 ProductCertificateDocumentDto d = new ProductCertificateDocumentDto();
                 d.setCertificationId(cert.getCertificationId());
@@ -448,7 +448,7 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
             List<Long> ids = new ArrayList<>();
             for (String m : materialCell.split(",")) {
                 ids.add(
-                        materialTypeRepository.findByMaterialTypeName(m.trim())
+                        materialTypeRepository.findByMaterialTypeNameIgnoreCase(m.trim())
                                 .orElseThrow(() -> new RuntimeException("Material not found: " + m))
                                 .getMaterialTypeId()
                 );
@@ -457,7 +457,7 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
         }
 
         dto.setCountryId(
-                countryRepository.findByCountryName(getCsvString(r, H_COUNTRY))
+                countryRepository.findByCountryNameIgnoreCase(getCsvString(r, H_COUNTRY))
                         .orElseThrow(() -> new RuntimeException("Country not found"))
                         .getCountryId()
         );
@@ -496,7 +496,7 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
 
         if (packType != null && !packType.isBlank()) {
             dto.setPackId(
-                    packTypeRepository.findByPackTypeAndCategory_CategoryId(packType, categoryId)
+                    packTypeRepository.findByPackTypeIgnoreCaseAndCategory_CategoryId(packType, categoryId)
                             .orElseThrow(() -> new RuntimeException("Pack type not found: " + packType))
                             .getPackId()
             );

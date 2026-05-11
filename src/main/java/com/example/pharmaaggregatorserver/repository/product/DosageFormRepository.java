@@ -13,5 +13,5 @@ public interface DosageFormRepository extends JpaRepository<DosageForm, Long> {
 
     List<DosageForm> findByCategory_CategoryId(Long categoryId);
 
-    Optional<DosageForm> findByDosageNameAndCategory_CategoryId(String dosageName, Long categoryId);
+    Optional<DosageForm> findByDosageNameIgnoreCaseAndCategory_CategoryId(String dosageName, Long categoryId);
 }

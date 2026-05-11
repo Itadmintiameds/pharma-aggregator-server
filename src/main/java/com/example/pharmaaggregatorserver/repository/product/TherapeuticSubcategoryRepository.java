@@ -12,4 +12,6 @@ public interface TherapeuticSubcategoryRepository extends JpaRepository<Therapeu
     findByTherapeuticCategoryMaster_TherapeuticCategoryId(String therapeuticCategoryId);
 
     Optional<TherapeuticSubcategoryMaster> findByTherapeuticSubcategory(String therapeuticSubcategory);
+
+    Optional<TherapeuticSubcategoryMaster> findByTherapeuticSubcategoryIgnoreCaseAndTherapeuticCategoryMaster_TherapeuticCategoryId(String therapeuticSubcategory, String therapeuticCategoryId);
 }

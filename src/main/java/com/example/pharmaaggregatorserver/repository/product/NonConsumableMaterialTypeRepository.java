@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface NonConsumableMaterialTypeRepository extends JpaRepository<NonConsumableMaterialType, Long> {
-    Optional<NonConsumableMaterialType> findByMaterialTypeName(String trimmed);
+    Optional<NonConsumableMaterialType> findByMaterialTypeNameIgnoreCase(String trimmed);
 }

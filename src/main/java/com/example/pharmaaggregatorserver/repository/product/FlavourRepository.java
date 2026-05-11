@@ -7,5 +7,5 @@ import java.util.Optional;
 
 public interface FlavourRepository extends JpaRepository<Flavour, Long> {
 
-    Optional<Flavour> findByFlavourName(String flavourName);
+    Optional<Flavour> findByFlavourNameIgnoreCase(String flavourName);
 }

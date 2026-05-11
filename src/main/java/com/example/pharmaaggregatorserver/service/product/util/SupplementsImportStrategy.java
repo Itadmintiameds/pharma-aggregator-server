@@ -321,7 +321,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         if (!isBlank(therapeuticCat)) {
             attr.setTherapeuticCategoryId(
                     therapeuticCategoryRepository
-                            .findByTherapeuticCategory(therapeuticCat)
+                            .findByTherapeuticCategoryIgnoreCaseAndCategory_CategoryId(therapeuticCat, categoryId)
                             .orElseThrow(() -> new RuntimeException(
                                     "Therapeutic category not found: " + therapeuticCat))
                             .getTherapeuticCategoryId()
@@ -333,7 +333,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         if (!isBlank(therapeuticSubCat)) {
             attr.setTherapeuticSubCategoryId(
                     therapeuticSubcategoryRepository
-                            .findByTherapeuticSubcategory(therapeuticSubCat)
+                            .findByTherapeuticSubcategoryIgnoreCaseAndTherapeuticCategoryMaster_TherapeuticCategoryId(therapeuticSubCat, attr.getTherapeuticCategoryId())
                             .orElseThrow(() -> new RuntimeException(
                                     "Therapeutic subcategory not found: " + therapeuticSubCat))
                             .getTherapeuticSubcategoryId()
@@ -359,7 +359,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         if (!isBlank(dosageFormName)) {
             attr.setDosageFormId(
                     dosageFormRepository
-                            .findByDosageNameAndCategory_CategoryId(dosageFormName, categoryId)
+                            .findByDosageNameIgnoreCaseAndCategory_CategoryId(dosageFormName, categoryId)
                             .orElseThrow(() -> new RuntimeException(
                                     "Dosage form not found: " + dosageFormName))
                             .getDosageId());
@@ -370,7 +370,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         if (!isBlank(ageGroupName)) {
             attr.setAgeGroupId(
                     ageGroupMasterRepository
-                            .findByAgeGroup(ageGroupName)
+                            .findByAgeGroupIgnoreCase(ageGroupName)
                             .orElseThrow(() -> new RuntimeException(
                                     "Age group not found: " + ageGroupName))
                             .getAgeGroupId());
@@ -381,7 +381,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         if (!isBlank(flavourName)) {
             attr.setFlavourId(
                     flavourRepository
-                            .findByFlavourName(flavourName)
+                            .findByFlavourNameIgnoreCase(flavourName)
                             .orElseThrow(() -> new RuntimeException(
                                     "Flavour not found: " + flavourName))
                             .getFlavourId());
@@ -403,7 +403,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         if (!isBlank(country)) {
             attr.setCountryId(
                     countryMasterRepository
-                            .findByCountryName(country)
+                            .findByCountryNameIgnoreCase(country)
                             .orElseThrow(() -> new RuntimeException(
                                     "Country not found: " + country))
                             .getCountryId());
@@ -418,7 +418,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
                 String trimmed = name.trim();
                 log.info("Trying certification: {}", trimmed);
                 Certification cert = certificationRepository
-                        .findByCertificationName(trimmed)
+                        .findByCertificationNameIgnoreCaseAndCategory_CategoryId(trimmed, categoryId)
                         .orElseThrow(() -> new RuntimeException(
                                 "Certification not found: " + trimmed));
                 ProductCertificateDocumentDto d = new ProductCertificateDocumentDto();
@@ -448,7 +448,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         if (!isBlank(therapeuticCat)) {
             attr.setTherapeuticCategoryId(
                     therapeuticCategoryRepository
-                            .findByTherapeuticCategory(therapeuticCat)
+                            .findByTherapeuticCategoryIgnoreCaseAndCategory_CategoryId(therapeuticCat, categoryId)
                             .orElseThrow(() -> new RuntimeException(
                                     "Therapeutic category not found: " + therapeuticCat))
                             .getTherapeuticCategoryId()
@@ -460,7 +460,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         if (!isBlank(therapeuticSubCat)) {
             attr.setTherapeuticSubCategoryId(
                     therapeuticSubcategoryRepository
-                            .findByTherapeuticSubcategory(therapeuticSubCat)
+                            .findByTherapeuticSubcategoryIgnoreCaseAndTherapeuticCategoryMaster_TherapeuticCategoryId(therapeuticSubCat, attr.getTherapeuticCategoryId())
                             .orElseThrow(() -> new RuntimeException(
                                     "Therapeutic subcategory not found: " + therapeuticSubCat))
                             .getTherapeuticSubcategoryId()
@@ -486,7 +486,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         if (!isBlank(dosageFormName)) {
             attr.setDosageFormId(
                     dosageFormRepository
-                            .findByDosageNameAndCategory_CategoryId(dosageFormName, categoryId)
+                            .findByDosageNameIgnoreCaseAndCategory_CategoryId(dosageFormName, categoryId)
                             .orElseThrow(() -> new RuntimeException(
                                     "Dosage form not found: " + dosageFormName))
                             .getDosageId());
@@ -497,7 +497,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         if (!isBlank(ageGroupName)) {
             attr.setAgeGroupId(
                     ageGroupMasterRepository
-                            .findByAgeGroup(ageGroupName)
+                            .findByAgeGroupIgnoreCase(ageGroupName)
                             .orElseThrow(() -> new RuntimeException(
                                     "Age group not found: " + ageGroupName))
                             .getAgeGroupId());
@@ -508,7 +508,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         if (!isBlank(flavourName)) {
             attr.setFlavourId(
                     flavourRepository
-                            .findByFlavourName(flavourName)
+                            .findByFlavourNameIgnoreCase(flavourName)
                             .orElseThrow(() -> new RuntimeException(
                                     "Flavour not found: " + flavourName))
                             .getFlavourId());
@@ -530,7 +530,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         if (!isBlank(country)) {
             attr.setCountryId(
                     countryMasterRepository
-                            .findByCountryName(country)
+                            .findByCountryNameIgnoreCase(country)
                             .orElseThrow(() -> new RuntimeException(
                                     "Country not found: " + country))
                             .getCountryId());
@@ -545,7 +545,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
                 String trimmed = name.trim();
                 log.info("Trying certification: {}", trimmed);
                 Certification cert = certificationRepository
-                        .findByCertificationName(trimmed)
+                        .findByCertificationNameIgnoreCaseAndCategory_CategoryId(trimmed, categoryId)
                         .orElseThrow(() -> new RuntimeException(
                                 "Certification not found: " + trimmed));
                 ProductCertificateDocumentDto d = new ProductCertificateDocumentDto();
@@ -581,7 +581,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
 
         if (!isBlank(packTypeName) && !isBlank(dosageFormName)) {
             Long packId = packTypeRepository
-                    .findByPackTypeAndCategory_CategoryIdAndDosageForm_DosageName(
+                    .findByPackTypeIgnoreCaseAndCategory_CategoryIdAndDosageForm_DosageName(
                             packTypeName, categoryId, dosageFormName)
                     .orElseThrow(() -> new RuntimeException(
                             "Pack type '" + packTypeName + "' not found for dosage form '" + dosageFormName + "'"))
