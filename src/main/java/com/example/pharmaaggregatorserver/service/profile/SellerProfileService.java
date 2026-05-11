@@ -1572,11 +1572,15 @@ public class SellerProfileService {
             log.warn("No coordinator email found for pending seller ID: {}", pendingSeller.getPendingSellerId());
             return;
         }
+        Seller existingSeller = sellerRepository.findById(pendingSeller.getSellerId())
+                .orElse(null);
+
+        String oldSellerName = existingSeller != null ? existingSeller.getSellerName() : "Unknown";
 
         SellerUpdateEmailDTO emailDTO = SellerUpdateEmailDTO.builder()
                 .coordinatorEmail(coordinatorEmail)
                 .coordinatorName(coordinatorName != null ? coordinatorName : "Coordinator")
-                .sellerCompanyName(pendingSeller.getSellerName())
+                .sellerCompanyName(oldSellerName)
                 .requestId(requestId)
                 .supportEmail(supportEmail)
                 .build();
