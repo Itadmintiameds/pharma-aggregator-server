@@ -1,6 +1,5 @@
 package com.example.pharmaaggregatorserver.entity.product;
 
-import com.example.pharmaaggregatorserver.entity.SpecialSchemes;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

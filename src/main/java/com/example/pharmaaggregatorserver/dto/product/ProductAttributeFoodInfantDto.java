@@ -28,7 +28,7 @@ public class ProductAttributeFoodInfantDto {
     private String activeIngredients;
     private String additivesPreservatives;
     private String productClaims;
-//    private String productUserManual;
+    private String productUserManual;
     private Long storageConditionId;
     private Long countryId;
     private List<Long> certificationIds;

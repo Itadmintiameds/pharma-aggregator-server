@@ -27,4 +27,20 @@ public class ProductUserManualController {
     }
 
 
+    @PostMapping("/new/{productAttributeId}")
+    public ResponseEntity<ApiResponse<String>> uploadUserManual(
+            @PathVariable String productAttributeId,
+            @RequestParam("file") MultipartFile file) {
+
+        String url = manualService.uploadUserManual(productAttributeId, file);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        "SUCCESS",
+                        "Food Infant user manual uploaded successfully",
+                        url
+                )
+        );
+    }
+
 }

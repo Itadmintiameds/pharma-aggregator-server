@@ -46,7 +46,7 @@ public class ProductAttributeFoodInfantMapper {
         entity.setActiveIngredients(dto.getActiveIngredients());
         entity.setAdditivesPreservatives(dto.getAdditivesPreservatives());
         entity.setProductClaims(dto.getProductClaims());
-//        entity.setProductUserManual(dto.getProductUserManual());
+        entity.setProductUserManual(dto.getProductUserManual());
         entity.setCreatedBy(dto.getCreatedBy());
         entity.setModifiedBy(dto.getModifiedBy());
         entity.setCreatedDate(dto.getCreatedDate());
@@ -137,7 +137,7 @@ public class ProductAttributeFoodInfantMapper {
         dto.setActiveIngredients(entity.getActiveIngredients());
         dto.setAdditivesPreservatives(entity.getAdditivesPreservatives());
         dto.setProductClaims(entity.getProductClaims());
-//        dto.setProductUserManual(entity.getProductUserManual());
+        dto.setProductUserManual(entity.getProductUserManual());
         dto.setCreatedBy(entity.getCreatedBy());
         dto.setModifiedBy(entity.getModifiedBy());
         dto.setCreatedDate(entity.getCreatedDate());
