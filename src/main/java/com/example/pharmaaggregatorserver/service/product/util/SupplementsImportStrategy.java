@@ -119,7 +119,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
     private static final String H_MAX_ORDER_QTY = "Max Order Qty*";
     private static final String H_BATCH_NUMBER = "Batch Number*";
     private static final String H_MFG_DATE = "Manufacturing Date*";
-    private static final String H_EXPIRY_DATE = "Expiry Date* ";   // trailing space matches template
+    private static final String H_EXPIRY_DATE = "Expiry Date*";
     private static final String H_STOCK_QTY = "Stock Quantity*";
     private static final String H_DATE_OF_ENTRY = "Date of Entry*";  // ignored — always today
     private static final String H_MRP = "MRP (INR)*";
@@ -493,14 +493,30 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         }
 
         // ── Age Group ─────────────────────────────────────────────────────
+//        String ageGroupName = getCsvString(r, H_AGE_GROUP);
+//        if (!isBlank(ageGroupName)) {
+//            attr.setAgeGroupId(
+//                    ageGroupMasterRepository
+//                            .findByAgeGroupIgnoreCase(ageGroupName)
+//                            .orElseThrow(() -> new RuntimeException(
+//                                    "Age group not found: " + ageGroupName))
+//                            .getAgeGroupId());
+//        }
+
         String ageGroupName = getCsvString(r, H_AGE_GROUP);
         if (!isBlank(ageGroupName)) {
+            String normalizedCsv = ageGroupName.replaceAll("[^a-zA-Z0-9() ]", "").trim().toLowerCase();
             attr.setAgeGroupId(
-                    ageGroupMasterRepository
-                            .findByAgeGroupIgnoreCase(ageGroupName)
-                            .orElseThrow(() -> new RuntimeException(
-                                    "Age group not found: " + ageGroupName))
-                            .getAgeGroupId());
+                    ageGroupMasterRepository.findAll().stream()
+                            .filter(ag -> ag.getAgeGroup()
+                                    .replaceAll("[^a-zA-Z0-9() ]", "")
+                                    .trim()
+                                    .toLowerCase()
+                                    .equals(normalizedCsv))
+                            .findFirst()
+                            .orElseThrow(() -> new RuntimeException("Age group not found: " + ageGroupName))
+                            .getAgeGroupId()
+            );
         }
 
         // ── Flavour ───────────────────────────────────────────────────────
