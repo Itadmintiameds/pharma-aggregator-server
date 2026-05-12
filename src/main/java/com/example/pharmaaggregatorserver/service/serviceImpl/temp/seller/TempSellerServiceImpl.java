@@ -23,9 +23,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -506,7 +505,6 @@ public class TempSellerServiceImpl implements TempSellerService {
         seller.setWebsite(requestDTO.getWebsite());
         seller.setStatus("RESUBMITTED");
         seller.setGstNumber(requestDTO.getGstNumber());
-        seller.setTermsAccepted(requestDTO.isTermsAccepted());
         seller.setUpdatedBy("SYSTEM");
 
         // ── Address ───────────────────────────────────────────────────────────────
@@ -547,10 +545,13 @@ public class TempSellerServiceImpl implements TempSellerService {
                 seller.setCoordinator(createCoordinator(requestDTO.getCoordinator(), seller));
             } else {
                 TempSellerCoordinator coordinator = seller.getCoordinator();
-                coordinator.setName(requestDTO.getCoordinator().getName());
-                coordinator.setDesignation(requestDTO.getCoordinator().getDesignation());
-                coordinator.setEmail(requestDTO.getCoordinator().getEmail());
-                coordinator.setMobile(requestDTO.getCoordinator().getMobile());
+                TempSellerCoordinatorDTO coordinatorDTO = requestDTO.getCoordinator();
+                coordinator.setName(coordinatorDTO.getName());
+                coordinator.setDesignation(coordinatorDTO.getDesignation());
+                coordinator.setEmail(coordinatorDTO.getEmail());
+                coordinator.setEmailVerified(coordinatorDTO.isEmailVerified());
+                coordinator.setMobile(coordinatorDTO.getMobile());
+                coordinator.setPhoneVerified(coordinatorDTO.isPhoneVerified());
                 coordinator.setUpdatedBy("SYSTEM");
             }
         }
@@ -573,12 +574,43 @@ public class TempSellerServiceImpl implements TempSellerService {
         }
 
         // ── Documents ─────────────────────────────────────────────────────────────
-        if (requestDTO.getDocuments() != null && !requestDTO.getDocuments().isEmpty()) {
-            if (seller.getDocuments() != null) {
-                seller.getDocuments().clear(); // requires orphanRemoval = true
-            }
+        if (requestDTO.getDocuments() != null) {
+
+            // Build a map of existing documents by productTypeId for quick lookup
+            Map<Long, TempSellerDocument> existingDocMap = seller.getDocuments().stream()
+                    .collect(Collectors.toMap(
+                            doc -> doc.getProductTypes().getProductTypeId(),
+                            doc -> doc
+                    ));
+
+            // Build a set of incoming productTypeIds
+            Set<Long> incomingProductTypeIds = requestDTO.getDocuments().stream()
+                    .map(TempSellerDocumentDTO::getProductTypeId)
+                    .collect(Collectors.toSet());
+
+            // 1. DELETE documents whose productTypeId is no longer in the request + delete S3 file
+            existingDocMap.forEach((productTypeId, existingDoc) -> {
+                if (!incomingProductTypeIds.contains(productTypeId)) {
+                    deleteS3File(existingDoc.getDocumentFileUrl());
+                    seller.getDocuments().remove(existingDoc); // orphanRemoval will delete from DB
+                }
+            });
+
+            // 2. UPDATE existing or ADD new documents
             for (TempSellerDocumentDTO docDTO : requestDTO.getDocuments()) {
-                seller.addDocument(createDocument(docDTO, seller));
+                TempSellerDocument existingDoc = existingDocMap.get(docDTO.getProductTypeId());
+
+                if (existingDoc != null) {
+                    // UPDATE existing document row
+                    existingDoc.setDocumentNumber(docDTO.getDocumentNumber());
+                    existingDoc.setLicenseIssueDate(docDTO.getLicenseIssueDate());
+                    existingDoc.setLicenseExpiryDate(docDTO.getLicenseExpiryDate());
+                    existingDoc.setLicenseIssuingAuthority(docDTO.getLicenseIssuingAuthority());
+                    existingDoc.setUpdatedBy("SYSTEM");
+                } else {
+                    // ADD new document row
+                    seller.addDocument(createDocument(docDTO, seller));
+                }
             }
         }
 

@@ -75,6 +75,7 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
             gstUrl = s3Service.uploadFile(key, request.getGstFile());
 
             seller.setGstFileUrl(gstUrl);
+            seller.setGstVerified(false);
             log.info("GST file uploaded → {}", gstUrl);
         }
 
@@ -93,6 +94,7 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
             bankUrl = s3Service.uploadFile(key, request.getBankFile());
 
             seller.getBankDetails().setBankDocumentFileUrl(bankUrl);
+            seller.getBankDetails().setBankDocumentVerified(false);
             log.info("Bank document uploaded → {}", bankUrl);
         }
 
@@ -106,6 +108,7 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
             companyRegistrationCertificateUrl = s3Service.uploadFile(key, request.getCompanyRegistrationCertificate());
 
             seller.setCompanyRegistrationCertificateUrl(companyRegistrationCertificateUrl);
+            seller.setCompanyRegistrationCertificateVerified(false);
             log.info("Company Registration Certificate file uploaded → {}", companyRegistrationCertificateUrl);
         }
 
@@ -142,6 +145,7 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
                 String docUrl = s3Service.uploadFile(key, file);
 
                 doc.setDocumentFileUrl(docUrl);
+                doc.setDocumentVerified(false);
                 tempSellerDocumentRepository.save(doc);
 
                 licenseResults.add(TempSellerDocumentUploadResponse.LicenseUploadResult.builder()
