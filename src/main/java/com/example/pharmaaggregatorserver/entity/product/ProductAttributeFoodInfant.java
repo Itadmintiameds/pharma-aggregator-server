@@ -116,4 +116,5 @@ public class ProductAttributeFoodInfant {
 
     @Column(name = "modified_date")
     private LocalDateTime modifiedDate;
+
 }
