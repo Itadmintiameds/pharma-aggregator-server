@@ -190,6 +190,14 @@ public class ProductDetailsMapper {
             );
         }
 
+        if (entity.getProductAttributeFoodInfants() != null) {
+            dto.setProductAttributeFoodInfants(
+                    entity.getProductAttributeFoodInfants().stream()
+                            .map(productAttributeFoodInfantMapper::toDto)
+                            .collect(Collectors.toSet())
+            );
+        }
+
         if (entity.getProductImages() != null) {
             dto.setProductImages(
                     entity.getProductImages().stream()
