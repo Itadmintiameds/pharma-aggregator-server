@@ -487,6 +487,13 @@ public class TempSellerServiceImpl implements TempSellerService {
         TempSeller seller = tempSellerRepository.findById(tempSellerId)
                 .orElseThrow(() -> new NotFoundException("TempSeller not found for id: " + tempSellerId));
 
+        if (!seller.getStatus().equalsIgnoreCase("CORRECTION_REQUIRED")) {
+            throw new ApplicationException(
+                    "You are not allowed to update this application because its current status is '"
+                            + seller.getStatus() + "'. Updates are only permitted when the status is 'CORRECTION_REQUIRED'."
+            );
+        }
+
         List<ProductTypeMaster> productType = productTypeMasterRepository.findAllById(requestDTO.getProductTypeId());
 
         CompanyTypeMaster companyType = companyTypeMasterRepository.findById(requestDTO.getCompanyTypeId())
