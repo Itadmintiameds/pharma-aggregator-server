@@ -822,7 +822,7 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
                 ProductAttributeCosmeticandPersonalCare existing =
                         existingCosmetic.iterator().next();
 
-                //  ONLY UPDATE THESE 3 FIELDS
+                //  ONLY UPDATE THESE 5 FIELDS
                 existing.setProductClaims(cosmeticDto.getProductClaims());
                 existing.setVariantName(cosmeticDto.getVariantName());
 
@@ -841,24 +841,65 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
                     }
                 }
 
+                if (cosmeticDto.getStorageConditionId() != null &&
+                            !Objects.equals(existing.getStorageConditionMaster().getStorageConditionId(), cosmeticDto.getStorageConditionId())) {
 
-                if (cosmeticDto.getStorageConditionId() != null) {
+                        Set<PricingDetails> pricingDetailsSet = existingProduct.getPricingDetails();
 
-                    Long stockQuantity = pricingDetailsRepository.getTotalStockByProductId(productId);
+                        boolean hasStock = pricingDetailsSet != null &&
+                                pricingDetailsSet.stream()
+                                        .max(Comparator.comparing(PricingDetails::getCreatedDate,
+                                                Comparator.nullsLast(Comparator.naturalOrder())))
+                                        .map(latest -> latest.getStockQuantity() != null && latest.getStockQuantity() > 0)
+                                        .orElse(false);
 
-                    if (stockQuantity > 0) {
-                        throw new RuntimeException(
-                                "Storage condition cannot be changed while stock is available. " +
-                                        "Allowed only when stock quantity is 0."
-                        );
-                    }
-
-                    StorageConditionMaster storageCondition = storageConditionMasterRepository
-                            .findById(cosmeticDto.getStorageConditionId())
-                            .orElseThrow(() -> new RuntimeException("Storage condition not found"));
-                    existing.setStorageConditionMaster(storageCondition);
+                        if (hasStock) {
+                            throw new ApplicationException(
+                                    "Storage condition cannot be changed while stock is available. " +
+                                            "Allowed only when stock quantity is 0."
+                            );
+                        }
+                        StorageConditionMaster storageCondition = storageConditionMasterRepository
+                                .findById(cosmeticDto.getStorageConditionId())
+                                .orElseThrow(() -> new RuntimeException("Storage condition not found"));
+                        existing.setStorageConditionMaster(storageCondition);
                 }
 
+                // =====================================================
+                //  CERTIFICATE DOCUMENTS (ONLY INSERT NEW — NEVER TOUCH EXISTING)
+                // =====================================================
+                if (cosmeticDto.getCertificateDocuments() != null && !cosmeticDto.getCertificateDocuments().isEmpty()) {
+
+                    // Build a Set of existing certificationIds already linked to this attribute
+                    Set<Long> existingCertificationIds = existing.getCertificateDocuments()
+                            .stream()
+                            .filter(doc -> doc.getCertification() != null)
+                            .map(doc -> doc.getCertification().getCertificationId())
+                            .collect(Collectors.toSet());
+
+                    for (ProductCertificateDocumentDto docDto : cosmeticDto.getCertificateDocuments()) {
+
+                        if (docDto.getCertificationId() == null) continue;
+
+                        //  Only insert if this certificationId is NOT already present
+                        if (!existingCertificationIds.contains(docDto.getCertificationId())) {
+
+                            Certification certification = certificationRepository
+                                    .findById(docDto.getCertificationId())
+                                    .orElseThrow(() -> new RuntimeException("Certification not found: " + docDto.getCertificationId()));
+
+                            ProductCertificateDocument newDoc = ProductCertificateDocument.builder()
+                                    .certification(certification)
+                                    .cosmeticAndPersonalUse(existing)
+                                    .isActive(true)
+                                    .createdBy(seller.getSellerId())
+                                    .build();
+
+                            existing.getCertificateDocuments().add(newDoc);
+                        }
+                        // If already exists — skip entirely, your separate upload endpoint handles it
+                    }
+                }
                 existing.setModifiedBy(seller.getSellerId());
                 existing.setModifiedDate(LocalDateTime.now());
             }
