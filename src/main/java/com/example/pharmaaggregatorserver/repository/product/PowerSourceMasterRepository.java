@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface PowerSourceMasterRepository extends JpaRepository<PowerSource, Long> {
-    Optional<PowerSource> findByPowerSourceName(String power);
+    Optional<PowerSource> findByPowerSourceNameIgnoreCase(String power);
 }

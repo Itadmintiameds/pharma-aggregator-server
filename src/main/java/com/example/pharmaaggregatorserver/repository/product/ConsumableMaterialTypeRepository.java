@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface ConsumableMaterialTypeRepository extends JpaRepository<ConsumableMaterialType, Long> {
-    Optional<ConsumableMaterialType> findByMaterialTypeName(String trim);
+    Optional<ConsumableMaterialType> findByMaterialTypeNameIgnoreCase(String trim);
 }

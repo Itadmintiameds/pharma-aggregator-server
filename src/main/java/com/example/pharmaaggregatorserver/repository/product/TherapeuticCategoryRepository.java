@@ -10,5 +10,7 @@ public interface TherapeuticCategoryRepository extends JpaRepository<Therapeutic
 
     Optional<TherapeuticCategoryMaster> findByTherapeuticCategory(String therapeuticCategory);
 
+    Optional<TherapeuticCategoryMaster> findByTherapeuticCategoryIgnoreCaseAndCategory_CategoryId(String therapeuticCategory, Long categoryId);
+
     List<TherapeuticCategoryMaster> findByCategory_CategoryId(Long categoryId);
 }

@@ -9,4 +9,6 @@ public interface MoleculeRepository extends JpaRepository<Molecule, Long>{
 
     Optional<Molecule> findByMoleculeName(String moleculeName);
 
+    Optional<Molecule> findByMoleculeNameIgnoreCase(String moleculeName);
+
 }

@@ -6,4 +6,7 @@ public interface ProductUserManualService {
 
     String uploadManual(String productAttributeId, MultipartFile file);
 
+    String uploadUserManual(String productAttributeId, MultipartFile file);
+
+
 }

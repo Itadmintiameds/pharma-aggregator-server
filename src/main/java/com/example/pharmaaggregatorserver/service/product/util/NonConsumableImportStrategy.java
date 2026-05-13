@@ -304,7 +304,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         String deviceCat = getString(row, COL_DEVICE_CATEGORY);
         if (!isBlank(deviceCat)) {
             dto.setDeviceCategoryId(
-                    deviceCategoryRepository.findByDeviceName(deviceCat)
+                    deviceCategoryRepository.findByDeviceNameIgnoreCase(deviceCat)
                             .orElseThrow(() -> new RuntimeException(
                                     "Device category not found: " + deviceCat))
                             .getDeviceCatId()
@@ -315,7 +315,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         String deviceSubCat = getString(row, COL_DEVICE_SUBCATEGORY);
         if (!isBlank(deviceSubCat)) {
             dto.setDeviceSubCategoryId(
-                    deviceSubCategoryRepository.findBySubCategoryName(deviceSubCat)
+                    deviceSubCategoryRepository.findBySubCategoryNameIgnoreCase(deviceSubCat)
                             .orElseThrow(() -> new RuntimeException(
                                     "Device subcategory not found: " + deviceSubCat))
                             .getDeviceSubCatId()
@@ -340,7 +340,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
                 String trimmed = name.trim();
                 log.info("Trying certification: {}", trimmed);
                 Certification cert = certificationRepository
-                        .findByCertificationName(trimmed)
+                        .findByCertificationNameIgnoreCaseAndCategory_CategoryId(trimmed, categoryId)
                         .orElseThrow(() -> new RuntimeException(
                                 "Certification not found: " + trimmed));
                 ProductCertificateDocumentDto d = new ProductCertificateDocumentDto();
@@ -358,7 +358,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
             for (String m : materialCell.split(",")) {
                 String trimmed = m.trim();
                 NonConsumableMaterialType mt = materialTypeRepository
-                        .findByMaterialTypeName(trimmed)
+                        .findByMaterialTypeNameIgnoreCase(trimmed)
                         .orElseThrow(() -> new RuntimeException(
                                 "Material type not found: " + trimmed));
                 ids.add(mt.getMaterialTypeId());
@@ -370,7 +370,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         String power = getString(row, COL_POWER_SOURCE);
         if (!isBlank(power)) {
             dto.setPowerSourceId(
-                    powerSourceRepository.findByPowerSourceName(power)
+                    powerSourceRepository.findByPowerSourceNameIgnoreCase(power)
                             .orElseThrow(() -> new RuntimeException(
                                     "Power source not found: " + power))
                             .getPowerSourceId()
@@ -390,7 +390,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         String country = getString(row, COL_COUNTRY);
         if (!isBlank(country)) {
             dto.setCountryId(
-                    countryRepository.findByCountryName(country)
+                    countryRepository.findByCountryNameIgnoreCase(country)
                             .orElseThrow(() -> new RuntimeException(
                                     "Country not found: " + country))
                             .getCountryId()
@@ -428,7 +428,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         String deviceCat = getCsvString(r, H_DEVICE_CATEGORY);
         if (!isBlank(deviceCat)) {
             dto.setDeviceCategoryId(
-                    deviceCategoryRepository.findByDeviceName(deviceCat)
+                    deviceCategoryRepository.findByDeviceNameIgnoreCase(deviceCat)
                             .orElseThrow(() -> new RuntimeException(
                                     "Device category not found: " + deviceCat))
                             .getDeviceCatId()
@@ -438,7 +438,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         String deviceSubCat = getCsvString(r, H_DEVICE_SUBCATEGORY);
         if (!isBlank(deviceSubCat)) {
             dto.setDeviceSubCategoryId(
-                    deviceSubCategoryRepository.findBySubCategoryName(deviceSubCat)
+                    deviceSubCategoryRepository.findBySubCategoryNameIgnoreCase(deviceSubCat)
                             .orElseThrow(() -> new RuntimeException(
                                     "Device subcategory not found: " + deviceSubCat))
                             .getDeviceSubCatId()
@@ -459,7 +459,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
             for (String name : certCell.split(",")) {
                 String trimmed = name.trim();
                 Certification cert = certificationRepository
-                        .findByCertificationName(trimmed)
+                        .findByCertificationNameIgnoreCaseAndCategory_CategoryId(trimmed, categoryId)
                         .orElseThrow(() -> new RuntimeException(
                                 "Certification not found: " + trimmed));
                 ProductCertificateDocumentDto d = new ProductCertificateDocumentDto();
@@ -476,7 +476,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
             for (String m : materialCell.split(",")) {
                 String trimmed = m.trim();
                 NonConsumableMaterialType mt = materialTypeRepository
-                        .findByMaterialTypeName(trimmed)
+                        .findByMaterialTypeNameIgnoreCase(trimmed)
                         .orElseThrow(() -> new RuntimeException(
                                 "Material type not found: " + trimmed));
                 ids.add(mt.getMaterialTypeId());
@@ -487,7 +487,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         String power = getCsvString(r, H_POWER_SOURCE);
         if (!isBlank(power)) {
             dto.setPowerSourceId(
-                    powerSourceRepository.findByPowerSourceName(power)
+                    powerSourceRepository.findByPowerSourceNameIgnoreCase(power)
                             .orElseThrow(() -> new RuntimeException(
                                     "Power source not found: " + power))
                             .getPowerSourceId()
@@ -504,7 +504,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         String country = getCsvString(r, H_COUNTRY);
         if (!isBlank(country)) {
             dto.setCountryId(
-                    countryRepository.findByCountryName(country)
+                    countryRepository.findByCountryNameIgnoreCase(country)
                             .orElseThrow(() -> new RuntimeException(
                                     "Country not found: " + country))
                             .getCountryId()
@@ -547,7 +547,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
 
         if (!isBlank(packType)) {
             dto.setPackId(
-                    packTypeRepository.findByPackTypeAndCategory_CategoryId(packType, categoryId)
+                    packTypeRepository.findByPackTypeIgnoreCaseAndCategory_CategoryId(packType, categoryId)
                             .orElseThrow(() -> new RuntimeException(
                                     "Pack type not found: " + packType))
                             .getPackId()

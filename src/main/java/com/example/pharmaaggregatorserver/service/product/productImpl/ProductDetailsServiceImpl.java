@@ -2,6 +2,7 @@ package com.example.pharmaaggregatorserver.service.product.productImpl;
 
 import com.example.pharmaaggregatorserver.dto.product.*;
 import com.example.pharmaaggregatorserver.entity.product.*;
+import com.example.pharmaaggregatorserver.entity.product.CosmeticPersonalCareMasters.IntendedUseArea;
 import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.StorageConditionMaster;
 import com.example.pharmaaggregatorserver.entity.seller.Seller;
 import com.example.pharmaaggregatorserver.mapper.product.*;
@@ -40,6 +41,8 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
     private final MoleculeRepository moleculeRepository;
     private final AdditionalDiscountMapper additionalDiscountMapper;
     private final StorageConditionMasterRepository storageConditionMasterRepository;
+    private final ProductAttributeFoodInfantMapper productAttributeFoodInfantMapper;
+    private final intendedUseAreaRepository intendedUseAreaRepository;
 
 
     @Override
@@ -481,8 +484,54 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
 
                     pricing.setAdditionalDiscounts(discounts);
                 }
+
+                // 🔥 SPECIAL SCHEMES
+                if (pDto.getSpecialSchemes() != null) {
+
+                    Set<SpecialSchemes> schemes = pDto.getSpecialSchemes().stream()
+                            .map(s -> {
+
+                                SpecialSchemes scheme;
+
+                                // ✅ UPDATE existing row
+                                if (s.getSpecialSchemesId() != null &&
+                                        !s.getSpecialSchemesId().isBlank()) {
+
+                                    scheme = pricing.getSpecialSchemes() != null
+                                            ? pricing.getSpecialSchemes()
+                                            .stream()
+                                            .filter(existing ->
+                                                    existing.getSpecialSchemesId()
+                                                            .equals(s.getSpecialSchemesId()))
+                                            .findFirst()
+                                            .orElse(new SpecialSchemes())
+                                            : new SpecialSchemes();
+
+                                } else {
+                                    // ✅ CREATE new row
+                                    scheme = new SpecialSchemes();
+                                }
+
+                                scheme.setSchemeName(s.getSchemeName());
+                                scheme.setSchemeType(s.getSchemeType());
+                                scheme.setBuyQuantity(s.getBuyQuantity());
+                                scheme.setFreeQuantity(s.getFreeQuantity());
+                                scheme.setEffectiveStartDate(s.getEffectiveStartDate());
+                                scheme.setEffectiveStartTime(s.getEffectiveStartTime());
+                                scheme.setEffectiveEndDate(s.getEffectiveEndDate());
+                                scheme.setEffectiveEndTime(s.getEffectiveEndTime());
+
+                                scheme.setPricingDetails(pricing);
+
+                                return scheme;
+                            })
+                            .collect(Collectors.toSet());
+
+                    pricing.setSpecialSchemes(schemes);
+                }
             }
-        }
+            }
+
 
         // =========================================================
         // ✅ PRODUCT ATTRIBUTE DRUG + MOLECULES
@@ -690,6 +739,109 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
             }
         }
 
+        // Cosmetic and personal use Update
+        if (dto.getProductAttributeCosmeticAndPersonalUse() != null && !dto.getProductAttributeCosmeticAndPersonalUse().isEmpty()) {
+            CosmeticAndPersonalUseProductAttributeDTO cosmeticDto =
+                    dto.getProductAttributeCosmeticAndPersonalUse().iterator().next();
+
+            Set<ProductAttributeCosmeticandPersonalCare> existingCosmetic =
+                    existingProduct.getProductAttributeCosmeticandPersonalCare();
+
+            if (existingCosmetic != null && !existingCosmetic.isEmpty()) {
+
+                ProductAttributeCosmeticandPersonalCare existing =
+                        existingCosmetic.iterator().next();
+
+                //  ONLY UPDATE THESE 3 FIELDS
+                existing.setProductClaims(cosmeticDto.getProductClaims());
+                existing.setVariantName(cosmeticDto.getVariantName());
+
+                if (cosmeticDto.getIntendedarea() != null && !cosmeticDto.getIntendedarea().isEmpty()) {
+                    List<Long> useAreaIds = cosmeticDto.getUseAreaId();
+
+                    if (useAreaIds != null && !useAreaIds.isEmpty()) {
+                        List<IntendedUseArea> intendedUseAreas = intendedUseAreaRepository
+                                .findAllById(useAreaIds);
+
+                        if (intendedUseAreas.size() != useAreaIds.size()) {
+                            throw new RuntimeException("Some Intended Areas not found");
+                        }
+
+                        existing.setIntendedUseArea(intendedUseAreas);  // List -> List
+                    }
+                }
+
+
+                if (cosmeticDto.getStorageConditionId() != null) {
+
+                    Long stockQuantity = pricingDetailsRepository.getTotalStockByProductId(productId);
+
+                    if (stockQuantity > 0) {
+                        throw new RuntimeException(
+                                "Storage condition cannot be changed while stock is available. " +
+                                        "Allowed only when stock quantity is 0."
+                        );
+                    }
+
+                    StorageConditionMaster storageCondition = storageConditionMasterRepository
+                            .findById(cosmeticDto.getStorageConditionId())
+                            .orElseThrow(() -> new RuntimeException("Storage condition not found"));
+                    existing.setStorageConditionMaster(storageCondition);
+                }
+
+                existing.setModifiedBy(seller.getSellerId());
+                existing.setModifiedDate(LocalDateTime.now());
+            }
+        }
+
+
+// ✅ FOOD & INFANT ATTRIBUTE UPDATE
+        if (dto.getProductAttributeFoodInfants() != null
+                && !dto.getProductAttributeFoodInfants().isEmpty()) {
+
+            ProductAttributeFoodInfantDto foodDto =
+                    dto.getProductAttributeFoodInfants().iterator().next();
+
+            Set<ProductAttributeFoodInfant> existingFoodAttrs =
+                    existingProduct.getProductAttributeFoodInfants();
+
+            ProductAttributeFoodInfant foodAttr;
+
+
+            if (existingFoodAttrs != null && !existingFoodAttrs.isEmpty()) {
+
+                foodAttr = existingFoodAttrs.iterator().next();
+
+                foodDto.setProductAttributeId(
+                        foodAttr.getProductAttributeId());
+
+                foodDto.setCreatedBy(foodAttr.getCreatedBy());
+                foodDto.setCreatedDate(foodAttr.getCreatedDate());
+
+            } else {
+
+                foodDto.setCreatedBy(seller.getSellerId());
+                foodDto.setCreatedDate(LocalDateTime.now());
+            }
+
+            ProductAttributeFoodInfant mapped =
+                    productAttributeFoodInfantMapper.toEntity(foodDto);
+
+            mapped.setProductDetails(existingProduct);
+
+            mapped.setModifiedBy(seller.getSellerId());
+            mapped.setModifiedDate(LocalDateTime.now());
+
+
+            if (existingFoodAttrs == null) {
+                existingFoodAttrs = new HashSet<>();
+                existingProduct.setProductAttributeFoodInfants(existingFoodAttrs);
+            } else {
+                existingFoodAttrs.clear();
+            }
+
+            existingFoodAttrs.add(mapped);
+        }
 
         // =========================================================
         // ✅ SAVE

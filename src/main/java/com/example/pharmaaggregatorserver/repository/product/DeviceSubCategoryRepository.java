@@ -10,5 +10,5 @@ public interface DeviceSubCategoryRepository extends JpaRepository<DeviceSubCate
     List<DeviceSubCategory> findByIsActiveTrue();
     List<DeviceSubCategory> findByDeviceCategory_DeviceCatId(Long deviceCatId);
 
-    Optional<DeviceSubCategory> findBySubCategoryName(String deviceSubCat);
+    Optional<DeviceSubCategory> findBySubCategoryNameIgnoreCase(String deviceSubCat);
 }

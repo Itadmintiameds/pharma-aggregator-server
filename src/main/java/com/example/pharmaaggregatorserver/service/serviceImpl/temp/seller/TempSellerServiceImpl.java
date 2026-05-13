@@ -23,8 +23,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -479,6 +479,155 @@ public class TempSellerServiceImpl implements TempSellerService {
         deleteTempSellerS3Files(tempSeller);
         tempSellerRepository.delete(tempSeller);
 //        log.info("TempSeller deleted with id: {}", tempSellerId);
+    }
+
+    @Override
+    @Transactional
+    public TempSellerResponseDTO updateTempSeller(Long tempSellerId, TempSellerRequestDTO requestDTO) {
+        TempSeller seller = tempSellerRepository.findById(tempSellerId)
+                .orElseThrow(() -> new NotFoundException("TempSeller not found for id: " + tempSellerId));
+
+        if (seller.getStatus().equalsIgnoreCase("APPROVED")) {
+            throw new ApplicationException("You are not allowed to update this application because it is already approved.");
+        }
+
+        if (seller.getStatus().equalsIgnoreCase("REJECTED")) {
+            throw new ApplicationException("You are not allowed to update this application because it is already rejected.");
+        }
+
+        if (seller.getStatus().equalsIgnoreCase("RESUBMITTED") || seller.getStatus().equalsIgnoreCase("OPEN")) {
+            throw new ApplicationException("You are not allowed to update this application because it is currently under admin review.");
+        }
+
+        List<ProductTypeMaster> productType = productTypeMasterRepository.findAllById(requestDTO.getProductTypeId());
+
+        CompanyTypeMaster companyType = companyTypeMasterRepository.findById(requestDTO.getCompanyTypeId())
+                .orElseThrow(() -> new RuntimeException("Company type not found"));
+
+        SellerTypeMaster sellerType = sellerTypeMasterRepository.findById(requestDTO.getSellerTypeId())
+                .orElseThrow(() -> new RuntimeException("Seller type not found"));
+
+        // ── Core fields ───────────────────────────────────────────────────────────
+        seller.setSellerName(requestDTO.getSellerName());
+        seller.setProductTypes(productType);
+        seller.setCompanyType(companyType);
+        seller.setSellerType(sellerType);
+        seller.setPhone(requestDTO.getPhone());
+        seller.setEmail(requestDTO.getEmail());
+        seller.setWebsite(requestDTO.getWebsite());
+        seller.setStatus("RESUBMITTED");
+        seller.setGstNumber(requestDTO.getGstNumber());
+        seller.setUpdatedBy("SYSTEM");
+
+        // ── Address ───────────────────────────────────────────────────────────────
+        if (requestDTO.getAddress() != null) {
+            if (seller.getAddress() == null) {
+                seller.setAddress(createAddress(requestDTO.getAddress(), seller));
+            } else {
+                TempSellerAddress address = seller.getAddress();
+
+                if (!Objects.equals(address.getState().getStateId(), requestDTO.getAddress().getStateId())) {
+                    StateMaster state = stateMasterRepository.findById(requestDTO.getAddress().getStateId())
+                            .orElseThrow(() -> new RuntimeException("State not found"));
+                    address.setState(state);
+                }
+                if (!Objects.equals(address.getDistrict().getDistrictId(), requestDTO.getAddress().getDistrictId())) {
+                    DistrictMaster district = districtMasterRepository.findById(requestDTO.getAddress().getDistrictId())
+                            .orElseThrow(() -> new RuntimeException("District not found"));
+                    address.setDistrict(district);
+                }
+                if (!Objects.equals(address.getTaluka().getTalukaId(), requestDTO.getAddress().getTalukaId())) {
+                    TalukaMaster taluka = talukaMasterRepository.findById(requestDTO.getAddress().getTalukaId())
+                            .orElseThrow(() -> new RuntimeException("Taluka not found"));
+                    address.setTaluka(taluka);
+                }
+
+                address.setCity(requestDTO.getAddress().getCity());
+                address.setStreet(requestDTO.getAddress().getStreet());
+                address.setBuildingNo(requestDTO.getAddress().getBuildingNo());
+                address.setLandmark(requestDTO.getAddress().getLandmark());
+                address.setPinCode(requestDTO.getAddress().getPinCode());
+                address.setUpdatedBy("SYSTEM");
+            }
+        }
+
+        // ── Coordinator ───────────────────────────────────────────────────────────
+        if (requestDTO.getCoordinator() != null) {
+            if (seller.getCoordinator() == null) {
+                seller.setCoordinator(createCoordinator(requestDTO.getCoordinator(), seller));
+            } else {
+                TempSellerCoordinator coordinator = seller.getCoordinator();
+                TempSellerCoordinatorDTO coordinatorDTO = requestDTO.getCoordinator();
+                coordinator.setName(coordinatorDTO.getName());
+                coordinator.setDesignation(coordinatorDTO.getDesignation());
+                coordinator.setEmail(coordinatorDTO.getEmail());
+                coordinator.setEmailVerified(coordinatorDTO.isEmailVerified());
+                coordinator.setMobile(coordinatorDTO.getMobile());
+                coordinator.setPhoneVerified(coordinatorDTO.isPhoneVerified());
+                coordinator.setUpdatedBy("SYSTEM");
+            }
+        }
+
+        // ── Bank Details ──────────────────────────────────────────────────────────
+        if (requestDTO.getBankDetails() != null) {
+            if (seller.getBankDetails() == null) {
+                seller.setBankDetails(createBankDetails(requestDTO.getBankDetails(), seller));
+            } else {
+                TempSellerBankDetails bank = seller.getBankDetails();
+                TempSellerBankDetailsDTO bankDTO = requestDTO.getBankDetails();
+
+                bank.setBankName(bankDTO.getBankName());
+                bank.setBranch(bankDTO.getBranch());
+                bank.setIfscCode(bankDTO.getIfscCode());
+                bank.setAccountNumber(bankDTO.getAccountNumber());
+                bank.setAccountHolderName(bankDTO.getAccountHolderName());
+                bank.setUpdatedBy("SYSTEM");
+            }
+        }
+
+        // ── Documents ─────────────────────────────────────────────────────────────
+        if (requestDTO.getDocuments() != null) {
+
+            // Build a map of existing documents by productTypeId for quick lookup
+            Map<Long, TempSellerDocument> existingDocMap = seller.getDocuments().stream()
+                    .collect(Collectors.toMap(
+                            doc -> doc.getProductTypes().getProductTypeId(),
+                            doc -> doc
+                    ));
+
+            // Build a set of incoming productTypeIds
+            Set<Long> incomingProductTypeIds = requestDTO.getDocuments().stream()
+                    .map(TempSellerDocumentDTO::getProductTypeId)
+                    .collect(Collectors.toSet());
+
+            // 1. DELETE documents whose productTypeId is no longer in the request + delete S3 file
+            existingDocMap.forEach((productTypeId, existingDoc) -> {
+                if (!incomingProductTypeIds.contains(productTypeId)) {
+                    deleteS3File(existingDoc.getDocumentFileUrl());
+                    seller.getDocuments().remove(existingDoc); // orphanRemoval will delete from DB
+                }
+            });
+
+            // 2. UPDATE existing or ADD new documents
+            for (TempSellerDocumentDTO docDTO : requestDTO.getDocuments()) {
+                TempSellerDocument existingDoc = existingDocMap.get(docDTO.getProductTypeId());
+
+                if (existingDoc != null) {
+                    // UPDATE existing document row
+                    existingDoc.setDocumentNumber(docDTO.getDocumentNumber());
+                    existingDoc.setLicenseIssueDate(docDTO.getLicenseIssueDate());
+                    existingDoc.setLicenseExpiryDate(docDTO.getLicenseExpiryDate());
+                    existingDoc.setLicenseIssuingAuthority(docDTO.getLicenseIssuingAuthority());
+                    existingDoc.setUpdatedBy("SYSTEM");
+                } else {
+                    // ADD new document row
+                    seller.addDocument(createDocument(docDTO, seller));
+                }
+            }
+        }
+
+        TempSeller savedSeller = tempSellerRepository.save(seller);
+        return mapToResponseDTO(savedSeller);
     }
 
     // ─── Private Helpers ──────────────────────────────────────────────────────────

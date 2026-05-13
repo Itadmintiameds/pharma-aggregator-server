@@ -10,5 +10,5 @@ public interface DeviceCategoryRepository extends JpaRepository<DeviceCategory, 
 
     List<DeviceCategory> findByDeviceCategoryType(String deviceCategoryType);
 
-    Optional<DeviceCategory> findByDeviceName(String deviceCat);
+    Optional<DeviceCategory> findByDeviceNameIgnoreCase(String deviceCat);
 }

@@ -3,7 +3,7 @@ package com.example.pharmaaggregatorserver.mapper.product;
 import com.example.pharmaaggregatorserver.dto.product.AdditionalDiscountDto;
 import com.example.pharmaaggregatorserver.dto.product.PricingDetailsDto;
 import com.example.pharmaaggregatorserver.dto.product.SpecialSchemesDto;
-import com.example.pharmaaggregatorserver.entity.SpecialSchemes;
+import com.example.pharmaaggregatorserver.entity.product.SpecialSchemes;
 import com.example.pharmaaggregatorserver.entity.product.AdditionalDiscount;
 
 import com.example.pharmaaggregatorserver.entity.product.PricingDetails;

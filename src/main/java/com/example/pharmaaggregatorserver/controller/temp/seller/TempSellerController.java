@@ -124,18 +124,21 @@ public class TempSellerController {
         boolean exists = coordinatorService.checkEmailExists(email);
         return ResponseEntity.ok(exists);
     }
+
     //Seller registration
     @GetMapping("/coordinator/check-phone")
     public ResponseEntity<Boolean> checkPhoneExists(@RequestParam String mobile) {
         boolean exists = coordinatorService.checkPhoneExists(mobile);
         return ResponseEntity.ok(exists);
     }
+
     //Seller registration
     @GetMapping("/coordinator/check-document")
     public ResponseEntity<Boolean> checkDocumentExists(@RequestParam String documentnumber) {
         boolean exists = coordinatorService.checkDocumentExists(documentnumber);
         return ResponseEntity.ok(exists); //checkGSTNumberExists
     }
+
     //Seller registration
     @GetMapping("/coordinator/check-gstnumber")
     public ResponseEntity<Boolean> checkGstNumberExists(@RequestParam String gstnumber) {
@@ -149,28 +152,27 @@ public class TempSellerController {
         boolean exists = coordinatorService.checkProfileEmailExists(email);
         return ResponseEntity.ok(exists);
     }
+
     //Seller profile update
     @GetMapping("/coordinator/check-profilephone")
     public ResponseEntity<Boolean> checkProfilePhoneExists(@RequestParam String mobile) {
         boolean exists = coordinatorService.checkProfilePhoneExists(mobile);
         return ResponseEntity.ok(exists);
     }
+
     //Seller profile update
     @GetMapping("/coordinator/check-profiledocument")
     public ResponseEntity<Boolean> checkProfileDocumentExists(@RequestParam String documentnumber) {
         boolean exists = coordinatorService.checkProfileDocumentExists(documentnumber);
         return ResponseEntity.ok(exists); //checkGSTNumberExists
     }
+
     //Seller profile update
     @GetMapping("/coordinator/check-profilegstnumber")
     public ResponseEntity<Boolean> checkProfileGstNumberExists(@RequestParam String gstnumber) {
         boolean exists = coordinatorService.checkProfileGSTNumberExists(gstnumber);
         return ResponseEntity.ok(exists);
     }
-
-
-
-
 
 
     @PostMapping(value = "/{tempSellerId}/documents/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -201,6 +203,13 @@ public class TempSellerController {
                 "Documents uploaded successfully",
                 response
         ));
+    }
+
+    @PutMapping("/{tempSellerId}")
+    public ResponseEntity<?> updateTempSeller(@PathVariable("tempSellerId") Long tempSellerId,
+                                              @RequestBody TempSellerRequestDTO tempSellerRequestDTO) {
+        TempSellerResponseDTO responseDto = tempSellerService.updateTempSeller(tempSellerId, tempSellerRequestDTO);
+        return ResponseEntity.ok(responseDto);
     }
 
 }
