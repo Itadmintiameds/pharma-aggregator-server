@@ -4,6 +4,7 @@ import com.example.pharmaaggregatorserver.entity.product.PricingDetails;
 import com.example.pharmaaggregatorserver.entity.product.ProductDetails;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface PricingDetailsRepository extends JpaRepository<PricingDetails, String>{
 
@@ -12,6 +13,9 @@ public interface PricingDetailsRepository extends JpaRepository<PricingDetails, 
     FROM tm_pricing_details
 """, nativeQuery = true)
     Integer findMaxPricingNumber();
+
+    @Query("SELECT COALESCE(SUM(p.stockQuantity), 0) FROM PricingDetails p WHERE p.productDetails.productId = :productId")
+    Long getTotalStockByProductId(@Param("productId") String productId);
 
 }
 

@@ -2,6 +2,7 @@ package com.example.pharmaaggregatorserver.service.product.productImpl;
 
 import com.example.pharmaaggregatorserver.dto.product.*;
 import com.example.pharmaaggregatorserver.entity.product.*;
+import com.example.pharmaaggregatorserver.entity.product.CosmeticPersonalCareMasters.IntendedUseArea;
 import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.StorageConditionMaster;
 import com.example.pharmaaggregatorserver.entity.seller.Seller;
 import com.example.pharmaaggregatorserver.mapper.product.*;
@@ -41,6 +42,7 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
     private final AdditionalDiscountMapper additionalDiscountMapper;
     private final StorageConditionMasterRepository storageConditionMasterRepository;
     private final ProductAttributeFoodInfantMapper productAttributeFoodInfantMapper;
+    private final intendedUseAreaRepository intendedUseAreaRepository;
 
 
     @Override
@@ -752,10 +754,35 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
 
                 //  ONLY UPDATE THESE 3 FIELDS
                 existing.setProductClaims(cosmeticDto.getProductClaims());
-                existing.setActiveIngredients(cosmeticDto.getActiveIngredients());
+                existing.setVariantName(cosmeticDto.getVariantName());
+
+                if (cosmeticDto.getIntendedarea() != null && !cosmeticDto.getIntendedarea().isEmpty()) {
+                    List<Long> useAreaIds = cosmeticDto.getUseAreaId();
+
+                    if (useAreaIds != null && !useAreaIds.isEmpty()) {
+                        List<IntendedUseArea> intendedUseAreas = intendedUseAreaRepository
+                                .findAllById(useAreaIds);
+
+                        if (intendedUseAreas.size() != useAreaIds.size()) {
+                            throw new RuntimeException("Some Intended Areas not found");
+                        }
+
+                        existing.setIntendedUseArea(intendedUseAreas);  // List -> List
+                    }
+                }
 
 
                 if (cosmeticDto.getStorageConditionId() != null) {
+
+                    Long stockQuantity = pricingDetailsRepository.getTotalStockByProductId(productId);
+
+                    if (stockQuantity > 0) {
+                        throw new RuntimeException(
+                                "Storage condition cannot be changed while stock is available. " +
+                                        "Allowed only when stock quantity is 0."
+                        );
+                    }
+
                     StorageConditionMaster storageCondition = storageConditionMasterRepository
                             .findById(cosmeticDto.getStorageConditionId())
                             .orElseThrow(() -> new RuntimeException("Storage condition not found"));
