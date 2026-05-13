@@ -3,8 +3,11 @@ package com.example.pharmaaggregatorserver.service.product.productImpl;
 import com.example.pharmaaggregatorserver.dto.product.*;
 import com.example.pharmaaggregatorserver.entity.product.*;
 import com.example.pharmaaggregatorserver.entity.product.CosmeticPersonalCareMasters.IntendedUseArea;
+import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.Certification;
 import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.StorageConditionMaster;
 import com.example.pharmaaggregatorserver.entity.seller.Seller;
+import com.example.pharmaaggregatorserver.exception.ApplicationException;
+import com.example.pharmaaggregatorserver.exception.NotFoundException;
 import com.example.pharmaaggregatorserver.mapper.product.*;
 import com.example.pharmaaggregatorserver.repository.product.*;
 import com.example.pharmaaggregatorserver.repository.seller.SellerRepository;
@@ -15,10 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -43,6 +43,8 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
     private final StorageConditionMasterRepository storageConditionMasterRepository;
     private final ProductAttributeFoodInfantMapper productAttributeFoodInfantMapper;
     private final intendedUseAreaRepository intendedUseAreaRepository;
+    private final FlavourRepository flavourRepository;
+    private final CertificationRepository certificationRepository;
 
 
     @Override
@@ -530,7 +532,7 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
                     pricing.setSpecialSchemes(schemes);
                 }
             }
-            }
+        }
 
 
         // =========================================================
@@ -724,14 +726,82 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
                 ProductAttributeSupplementsOrNutraceuticals existing =
                         existingSupplements.iterator().next();
 
-                // ✅ ONLY UPDATE THESE 2 FIELDS
+                // ✅ ONLY UPDATE THESE FIELDS
+                existing.setVariantName(supplementsDto.getVariantName());
+                existing.setOtherIngredients(supplementsDto.getOtherIngredients());
+                existing.setNutritionalInformation(supplementsDto.getNutritionalInformation());
+                existing.setIntendedUse(supplementsDto.getIntendedUse());
+                existing.setGender(supplementsDto.getGender());
+                existing.setAllergenInformation(supplementsDto.getAllergenInformation());
+
+                if (supplementsDto.getFlavourId() != null &&
+                        !Objects.equals(existing.getFlavour().getFlavourId(), supplementsDto.getFlavourId())) {
+                    Flavour flavour = flavourRepository
+                            .findById(supplementsDto.getFlavourId())
+                            .orElseThrow(() -> new NotFoundException("Flavour not found"));
+                    existing.setFlavour(flavour);
+                }
+
                 existing.setProductClaims(supplementsDto.getProductClaims());
 
-                if (supplementsDto.getStorageConditionId() != null) {
+                if (supplementsDto.getStorageConditionId() != null &&
+                        !Objects.equals(existing.getStorageConditionMaster().getStorageConditionId(), supplementsDto.getStorageConditionId())) {
+
+                    Set<PricingDetails> pricingDetailsSet = existingProduct.getPricingDetails();
+
+                    boolean hasStock = pricingDetailsSet != null &&
+                            pricingDetailsSet.stream()
+                                    .max(Comparator.comparing(PricingDetails::getCreatedDate,
+                                            Comparator.nullsLast(Comparator.naturalOrder())))
+                                    .map(latest -> latest.getStockQuantity() != null && latest.getStockQuantity() > 0)
+                                    .orElse(false);
+
+                    if (hasStock) {
+                        throw new ApplicationException(
+                                "Storage condition cannot be changed while stock is available. " +
+                                        "Allowed only when stock quantity is 0."
+                        );
+                    }
                     StorageConditionMaster storageCondition = storageConditionMasterRepository
                             .findById(supplementsDto.getStorageConditionId())
-                            .orElseThrow(() -> new RuntimeException("Storage condition not found"));
+                            .orElseThrow(() -> new NotFoundException("Storage condition not found"));
                     existing.setStorageConditionMaster(storageCondition);
+                }
+
+                // =====================================================
+                // 🔥 CERTIFICATE DOCUMENTS (ONLY INSERT NEW — NEVER TOUCH EXISTING)
+                // =====================================================
+                if (supplementsDto.getCertificateDocuments() != null && !supplementsDto.getCertificateDocuments().isEmpty()) {
+
+                    // Build a Set of existing certificationIds already linked to this attribute
+                    Set<Long> existingCertificationIds = existing.getCertificateDocuments()
+                            .stream()
+                            .filter(doc -> doc.getCertification() != null)
+                            .map(doc -> doc.getCertification().getCertificationId())
+                            .collect(Collectors.toSet());
+
+                    for (ProductCertificateDocumentDto docDto : supplementsDto.getCertificateDocuments()) {
+
+                        if (docDto.getCertificationId() == null) continue;
+
+                        // ✅ Only insert if this certificationId is NOT already present
+                        if (!existingCertificationIds.contains(docDto.getCertificationId())) {
+
+                            Certification certification = certificationRepository
+                                    .findById(docDto.getCertificationId())
+                                    .orElseThrow(() -> new RuntimeException("Certification not found: " + docDto.getCertificationId()));
+
+                            ProductCertificateDocument newDoc = ProductCertificateDocument.builder()
+                                    .certification(certification)
+                                    .supplementsOrNutraceuticals(existing)
+                                    .isActive(true)
+                                    .createdBy(seller.getSellerId())
+                                    .build();
+
+                            existing.getCertificateDocuments().add(newDoc);
+                        }
+                        // ✅ If already exists — skip entirely, your separate upload endpoint handles it
+                    }
                 }
 
                 existing.setModifiedBy(seller.getSellerId());
