@@ -487,11 +487,16 @@ public class TempSellerServiceImpl implements TempSellerService {
         TempSeller seller = tempSellerRepository.findById(tempSellerId)
                 .orElseThrow(() -> new NotFoundException("TempSeller not found for id: " + tempSellerId));
 
-        if (!seller.getStatus().equalsIgnoreCase("CORRECTION_REQUIRED")) {
-            throw new ApplicationException(
-                    "You are not allowed to update this application because its current status is '"
-                            + seller.getStatus() + "'. Updates are only permitted when the status is 'CORRECTION_REQUIRED'."
-            );
+        if (seller.getStatus().equalsIgnoreCase("APPROVED")) {
+            throw new ApplicationException("You are not allowed to update this application because it is already approved.");
+        }
+
+        if (seller.getStatus().equalsIgnoreCase("REJECTED")) {
+            throw new ApplicationException("You are not allowed to update this application because it is already rejected.");
+        }
+
+        if (seller.getStatus().equalsIgnoreCase("RESUBMITTED") || seller.getStatus().equalsIgnoreCase("OPEN")) {
+            throw new ApplicationException("You are not allowed to update this application because it is currently under admin review.");
         }
 
         List<ProductTypeMaster> productType = productTypeMasterRepository.findAllById(requestDTO.getProductTypeId());
