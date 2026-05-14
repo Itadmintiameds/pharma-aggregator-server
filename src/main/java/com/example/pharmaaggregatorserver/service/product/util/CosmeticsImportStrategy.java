@@ -686,22 +686,137 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
         validateRequired(getString(row, COL_PACK_TYPE), "Pack Type", errors);
         validateRequired(getString(row, COL_INTENDED_USE_AREA), "Intended Use Area", errors);
 
-        // Numeric validations
+        // ── 1. Product Name ───────────────────────────────────────────────────
+        String productName = getString(row, COL_PRODUCT_NAME);
+        validateRequired(productName, "Product Name", errors);
+        if (!isBlank(productName)) {
+            if (!productName.matches("[A-Za-z0-9 \\p{Punct}]+"))
+                errors.add("Product Name must contain only alphanumeric characters and special characters");
+            if (productName.length() < 3)
+                errors.add("Product Name must be at least 3 characters");
+            if (productName.length() > 150)
+                errors.add("Product Name must not exceed 150 characters");
+        }
+
+        // ── 2. Product Category (Product Type) ────────────────────────────────
+        validateRequired(getString(row, COL_PRODUCT_CATEGORY), "Product Category", errors);
+
+        // ── 3. Product Subcategory (Product Subtype) ──────────────────────────
+        validateRequired(getString(row, COL_PRODUCT_SUBCATEGORY), "Product Sub Category", errors);
+
+        // ── 4. Brand Name ─────────────────────────────────────────────────────
+        String brandName = getString(row, COL_BRAND_NAME);
+        validateRequired(brandName, "Brand Name", errors);
+        if (!isBlank(brandName)) {
+            if (!brandName.matches("[A-Za-z0-9 \\-]+"))
+                errors.add("Brand Name must contain only alphabets, numbers, spaces, or hyphens");
+            if (brandName.length() > 60)
+                errors.add("Brand Name must not exceed 60 characters");
+        }
+
+        // ── 5. Variant Name (optional) ────────────────────────────────────────
+        String variantName = getString(row, COL_VARIANT_NAME);
+        if (!isBlank(variantName) && variantName.length() > 60)
+            errors.add("Variant Name must not exceed 60 characters");
+
+        // ── 6. Gender ─────────────────────────────────────────────────────────
+        String gender = getString(row, COL_GENDER);
+        validateRequired(gender, "Gender", errors);
+        if (!isBlank(gender) && !List.of("Male", "Female", "Unisex").contains(gender))
+            errors.add("Gender must be one of: Male, Female, Unisex");
+
+        // ── 7. Intended Use Area ──────────────────────────────────────────────
+        validateRequired(getString(row, COL_INTENDED_USE_AREA), "Intended Use Area", errors);
+
+        // ── 8. Skin Type (optional — no mandatory check) ──────────────────────
+        // No mandatory validation; value presence handled during attribute mapping.
+
+        // ── 9. Hair Type (optional — no mandatory check) ──────────────────────
+        // No mandatory validation; value presence handled during attribute mapping.
+
+        // ── 10. Active Ingredients ────────────────────────────────────────────
+        String activeIngredients = getString(row, COL_ACTIVE_INGREDIENTS);
+        validateRequired(activeIngredients, "Active Ingredients", errors);
+        if (!isBlank(activeIngredients) && activeIngredients.length() > 1000)
+            errors.add("Active Ingredients must not exceed 1000 characters");
+
+        // ── 11. Net Quantity / Strength ───────────────────────────────────────
+        String netQuantity = getString(row, COL_NET_QUANTITY);
+        validateRequired(netQuantity, "Net Quantity / Strength", errors);
+        if (!isBlank(netQuantity)) {
+            if (!netQuantity.matches("[A-Za-z0-9]+"))
+                errors.add("Net Quantity / Strength must be alphanumeric only (e.g., 100ml, 50g)");
+            if (netQuantity.length() > 20)
+                errors.add("Net Quantity / Strength must not exceed 20 characters");
+        }
+
+        // ── 12. Age Group ─────────────────────────────────────────────────────
+        validateRequired(getString(row, COL_AGE_GROUP), "Age Group", errors);
+
+        // ── 13. Product Claims ────────────────────────────────────────────────
+        String productClaims = getString(row, COL_PRODUCT_CLAIMS);
+        validateRequired(productClaims, "Product Claims", errors);
+        if (!isBlank(productClaims)) {
+            if (!productClaims.matches("[A-Za-z0-9 ,./\\-]+"))
+                errors.add("Product Claims must contain only alphabets, numbers, spaces, or hyphens");
+            if (productClaims.length() > 1000)
+                errors.add("Product Claims must not exceed 1000 characters");
+        }
+
+        // ── 14. Warnings / Precautions ────────────────────────────────────────
+        String warnings = getString(row, COL_WARNINGS);
+        validateRequired(warnings, "Warnings / Precautions", errors);
+        if (!isBlank(warnings) && warnings.length() > 1000)
+            errors.add("Warnings / Precautions must not exceed 1000 characters");
+
+        // ── 15. Product Description ───────────────────────────────────────────
+        String description = getString(row, COL_DESCRIPTION);
+        validateRequired(description, "Product Description", errors);
+        if (!isBlank(description)) {
+            if (description.length() < 10)
+                errors.add("Product Description must be at least 10 characters");
+            if (description.length() > 1000)
+                errors.add("Product Description must not exceed 1000 characters");
+        }
+
+        // ── 16. Storage Condition ─────────────────────────────────────────────
+        validateRequired(getString(row, COL_STORAGE_CONDITION), "Storage Condition", errors);
+
+        // ── 17. Manufacturer Name ─────────────────────────────────────────────
+        String manufacturer = getString(row, COL_MANUFACTURER);
+        validateRequired(manufacturer, "Manufacturer Name", errors);
+        if (!isBlank(manufacturer) && manufacturer.length() > 100)
+            errors.add("Manufacturer Name must not exceed 100 characters");
+
+        // ── 18. Country of Origin ─────────────────────────────────────────────
+        validateRequired(getString(row, COL_COUNTRY), "Country of Origin", errors);
+
+        // ── 19. Certifications / Compliance ──────────────────────────────────
+        validateRequired(getString(row, COL_CERTIFICATIONS), "Certifications / Compliance", errors);
+
+        // ── 20 & 21. Certificate uploads & Product Images ─────────────────────
+        // File uploads are not present in Excel rows; validated at the API/controller layer.
+
+        // ── Pack Type ─────────────────────────────────────────────────────────
+        validateRequired(getString(row, COL_PACK_TYPE), "Pack Type", errors);
+
+        // ── Units per Pack ────────────────────────────────────────────────────
         Long unitPerPack = getLong(row, COL_UNIT_PER_PACK);
         validateRequired(unitPerPack, "Number of Units per Pack Type", errors);
         if (unitPerPack != null && unitPerPack <= 0)
             errors.add("Number of Units per Pack Type must be a positive value");
 
+        // ── Number of Packs ───────────────────────────────────────────────────
         Long numberOfPacks = getLong(row, COL_NUMBER_OF_PACKS);
         validateRequired(numberOfPacks, "Number of Packs", errors);
         if (numberOfPacks != null && numberOfPacks <= 0)
             errors.add("Number of Packs must be a positive value");
 
+        // ── Min / Max Order Qty ───────────────────────────────────────────────
         Long minOrderQty = getLong(row, COL_MIN_ORDER_QTY);
         Long maxOrderQty = getLong(row, COL_MAX_ORDER_QTY);
         validateRequired(minOrderQty, "Minimum Order Qty", errors);
         validateRequired(maxOrderQty, "Max Order Qty", errors);
-
         if (minOrderQty != null && minOrderQty <= 0)
             errors.add("Minimum Order Qty must be a positive value");
         if (maxOrderQty != null && maxOrderQty <= 0)
@@ -709,39 +824,45 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
         if (minOrderQty != null && maxOrderQty != null && minOrderQty > maxOrderQty)
             errors.add("Minimum Order Qty must be ≤ Maximum Order Qty");
 
+        // ── Batch Number ──────────────────────────────────────────────────────
         String batchNumber = getString(row, COL_BATCH_NUMBER);
         validateRequired(batchNumber, "Batch Number", errors);
         if (!isBlank(batchNumber) && !batchNumber.matches("[A-Za-z0-9]+"))
             errors.add("Batch Number must be alphanumeric only");
 
+        // ── Manufacturing Date / Expiry Date ──────────────────────────────────
         LocalDate mfgDate = getDate(row, COL_MFG_DATE);
         LocalDate expiryDate = getDate(row, COL_EXPIRY_DATE);
         validateRequired(mfgDate, "Manufacturing Date", errors);
         validateRequired(expiryDate, "Expiry Date", errors);
-
         if (mfgDate != null && expiryDate != null && expiryDate.isBefore(mfgDate))
             errors.add("Expiry Date cannot be before Manufacturing Date");
 
+        // ── Stock Quantity ────────────────────────────────────────────────────
         Long stockQty = getLong(row, COL_STOCK_QTY);
         validateRequired(stockQty, "Stock Quantity", errors);
         if (stockQty != null && stockQty <= 0)
             errors.add("Stock Quantity must be a positive value");
 
+        // ── MRP / Selling Price ───────────────────────────────────────────────
         Long mrp = getLong(row, COL_MRP);
         Long sellingPrice = getLong(row, COL_SELLING_PRICE);
         validateRequired(mrp, "MRP", errors);
         validateRequired(sellingPrice, "Selling Price", errors);
-
-        if (mrp != null && mrp <= 0) errors.add("MRP must be greater than 0");
-        if (sellingPrice != null && sellingPrice <= 0) errors.add("Selling Price must be greater than 0");
+        if (mrp != null && mrp <= 0)
+            errors.add("MRP must be greater than 0");
+        if (sellingPrice != null && sellingPrice <= 0)
+            errors.add("Selling Price must be greater than 0");
         if (mrp != null && sellingPrice != null && sellingPrice > mrp)
             errors.add("Selling Price cannot be greater than MRP");
 
+        // ── GST % ─────────────────────────────────────────────────────────────
         Long gstPct = getLong(row, COL_GST_PCT);
         validateRequired(gstPct, "GST %", errors);
         if (gstPct != null && !VALID_GST_VALUES.contains(gstPct))
             errors.add("GST % must be one of: 0, 5, 12, 18");
 
+        // ── HSN Code ──────────────────────────────────────────────────────────
         Long hsnCode = getLong(row, COL_HSN_CODE);
         validateRequired(hsnCode, "HSN Code", errors);
 
@@ -773,36 +894,183 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
         validateRequired(getCsvString(r, H_PACK_TYPE), "Pack Type", errors);
         validateRequired(getCsvString(r, H_INTENDED_USE_AREA), "Intended Use Area", errors);
 
+        // ── 1. Product Name ───────────────────────────────────────────────────
+        String productName = getCsvString(r, H_PRODUCT_NAME);
+        validateRequired(productName, "Product Name", errors);
+        if (!isBlank(productName)) {
+            if (!productName.matches("[A-Za-z0-9 \\p{Punct}]+"))
+                errors.add("Product Name must contain only alphanumeric characters and special characters");
+            if (productName.length() < 3)
+                errors.add("Product Name must be at least 3 characters");
+            if (productName.length() > 150)
+                errors.add("Product Name must not exceed 150 characters");
+        }
+
+        // ── 2. Product Category (Product Type) ───────────────────────────────
+        validateRequired(getCsvString(r, H_PRODUCT_CATEGORY), "Product Category", errors);
+
+        // ── 3. Product Subcategory (Product Subtype) ──────────────────────────
+        validateRequired(getCsvString(r, H_PRODUCT_SUBCATEGORY), "Product Sub Category", errors);
+
+        // ── 4. Brand Name ─────────────────────────────────────────────────────
+        String brandName = getCsvString(r, H_BRAND_NAME);
+        validateRequired(brandName, "Brand Name", errors);
+        if (!isBlank(brandName)) {
+            if (!brandName.matches("[A-Za-z0-9 \\-]+"))
+                errors.add("Brand Name must contain only alphabets, numbers, spaces, or hyphens");
+            if (brandName.length() > 60)
+                errors.add("Brand Name must not exceed 60 characters");
+        }
+
+        // ── 5. Variant Name (optional) ────────────────────────────────────────
+        String variantName = getCsvString(r, H_VARIANT_NAME);
+        if (!isBlank(variantName) && variantName.length() > 60)
+            errors.add("Variant Name must not exceed 60 characters");
+
+        // ── 6. Gender ─────────────────────────────────────────────────────────
+        String gender = getCsvString(r, H_GENDER);
+        validateRequired(gender, "Gender", errors);
+        if (!isBlank(gender) && !List.of("Male", "Female", "Unisex").contains(gender))
+            errors.add("Gender must be one of: Male, Female, Unisex");
+
+        // ── 7. Intended Use Area ──────────────────────────────────────────────
+        validateRequired(getCsvString(r, H_INTENDED_USE_AREA), "Intended Use Area", errors);
+
+        // ── 8. Skin Type (optional) ───────────────────────────────────────────
+        // No mandatory validation; value presence handled during attribute mapping.
+
+        // ── 9. Hair Type (optional) ───────────────────────────────────────────
+        // No mandatory validation; value presence handled during attribute mapping.
+
+        // ── 10. Active Ingredients ────────────────────────────────────────────
+        String activeIngredients = getCsvString(r, H_ACTIVE_INGREDIENTS);
+        validateRequired(activeIngredients, "Active Ingredients", errors);
+        if (!isBlank(activeIngredients) && activeIngredients.length() > 1000)
+            errors.add("Active Ingredients must not exceed 1000 characters");
+
+        // ── 11. Net Quantity / Strength ───────────────────────────────────────
+        String netQuantity = getCsvString(r, H_NET_QUANTITY);
+        validateRequired(netQuantity, "Net Quantity / Strength", errors);
+        if (!isBlank(netQuantity)) {
+            if (!netQuantity.matches("[A-Za-z0-9]+"))
+                errors.add("Net Quantity / Strength must be alphanumeric only (e.g., 100ml, 50g)");
+            if (netQuantity.length() > 20)
+                errors.add("Net Quantity / Strength must not exceed 20 characters");
+        }
+
+        // ── 12. Age Group ─────────────────────────────────────────────────────
+        validateRequired(getCsvString(r, H_AGE_GROUP), "Age Group", errors);
+
+        // ── 13. Product Claims ────────────────────────────────────────────────
+        String productClaims = getCsvString(r, H_PRODUCT_CLAIMS);
+        validateRequired(productClaims, "Product Claims", errors);
+        if (!isBlank(productClaims)) {
+            if (!productClaims.matches("[A-Za-z0-9 ,./\\-]+"))
+                errors.add("Product Claims must contain only alphabets, numbers, spaces, or hyphens");
+            if (productClaims.length() > 1000)
+                errors.add("Product Claims must not exceed 1000 characters");
+        }
+
+        // ── 14. Warnings / Precautions ────────────────────────────────────────
+        String warnings = getCsvString(r, H_WARNINGS);
+        validateRequired(warnings, "Warnings / Precautions", errors);
+        if (!isBlank(warnings) && warnings.length() > 1000)
+            errors.add("Warnings / Precautions must not exceed 1000 characters");
+
+        // ── 15. Product Description ───────────────────────────────────────────
+        String description = getCsvString(r, H_DESCRIPTION);
+        validateRequired(description, "Product Description", errors);
+        if (!isBlank(description)) {
+            if (description.length() < 10)
+                errors.add("Product Description must be at least 10 characters");
+            if (description.length() > 1000)
+                errors.add("Product Description must not exceed 1000 characters");
+        }
+
+        // ── 16. Storage Condition ─────────────────────────────────────────────
+        validateRequired(getCsvString(r, H_STORAGE_CONDITION), "Storage Condition", errors);
+
+        // ── 17. Manufacturer Name ─────────────────────────────────────────────
+        String manufacturer = getCsvString(r, H_MANUFACTURER);
+        validateRequired(manufacturer, "Manufacturer Name", errors);
+        if (!isBlank(manufacturer) && manufacturer.length() > 100)
+            errors.add("Manufacturer Name must not exceed 100 characters");
+
+        // ── 18. Country of Origin ─────────────────────────────────────────────
+        validateRequired(getCsvString(r, H_COUNTRY), "Country of Origin", errors);
+
+        // ── 19. Certifications / Compliance ──────────────────────────────────
+        validateRequired(getCsvString(r, H_CERTIFICATIONS), "Certifications / Compliance", errors);
+
+        // ── 20 & 21. Certificate uploads & Product Images ─────────────────────
+        // File uploads are not present in CSV rows; validated at the API/controller layer.
+
+        // ── Pack Type ─────────────────────────────────────────────────────────
+        validateRequired(getCsvString(r, H_PACK_TYPE), "Pack Type", errors);
+
+        // ── Units per Pack ────────────────────────────────────────────────────
         Long unitPerPack = getCsvLong(r, H_UNIT_PER_PACK);
         validateRequired(unitPerPack, "Number of Units per Pack Type", errors);
+        if (unitPerPack != null && unitPerPack <= 0)
+            errors.add("Number of Units per Pack Type must be a positive value");
 
+        // ── Number of Packs ───────────────────────────────────────────────────
         Long numberOfPacks = getCsvLong(r, H_NUMBER_OF_PACKS);
         validateRequired(numberOfPacks, "Number of Packs", errors);
+        if (numberOfPacks != null && numberOfPacks <= 0)
+            errors.add("Number of Packs must be a positive value");
 
+        // ── Min / Max Order Qty ───────────────────────────────────────────────
         Long minOrderQty = getCsvLong(r, H_MIN_ORDER_QTY);
         Long maxOrderQty = getCsvLong(r, H_MAX_ORDER_QTY);
         validateRequired(minOrderQty, "Minimum Order Qty", errors);
         validateRequired(maxOrderQty, "Max Order Qty", errors);
+        if (minOrderQty != null && minOrderQty <= 0)
+            errors.add("Minimum Order Qty must be a positive value");
+        if (maxOrderQty != null && maxOrderQty <= 0)
+            errors.add("Max Order Qty must be a positive value");
+        if (minOrderQty != null && maxOrderQty != null && minOrderQty > maxOrderQty)
+            errors.add("Minimum Order Qty must be ≤ Maximum Order Qty");
 
+        // ── Batch Number ──────────────────────────────────────────────────────
         String batchNumber = getCsvString(r, H_BATCH_NUMBER);
         validateRequired(batchNumber, "Batch Number", errors);
+        if (!isBlank(batchNumber) && !batchNumber.matches("[A-Za-z0-9]+"))
+            errors.add("Batch Number must be alphanumeric only");
 
+        // ── Manufacturing Date / Expiry Date ──────────────────────────────────
         LocalDate mfgDate = parseCsvDate(getCsvString(r, H_MFG_DATE));
         LocalDate expiryDate = parseCsvDate(getCsvString(r, H_EXPIRY_DATE));
         validateRequired(mfgDate, "Manufacturing Date", errors);
         validateRequired(expiryDate, "Expiry Date", errors);
+        if (mfgDate != null && expiryDate != null && expiryDate.isBefore(mfgDate))
+            errors.add("Expiry Date cannot be before Manufacturing Date");
 
+        // ── Stock Quantity ────────────────────────────────────────────────────
         Long stockQty = getCsvLong(r, H_STOCK_QTY);
         validateRequired(stockQty, "Stock Quantity", errors);
+        if (stockQty != null && stockQty <= 0)
+            errors.add("Stock Quantity must be a positive value");
 
+        // ── MRP / Selling Price ───────────────────────────────────────────────
         Long mrp = getCsvLong(r, H_MRP);
         Long sellingPrice = getCsvLong(r, H_SELLING_PRICE);
         validateRequired(mrp, "MRP", errors);
         validateRequired(sellingPrice, "Selling Price", errors);
+        if (mrp != null && mrp <= 0)
+            errors.add("MRP must be greater than 0");
+        if (sellingPrice != null && sellingPrice <= 0)
+            errors.add("Selling Price must be greater than 0");
+        if (mrp != null && sellingPrice != null && sellingPrice > mrp)
+            errors.add("Selling Price cannot be greater than MRP");
 
+        // ── GST % ─────────────────────────────────────────────────────────────
         Long gstPct = getCsvLong(r, H_GST_PCT);
         validateRequired(gstPct, "GST %", errors);
+        if (gstPct != null && !VALID_GST_VALUES.contains(gstPct))
+            errors.add("GST % must be one of: 0, 5, 12, 18");
 
+        // ── HSN Code ──────────────────────────────────────────────────────────
         Long hsnCode = getCsvLong(r, H_HSN_CODE);
         validateRequired(hsnCode, "HSN Code", errors);
 
