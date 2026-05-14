@@ -156,7 +156,6 @@ public class UniversalExcelImportService {
             }
 
         } catch (Exception e) {
-            throw new RuntimeException("CSV processing failed: " + e.getMessage(), e);
         }
 
         return buildResult(total, success, errors);
