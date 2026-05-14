@@ -1,6 +1,7 @@
 package com.example.pharmaaggregatorserver.entity.auth;
 
 import com.example.pharmaaggregatorserver.entity.master.RoleMaster;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -62,6 +63,10 @@ public class User {
             uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "role_id"})
     )
     private Set<RoleMaster> roles = new HashSet<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonIgnore
+    private Set<LoginOtp> loginOtps = new HashSet<>();
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

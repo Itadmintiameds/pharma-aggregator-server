@@ -1,6 +1,7 @@
 package com.example.pharmaaggregatorserver.controller.seller.profile;
 
 import com.example.pharmaaggregatorserver.dto.product.ProductTypeResponseDto;
+import com.example.pharmaaggregatorserver.dto.seller.SellerDTO;
 import com.example.pharmaaggregatorserver.dto.seller.profile.PendingSellerDocumentUploadRequest;
 import com.example.pharmaaggregatorserver.dto.seller.profile.PendingSellerDocumentUploadResponse;
 import com.example.pharmaaggregatorserver.dto.seller.profile.SellerEditRequest;
@@ -44,6 +45,7 @@ public class SellerProfileController {
         SellerResponseDTO response = sellerprofileService.requestSellerUpdate(sellerId, request, requestedBy);
         return ResponseEntity.ok(response);
     }
+
     // Find Seller by User ID
     @GetMapping("/user/{userId}")
     public ResponseEntity<?> findSellerByUserId(@PathVariable Long userId) {
@@ -58,12 +60,12 @@ public class SellerProfileController {
     @PostMapping(value = "/{pendingSellerId}/documents/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<PendingSellerDocumentUploadResponse>> uploadDocuments(
             @PathVariable Long pendingSellerId,
-            @RequestPart(value = "gstFile",         required = false) MultipartFile gstFile,
-            @RequestPart(value = "bankFile",         required = false) MultipartFile bankFile,
+            @RequestPart(value = "gstFile", required = false) MultipartFile gstFile,
+            @RequestPart(value = "bankFile", required = false) MultipartFile bankFile,
             @RequestPart(value = "companyRegistrationCertificate", required = false) MultipartFile companyRegistrationCertificate,
-            @RequestPart(value = "licenseFiles",     required = false) List<MultipartFile> licenseFiles,
-            @RequestParam(value = "licenseNames",    required = false) List<String> licenseNames,
-            @RequestParam(value = "documentIds",     required = false) List<Long> documentIds) {
+            @RequestPart(value = "licenseFiles", required = false) List<MultipartFile> licenseFiles,
+            @RequestParam(value = "licenseNames", required = false) List<String> licenseNames,
+            @RequestParam(value = "documentIds", required = false) List<Long> documentIds) {
 
         PendingSellerDocumentUploadRequest request = new PendingSellerDocumentUploadRequest();
         request.setGstFile(gstFile);
@@ -106,5 +108,17 @@ public class SellerProfileController {
         return ResponseEntity.ok(
                 sellerService.getProductTypesForLoggedInUser(userId)
         );
+    }
+
+    @GetMapping
+    public ResponseEntity<?> findAll() {
+        List<SellerDTO> dtos = sellerService.findAll();
+        return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Sellers found", dtos));
+    }
+
+    @DeleteMapping("/{sellerId}")
+    public ResponseEntity<?> deleteById(@PathVariable("sellerId") String sellerId) {
+        sellerService.deleteBySellerId(sellerId);
+        return ResponseEntity.ok("Seller deleted successfully");
     }
 }
