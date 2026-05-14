@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/ifsc")
+@RequestMapping("/ifsc")
 @CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class IFSCOverrideController {
