@@ -12,13 +12,10 @@ import java.util.Map;
 @CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class IFSCOverrideController {
-
     private final IFSCOverrideService ifscOverrideService;
-
     @GetMapping("/{ifscCode}")
     public ResponseEntity<?> getIFSCDetails(@PathVariable String ifscCode) {
         Map<String, Object> override = ifscOverrideService.getOverrideByIFSC(ifscCode);
-
         if (override == null) {
             return ResponseEntity.notFound().build();
         }
