@@ -46,6 +46,9 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
     @Value("${app.frontend-url}")
     public String LOGIN_URL;
 
+    @Value("${app.admin-frontend-url}")
+    public String ADMIN_FRONTEND_URL;
+
     private final TempSellerRepository tempSellerRepo;
     private final SellerRepository sellerRepo;
     private final EmailService emailService;
@@ -100,7 +103,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
         saveReviewHistory(seller, "CORRECTION_REQUIRED", comments);
 
         // Correction URL
-        String correctionUrl = "https://testdomain.com/seller/correction/" + seller.getTempSellerId();
+        String correctionUrl = ADMIN_FRONTEND_URL + "/SellerCorrection/[requestId]?sellerId=" + seller.getTempSellerId();
 
         // HTML Email Body
         String body = """

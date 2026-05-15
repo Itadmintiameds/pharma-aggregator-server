@@ -5,6 +5,7 @@ server:
 app:
   login-url: https://pharma-aggregator-test.tiameds.ai/reset-password
   frontend-url: https://pharma-aggregator-test.tiameds.ai
+  admin-frontend-url: https://tiameds-admin-dashboard.vercel.app
   reset-token-expiration-hours: 1
   jwt:
     secret: mySecretKeyForJWTTokenGenerationAndValidation2024!@#$%^&*
