@@ -1116,7 +1116,8 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
                     || cell.getCellType() == org.apache.poi.ss.usermodel.CellType.FORMULA) {
                 return cell.getLocalDateTimeCellValue().toLocalDate();
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         // Case 2: date stored as string e.g. "01-Aug-24", "Sep-25", "2024-08-01"
         try {
@@ -1124,7 +1125,8 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
             if (!raw.isEmpty()) {
                 return parseCsvDate(raw);
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         return null;
     }
@@ -1186,32 +1188,38 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
         // yyyy-MM-dd  e.g. 2024-08-01
         try {
             return LocalDate.parse(raw);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         // dd-MMM-yy  e.g. 01-Aug-24  ← ADD THIS
         try {
             return LocalDate.parse(raw, DateTimeFormatter.ofPattern("dd-MMM-yy", Locale.ENGLISH));
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         // dd-MMM-yyyy  e.g. 01-Aug-2024  ← ADD THIS TOO (future-proof)
         try {
             return LocalDate.parse(raw, DateTimeFormatter.ofPattern("dd-MMM-yyyy", Locale.ENGLISH));
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         // MMM-yy  e.g. Aug-24
         try {
             return YearMonth.parse(raw, DateTimeFormatter.ofPattern("MMM-yy", Locale.ENGLISH)).atDay(1);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         // dd-MM-yyyy  e.g. 01-08-2024
         try {
             return LocalDate.parse(raw, DateTimeFormatter.ofPattern("dd-MM-yyyy"));
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         // M/d/yyyy  e.g. 8/1/2024
         try {
             return LocalDate.parse(raw, DateTimeFormatter.ofPattern("M/d/yyyy"));
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         log.warn("Could not parse date: '{}'", raw);
         return null;
