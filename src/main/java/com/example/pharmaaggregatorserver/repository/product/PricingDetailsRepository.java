@@ -17,5 +17,15 @@ public interface PricingDetailsRepository extends JpaRepository<PricingDetails, 
     @Query("SELECT COALESCE(SUM(p.stockQuantity), 0) FROM PricingDetails p WHERE p.productDetails.productId = :productId")
     Long getTotalStockByProductId(@Param("productId") String productId);
 
+    @Query("""
+        SELECT COUNT(p) > 0
+        FROM PricingDetails p
+        WHERE p.batchLotNumber = :batchLotNumber
+        AND p.productDetails.seller.user.userId = :userId
+    """)
+    boolean existsByBatchLotNumberAndUserId(
+            @Param("batchLotNumber") String batchLotNumber,
+            @Param("userId") Long userId
+    );
 }
 
