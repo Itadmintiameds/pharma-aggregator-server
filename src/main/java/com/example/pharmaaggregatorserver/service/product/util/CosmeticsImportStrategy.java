@@ -10,6 +10,7 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -33,6 +34,8 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
     private final hairTypeRepository hairTypeRepository;
     private final ProductCategoryMasterRepository productCategoryMasterRepository;
     private final ProductSubcategoryMasterRepository productSubCategoryMasterRepository;
+    private final NetQuantityUnitRepository netQuantityUnitRepository;
+    private final ProductsFormMasterRepository productsFormMasterRepository;
 
     // ── Valid GST percentages ─────────────────────────────────────────────
     private static final Set<Long> VALID_GST_VALUES = Set.of(0L, 5L, 12L, 18L);
@@ -77,7 +80,9 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
     // ── Additional discount slabs ─────────────────────────────────────────
     // 4 slabs × 7 cols each, starting at col 33
     // Per slab: [Slab label | MinQty | Discount% | StartDate | StartTime | EndDate | EndTime]
-    private static final int COL_ADD_DISCOUNT_START = 33;
+    private static final int COL_NET_QUANTITY_UNIT = 33;
+    private static final int COL_PRODUCT_FORM = 34;
+    private static final int COL_ADD_DISCOUNT_START = 35;
     private static final int ADD_DISCOUNT_SLAB_SIZE = 7;
     private static final int ADD_DISCOUNT_SLAB_COUNT = 4;
 
@@ -115,15 +120,17 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
     private static final String H_INTENDED_USE_AREA = "Intended Use Area*";
     private static final String H_HAIR_TYPE = "Hair Type";
     private static final String H_SKIN_TYPE = "Skin Type";
+    private static final String H_NET_QUANTITY_UNIT = "Net Quantity Unit*";
+    private static final String H_PRODUCT_FORM = "Product Form*";
 
     // Additional discount slabs — duplicate headers in CSV; use index-based access.
     // Slab 0: base 33, Slab 1: base 40, Slab 2: base 47, Slab 3: base 54
-    private static final int[] CSV_SLAB_MIN_QTY_COLS = {34, 41, 48, 55};
-    private static final int[] CSV_SLAB_DISCOUNT_COLS = {35, 42, 49, 56};
-    private static final int[] CSV_SLAB_START_DATE_COLS = {36, 43, 50, 57};
-    private static final int[] CSV_SLAB_START_TIME_COLS = {37, 44, 51, 58};
-    private static final int[] CSV_SLAB_END_DATE_COLS = {38, 45, 52, 59};
-    private static final int[] CSV_SLAB_END_TIME_COLS = {39, 46, 53, 60};
+    private static final int[] CSV_SLAB_MIN_QTY_COLS    = {36, 43, 50, 57}; // was {35,42,49,56}
+    private static final int[] CSV_SLAB_DISCOUNT_COLS   = {37, 44, 51, 58}; // was {36,43,50,57}
+    private static final int[] CSV_SLAB_START_DATE_COLS = {38, 45, 52, 59}; // was {37,44,51,58}
+    private static final int[] CSV_SLAB_START_TIME_COLS = {39, 46, 53, 60}; // was {38,45,52,59}
+    private static final int[] CSV_SLAB_END_DATE_COLS   = {40, 47, 54, 61}; // was {39,46,53,60}
+    private static final int[] CSV_SLAB_END_TIME_COLS   = {41, 48, 55, 62}; // was {40,47,54,61}
 
     // =========================================================
     // ================= EXCEL ENTRY POINT =====================
@@ -328,7 +335,26 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
         attr.setVariantName(getString(row, COL_VARIANT_NAME));
         attr.setGender(getString(row, COL_GENDER));
         attr.setActiveIngredients(getString(row, COL_ACTIVE_INGREDIENTS));
-        attr.setNetQuantityStrength(getString(row, COL_NET_QUANTITY));
+        String netQtyExcel = getString(row, COL_NET_QUANTITY);
+        attr.setNetQuantityStrength(
+                netQtyExcel != null && !netQtyExcel.isBlank()
+                        ? new BigDecimal(netQtyExcel.trim())
+                        : null
+        );
+        // ── Net Quantity Unit ─────────────────────────────────────────────────
+        String unitName = getString(row, COL_NET_QUANTITY_UNIT);
+        if (!isBlank(unitName)) {
+            netQuantityUnitRepository.findByUnitNameIgnoreCase(unitName)
+                    .ifPresent(u -> attr.setUnitId(u.getUnitId()));
+        }
+
+        // ── Product Form ──────────────────────────────────────────────────────
+        String formName = getString(row, COL_PRODUCT_FORM);
+        if (!isBlank(formName)) {
+            productsFormMasterRepository.findByFormNameIgnoreCase(formName)
+                    .ifPresent(f -> attr.setFormId(f.getFormId()));
+        }
+
         attr.setProductClaims(getString(row, COL_PRODUCT_CLAIMS));
         attr.setManufacturerName(getString(row, COL_MANUFACTURER));
         attr.setBrochurePath("NOT_UPLOADED");
@@ -337,7 +363,7 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
         String ageGroupName = getString(row, COL_AGE_GROUP);
         if (!isBlank(ageGroupName)) {
             ageGroupMasterRepository.findByAgeGroupIgnoreCase(ageGroupName)
-                    .ifPresent(age -> attr.setAgeGroupId(age.getAgeGroupId()));
+                    .ifPresent(age -> attr.setAgeGroupIds(Collections.singletonList(age.getAgeGroupId())));
         }
 
         // ── Storage Condition ─────────────────────────────────────────────
@@ -445,7 +471,33 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
         attr.setVariantName(getCsvString(r, H_VARIANT_NAME));
         attr.setGender(getCsvString(r, H_GENDER));
         attr.setActiveIngredients(getCsvString(r, H_ACTIVE_INGREDIENTS));
-        attr.setNetQuantityStrength(getCsvString(r, H_NET_QUANTITY));
+        //attr.setNetQuantityStrength(getCsvString(r, H_NET_QUANTITY));
+        String netQtyCsv = getCsvString(r, H_NET_QUANTITY);
+        attr.setNetQuantityStrength(
+                netQtyCsv != null && !netQtyCsv.isBlank()
+                        ? new BigDecimal(netQtyCsv.trim())
+                        : null
+        );
+        // ── Net Quantity Unit ─────────────────────────────────────────────────
+        String unitName = getCsvString(r, H_NET_QUANTITY_UNIT);
+        if (!isBlank(unitName)) {
+            attr.setUnitId(
+                    netQuantityUnitRepository.findByUnitNameIgnoreCase(unitName)
+                            .orElseThrow(() -> new RuntimeException(
+                                    "Net Quantity Unit not found: " + unitName))
+                            .getUnitId());
+        }
+
+        // ── Product Form ──────────────────────────────────────────────────────
+        String formName = getCsvString(r, H_PRODUCT_FORM);
+        if (!isBlank(formName)) {
+            attr.setFormId(
+                    productsFormMasterRepository.findByFormNameIgnoreCase(formName)
+                            .orElseThrow(() -> new RuntimeException(
+                                    "Product Form not found: " + formName))
+                            .getFormId());
+        }
+
         attr.setProductClaims(getCsvString(r, H_PRODUCT_CLAIMS));
         attr.setManufacturerName(getCsvString(r, H_MANUFACTURER));
         attr.setBrochurePath("NOT_UPLOADED");
@@ -454,16 +506,18 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
         String ageGroupName = getCsvString(r, H_AGE_GROUP);
         if (!isBlank(ageGroupName)) {
             String normalizedCsv = ageGroupName.replaceAll("[^a-zA-Z0-9() ]", "").trim().toLowerCase();
-            attr.setAgeGroupId(
-                    ageGroupMasterRepository.findAll().stream()
-                            .filter(ag -> ag.getAgeGroup()
-                                    .replaceAll("[^a-zA-Z0-9() ]", "")
-                                    .trim()
-                                    .toLowerCase()
-                                    .equals(normalizedCsv))
-                            .findFirst()
-                            .orElseThrow(() -> new RuntimeException("Age group not found: " + ageGroupName))
-                            .getAgeGroupId()
+            attr.setAgeGroupIds(
+                    Collections.singletonList(
+                            ageGroupMasterRepository.findAll().stream()
+                                    .filter(ag -> ag.getAgeGroup()
+                                            .replaceAll("[^a-zA-Z0-9() ]", "")
+                                            .trim()
+                                            .toLowerCase()
+                                            .equals(normalizedCsv))
+                                    .findFirst()
+                                    .orElseThrow(() -> new RuntimeException("Age group not found: " + ageGroupName))
+                                    .getAgeGroupId()
+                    )
             );
         }
 
@@ -685,6 +739,8 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
         validateRequired(getString(row, COL_CERTIFICATIONS), "Certifications / Compliance", errors);
         validateRequired(getString(row, COL_PACK_TYPE), "Pack Type", errors);
         validateRequired(getString(row, COL_INTENDED_USE_AREA), "Intended Use Area", errors);
+        validateRequired(getString(row, COL_NET_QUANTITY_UNIT), "Net Quantity Unit", errors);
+        validateRequired(getString(row, COL_PRODUCT_FORM), "Product Form", errors);
 
         // ── 1. Product Name ───────────────────────────────────────────────────
         String productName = getString(row, COL_PRODUCT_NAME);
@@ -743,12 +799,11 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
         // ── 11. Net Quantity / Strength ───────────────────────────────────────
         String netQuantity = getString(row, COL_NET_QUANTITY);
         validateRequired(netQuantity, "Net Quantity / Strength", errors);
-        if (!isBlank(netQuantity)) {
-            if (!netQuantity.matches("[A-Za-z0-9]+"))
-                errors.add("Net Quantity / Strength must be alphanumeric only (e.g., 100ml, 50g)");
-            if (netQuantity.length() > 20)
-                errors.add("Net Quantity / Strength must not exceed 20 characters");
-        }
+        if (!netQuantity.matches("\\d+(\\.\\d+)?"))
+            errors.add("Net Quantity / Strength must be a valid number (e.g., 55.66, 1245.256, 200)");
+
+        // ── 11b. Net Quantity Unit ────────────────────────────────────────────
+        validateRequired(getString(row, COL_NET_QUANTITY_UNIT), "Net Quantity Unit", errors);
 
         // ── 12. Age Group ─────────────────────────────────────────────────────
         validateRequired(getString(row, COL_AGE_GROUP), "Age Group", errors);
@@ -893,6 +948,8 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
         validateRequired(getCsvString(r, H_CERTIFICATIONS), "Certifications / Compliance", errors);
         validateRequired(getCsvString(r, H_PACK_TYPE), "Pack Type", errors);
         validateRequired(getCsvString(r, H_INTENDED_USE_AREA), "Intended Use Area", errors);
+        validateRequired(getCsvString(r, H_NET_QUANTITY_UNIT), "Net Quantity Unit", errors);
+        validateRequired(getCsvString(r, H_PRODUCT_FORM), "Product Form", errors);
 
         // ── 1. Product Name ───────────────────────────────────────────────────
         String productName = getCsvString(r, H_PRODUCT_NAME);
@@ -951,12 +1008,10 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
         // ── 11. Net Quantity / Strength ───────────────────────────────────────
         String netQuantity = getCsvString(r, H_NET_QUANTITY);
         validateRequired(netQuantity, "Net Quantity / Strength", errors);
-        if (!isBlank(netQuantity)) {
-            if (!netQuantity.matches("[A-Za-z0-9]+"))
-                errors.add("Net Quantity / Strength must be alphanumeric only (e.g., 100ml, 50g)");
-            if (netQuantity.length() > 20)
-                errors.add("Net Quantity / Strength must not exceed 20 characters");
-        }
+        if (!netQuantity.matches("\\d+(\\.\\d+)?"))
+            errors.add("Net Quantity / Strength must be a valid number (e.g., 55.66, 1245.256, 200)");
+
+        validateRequired(getCsvString(r, H_NET_QUANTITY_UNIT), "Net Quantity Unit", errors);
 
         // ── 12. Age Group ─────────────────────────────────────────────────────
         validateRequired(getCsvString(r, H_AGE_GROUP), "Age Group", errors);

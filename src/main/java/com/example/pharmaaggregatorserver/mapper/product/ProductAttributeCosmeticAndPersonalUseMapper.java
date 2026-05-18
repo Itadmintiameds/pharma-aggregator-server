@@ -2,6 +2,7 @@ package com.example.pharmaaggregatorserver.mapper.product;
 
 import com.example.pharmaaggregatorserver.dto.product.CosmeticAndPersonalUseProductAttributeDTO;
 import com.example.pharmaaggregatorserver.dto.product.ProductCertificateDocumentDto;
+import com.example.pharmaaggregatorserver.entity.product.AgeGroupMaster;
 import com.example.pharmaaggregatorserver.entity.product.ProductAttributeCosmeticandPersonalCare;
 import com.example.pharmaaggregatorserver.entity.product.ProductCertificateDocument;
 import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.*;
@@ -26,6 +27,9 @@ public class ProductAttributeCosmeticAndPersonalUseMapper {
     private final CertificationRepository certificationRepo;
     private final CountryMasterRepository countryMasterRepo;
     private final StorageConditionMasterRepository storageConditionMasterRepo;
+    private final NetQuantityUnitRepository netQuantityUnitRepository;
+    private final ProductsFormMasterRepository productFormMasterRepository;
+
 
     // ================= DTO → ENTITY =================
     public ProductAttributeCosmeticandPersonalCare toEntity(CosmeticAndPersonalUseProductAttributeDTO dto) {
@@ -85,9 +89,15 @@ public class ProductAttributeCosmeticAndPersonalUseMapper {
         }
 
         // Set Age Group
-        if (dto.getAgeGroupId() != null) {
-            ageGroupMasterRepository.findById(dto.getAgeGroupId())
-                    .ifPresent(entity::setAgeGroupMaster);
+        if (dto.getAgeGroupIds() != null && !dto.getAgeGroupIds().isEmpty()) {
+            List<AgeGroupMaster> ageGroups = ageGroupMasterRepository.findAllById(dto.getAgeGroupIds());
+            entity.setAgeGroups(ageGroups);
+        }
+
+        //Net Quantity Unit
+        if (dto.getUnitId() != null) {
+            netQuantityUnitRepository.findById(dto.getUnitId())
+                    .ifPresent(entity::setNetQuantityUnit);
         }
 
         // Set Storage Condition
@@ -100,6 +110,12 @@ public class ProductAttributeCosmeticAndPersonalUseMapper {
         if (dto.getCountryId() != null) {
             countryMasterRepo.findById(dto.getCountryId())
                     .ifPresent(entity::setCountryMaster);
+        }
+
+        // Set Product Form
+        if (dto.getFormId() != null) {
+            productFormMasterRepository.findById(dto.getFormId())
+                    .ifPresent(entity::setProductsFormMaster);
         }
 
         // Set Certificate Documents
@@ -217,8 +233,30 @@ public class ProductAttributeCosmeticAndPersonalUseMapper {
         }
 
         // Age Group
-        if (entity.getAgeGroupMaster() != null) {
-            dto.setAgeGroupId(entity.getAgeGroupMaster().getAgeGroupId());
+        if (entity.getAgeGroups() != null && !entity.getAgeGroups().isEmpty()) {
+            List<Long> ageGroupId = entity.getAgeGroups().stream()
+                    .map(AgeGroupMaster::getAgeGroupId)
+                    .collect(Collectors.toList());
+            dto.setAgeGroupIds(ageGroupId);
+
+            List<CosmeticAndPersonalUseProductAttributeDTO.AgeGroupInfo> ageGroupInfos =
+                    entity.getAgeGroups().stream()
+                            .map(ag -> {
+                                CosmeticAndPersonalUseProductAttributeDTO.AgeGroupInfo info =
+                                        new CosmeticAndPersonalUseProductAttributeDTO.AgeGroupInfo();
+                                info.setAgeGroupId(ag.getAgeGroupId());
+                                info.setAgeGroup(ag.getAgeGroup());
+                                return info;
+                            })
+                            .collect(Collectors.toList());
+            dto.setAgeGroupInfo(ageGroupInfos);
+        }
+
+        // Net Quantity Unit
+        if (entity.getNetQuantityUnit() != null) {
+            dto.setUnitId(entity.getNetQuantityUnit().getUnitId());
+            dto.setUnitName(entity.getNetQuantityUnit().getUnitName());
+            //dto.setUnitSymbol(entity.getNetQuantityUnit().getUnitSymbol());
         }
 
         // Storage Condition
@@ -229,6 +267,12 @@ public class ProductAttributeCosmeticAndPersonalUseMapper {
         // Country
         if (entity.getCountryMaster() != null) {
             dto.setCountryId(entity.getCountryMaster().getCountryId());
+        }
+
+        // Product Form
+        if (entity.getProductsFormMaster() != null) {
+            dto.setFormId(entity.getProductsFormMaster().getFormId());
+            dto.setFormName(entity.getProductsFormMaster().getFormName());
         }
 
         // Certificate Documents
@@ -282,6 +326,11 @@ public class ProductAttributeCosmeticAndPersonalUseMapper {
             entity.getIntendedUseArea().clear();
             entity.getIntendedUseArea().addAll(useAreas);
         }
+        // Update Net Quantity Unit
+        if (dto.getUnitId() != null) {
+            netQuantityUnitRepository.findById(dto.getUnitId())
+                    .ifPresent(entity::setNetQuantityUnit);
+        }
 
         if (dto.getSkintypeId() != null && !dto.getSkintypeId().isEmpty()) {
             List<SkinType> skinTypes = skinTypeRepository.findAllById(dto.getSkintypeId());
@@ -295,9 +344,10 @@ public class ProductAttributeCosmeticAndPersonalUseMapper {
             entity.getHairTypes().addAll(hairTypes);
         }
 
-        if (dto.getAgeGroupId() != null) {
-            ageGroupMasterRepository.findById(dto.getAgeGroupId())
-                    .ifPresent(entity::setAgeGroupMaster);
+        if (dto.getAgeGroupIds() != null && !dto.getAgeGroupIds().isEmpty()) {
+            List<AgeGroupMaster> ageGroups = ageGroupMasterRepository.findAllById(dto.getAgeGroupIds());
+            entity.getAgeGroups().clear();
+            entity.getAgeGroups().addAll(ageGroups);
         }
 
         if (dto.getStorageConditionId() != null) {
@@ -308,6 +358,12 @@ public class ProductAttributeCosmeticAndPersonalUseMapper {
         if (dto.getCountryId() != null) {
             countryMasterRepo.findById(dto.getCountryId())
                     .ifPresent(entity::setCountryMaster);
+        }
+
+        // Update Product Form
+        if (dto.getFormId() != null) {
+            productFormMasterRepository.findById(dto.getFormId())
+                    .ifPresent(entity::setProductsFormMaster);
         }
     }
 }

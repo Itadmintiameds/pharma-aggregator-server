@@ -2,6 +2,7 @@ package com.example.pharmaaggregatorserver.dto.product;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 @Data
@@ -32,8 +33,12 @@ public class CosmeticAndPersonalUseProductAttributeDTO {
     private List<SkinTypeInfo> skinType = new ArrayList<>();
 
     private String ActiveIngredients;
-    private String NetQuantityStrength;
-    private Long ageGroupId;
+    private Long unitId;
+    private String unitName;
+    private BigDecimal NetQuantityStrength;
+    //private Long ageGroupId;
+    private List<Long> ageGroupIds;
+    private List<AgeGroupInfo> ageGroupInfo;
     private String ProductClaims;
 
     //private String storageCondition;
@@ -41,6 +46,8 @@ public class CosmeticAndPersonalUseProductAttributeDTO {
 
     private String manufacturerName;
     private Long countryId;
+    private Long formId;
+    private String formName;
 
 // Replaces single certificationId + certificationName + complianceCertificateUrl
     private List<ProductCertificateDocumentDto> certificateDocuments;
@@ -67,4 +74,13 @@ public class CosmeticAndPersonalUseProductAttributeDTO {
         private Long skintypeId;
         private String typeName;
     }
+
+    //age group
+    @Data
+    public static class AgeGroupInfo {
+        private Long ageGroupId;
+        private String ageGroup;
+    }
+
+
 }

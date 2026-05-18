@@ -2,6 +2,7 @@ package com.example.pharmaaggregatorserver.entity.product;
 
 import com.example.pharmaaggregatorserver.entity.product.CosmeticPersonalCareMasters.HairType;
 import com.example.pharmaaggregatorserver.entity.product.CosmeticPersonalCareMasters.IntendedUseArea;
+import com.example.pharmaaggregatorserver.entity.product.CosmeticPersonalCareMasters.ProductsFormMaster;
 import com.example.pharmaaggregatorserver.entity.product.CosmeticPersonalCareMasters.SkinType;
 import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -11,6 +12,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -93,15 +95,29 @@ public class ProductAttributeCosmeticandPersonalCare {
     @Column(name = "active_ingredients")
     private String ActiveIngredients;
 
+    // FK → Net Quantity Unit
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "unit_id", nullable = true)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    private NetQuantityUnit netQuantityUnit;
+
     //Net Quantity/ StrengthD
     @Column(name = "net_quantity_strength")
-    private String NetQuantityStrength;
+    private BigDecimal NetQuantityStrength;
 
     // FK → age_group
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "age_group_id" ,nullable = false)
-    @JsonIgnoreProperties
-    private AgeGroupMaster ageGroupMaster;
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "age_group_id" ,nullable = false)
+//    @JsonIgnoreProperties
+//    private AgeGroupMaster ageGroupMaster;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "tm_cosmetic_age_group_mapping",
+            joinColumns = @JoinColumn(name = "product_attribute_id"),
+            inverseJoinColumns = @JoinColumn(name = "age_group_id")
+    )
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    private List<AgeGroupMaster> ageGroups = new ArrayList<>();
 
     @Column(name = "product_claims")
     private String ProductClaims;
@@ -122,6 +138,11 @@ public class ProductAttributeCosmeticandPersonalCare {
     @JoinColumn(name = "country_id" ,nullable = false)
     @JsonIgnoreProperties
     private CountryMaster countryMaster;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "form_id" ,nullable = false)
+    @JsonIgnoreProperties
+    private ProductsFormMaster productsFormMaster;
 
     // Multiple certification types (CDSCO / ISO / CE / BIS)
     @ManyToMany(fetch = FetchType.LAZY)
