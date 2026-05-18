@@ -10,7 +10,7 @@ public class SpecialSchemesDto {
 
     private String specialSchemesId;
     private String schemeName;
-    private String schemeType;
+//    private String schemeType;
     private Long buyQuantity;
     private Long freeQuantity;
     private LocalDate effectiveStartDate;

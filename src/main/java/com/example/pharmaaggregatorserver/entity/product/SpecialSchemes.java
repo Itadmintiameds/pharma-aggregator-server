@@ -26,8 +26,8 @@ public class SpecialSchemes {
     @Column(name = "scheme_name")
     private String schemeName;
 
-    @Column(name = "schemeType")
-    private String schemeType;
+//    @Column(name = "schemeType")
+//    private String schemeType;
 
     @Column(name = "buy_quantity")
     private Long buyQuantity;

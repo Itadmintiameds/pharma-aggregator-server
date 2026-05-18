@@ -13,7 +13,7 @@ public class SpecialSchemesMapper {
         SpecialSchemes entity = new SpecialSchemes();
         entity.setSpecialSchemesId(dto.getSpecialSchemesId());
         entity.setSchemeName(dto.getSchemeName());
-        entity.setSchemeType(dto.getSchemeType());
+//        entity.setSchemeType(dto.getSchemeType());
         entity.setBuyQuantity(dto.getBuyQuantity());
         entity.setFreeQuantity(dto.getFreeQuantity());
         entity.setEffectiveStartDate(dto.getEffectiveStartDate());
@@ -30,7 +30,7 @@ public class SpecialSchemesMapper {
         SpecialSchemesDto dto = new SpecialSchemesDto();
         dto.setSpecialSchemesId(entity.getSpecialSchemesId());
         dto.setSchemeName(entity.getSchemeName());
-        dto.setSchemeType(entity.getSchemeType());
+//        dto.setSchemeType(entity.getSchemeType());
         dto.setBuyQuantity(entity.getBuyQuantity());
         dto.setFreeQuantity(entity.getFreeQuantity());
         dto.setEffectiveStartDate(entity.getEffectiveStartDate());

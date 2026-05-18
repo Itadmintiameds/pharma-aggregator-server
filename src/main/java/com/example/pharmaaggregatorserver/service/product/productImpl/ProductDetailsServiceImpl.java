@@ -515,7 +515,7 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
                                 }
 
                                 scheme.setSchemeName(s.getSchemeName());
-                                scheme.setSchemeType(s.getSchemeType());
+//                                scheme.setSchemeType(s.getSchemeType());
                                 scheme.setBuyQuantity(s.getBuyQuantity());
                                 scheme.setFreeQuantity(s.getFreeQuantity());
                                 scheme.setEffectiveStartDate(s.getEffectiveStartDate());
