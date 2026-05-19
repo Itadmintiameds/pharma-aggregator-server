@@ -5,6 +5,7 @@ import com.example.pharmaaggregatorserver.dto.product.ProductCertificateDocument
 import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.*;
 import com.example.pharmaaggregatorserver.entity.product.ProductAttributeConsumableMedical;
 import com.example.pharmaaggregatorserver.entity.product.ProductCertificateDocument;
+import com.example.pharmaaggregatorserver.exception.NotFoundException;
 import com.example.pharmaaggregatorserver.repository.product.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -23,6 +24,7 @@ public class ProductAttributeConsumableMedicalMapper {
     private final ConsumableMaterialTypeRepository consumableMaterialTypeRepo;
     private final CountryMasterRepository countryMasterRepo;
     private final StorageConditionMasterRepository storageConditionMasterRepo;
+    private final DeviceSpecificationUnitRepository deviceSpecificationUnitRepository;
 
     // ================= DTO → ENTITY =================
     public ProductAttributeConsumableMedical toEntity(ConsumableProductAttributeDTO dto) {
@@ -36,6 +38,13 @@ public class ProductAttributeConsumableMedicalMapper {
         entity.setDisposalOrReusable(dto.getDisposalOrReusable());
         entity.setShelfLife(dto.getShelfLife());
         entity.setDimensionSize(dto.getDimensionSize());
+
+        if (dto.getDeviceSpecificationUnitId() != null) {
+            DeviceSpecificationUnit deviceSpecificationUnit = deviceSpecificationUnitRepository.findById(dto.getDeviceSpecificationUnitId())
+                    .orElseThrow(() -> new NotFoundException("Device Specification not found for Id: " + dto.getDeviceSpecificationUnitId()));
+            entity.setDeviceSpecificationUnit(deviceSpecificationUnit);
+        }
+
         entity.setPurpose(dto.getPurpose());
         entity.setKeyFeaturesSpecifications(dto.getKeyFeaturesSpecifications());
         entity.setSafetyInstructions(dto.getSafetyInstructions());
@@ -134,6 +143,12 @@ public class ProductAttributeConsumableMedicalMapper {
         dto.setDisposalOrReusable(entity.getDisposalOrReusable());
         dto.setShelfLife(entity.getShelfLife());
         dto.setDimensionSize(entity.getDimensionSize());
+
+        if (entity.getDeviceSpecificationUnit() != null) {
+            dto.setDeviceSpecificationUnitId(entity.getDeviceSpecificationUnit().getUnitId());
+            dto.setDeviceSpecificationUnitName(entity.getDeviceSpecificationUnit().getUnitName());
+        }
+
         dto.setPurpose(entity.getPurpose());
         dto.setKeyFeaturesSpecifications(entity.getKeyFeaturesSpecifications());
         dto.setSafetyInstructions(entity.getSafetyInstructions());

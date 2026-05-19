@@ -332,7 +332,7 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
         );
 
         dto.setBrandName(getString(row, COL_BRAND_NAME));
-        dto.setDimensionSize(getString(row, COL_DIMENSION_SIZE));
+        //dto.setDimensionSize(getString(row, COL_DIMENSION_SIZE));
         dto.setSterileOrNonSterile(getString(row, COL_STERILE));
         dto.setDisposalOrReusable(getString(row, COL_DISPOSABLE));
         dto.setPurpose(getString(row, COL_PURPOSE));
@@ -415,7 +415,7 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
         );
 
         dto.setBrandName(getCsvString(r, H_BRAND_NAME));
-        dto.setDimensionSize(getCsvString(r, H_DIMENSION_SIZE));
+        //dto.setDimensionSize(getCsvString(r, H_DIMENSION_SIZE));
         dto.setSterileOrNonSterile(getCsvString(r, H_STERILE));
         dto.setDisposalOrReusable(getCsvString(r, H_DISPOSABLE));
         dto.setPurpose(getCsvString(r, H_PURPOSE));
