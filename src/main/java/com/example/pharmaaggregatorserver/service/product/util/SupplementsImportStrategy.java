@@ -343,7 +343,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         // ── Basic text fields ─────────────────────────────────────────────
         attr.setBrandName(getString(row, COL_BRAND_NAME));
         attr.setVariantName(getString(row, COL_VARIANT_NAME));
-        attr.setNetQuantity(getString(row, COL_NET_QUANTITY));
+//        attr.setNetQuantity(getString(row, COL_NET_QUANTITY));
         attr.setStrength(getString(row, COL_STRENGTH));
         attr.setActiveIngredients(getString(row, COL_ACTIVE_INGREDIENTS));
         attr.setOtherIngredients(getString(row, COL_OTHER_INGREDIENTS));
@@ -470,7 +470,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         // ── Basic text fields ─────────────────────────────────────────────
         attr.setBrandName(getCsvString(r, H_BRAND_NAME));
         attr.setVariantName(getCsvString(r, H_VARIANT_NAME));
-        attr.setNetQuantity(getCsvString(r, H_NET_QUANTITY));
+//        attr.setNetQuantity(getCsvString(r, H_NET_QUANTITY));
         attr.setStrength(getCsvString(r, H_STRENGTH));
         attr.setActiveIngredients(getCsvString(r, H_ACTIVE_INGREDIENTS));
         attr.setOtherIngredients(getCsvString(r, H_OTHER_INGREDIENTS));
