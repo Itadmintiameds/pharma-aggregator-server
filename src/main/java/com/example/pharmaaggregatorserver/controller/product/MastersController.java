@@ -1,6 +1,7 @@
 package com.example.pharmaaggregatorserver.controller.product;
 
 import com.example.pharmaaggregatorserver.dto.product.*;
+import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.DeviceSpecificationUnit;
 import com.example.pharmaaggregatorserver.service.product.MasterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -96,6 +97,13 @@ public class MastersController {
     @GetMapping("/skin-types")
     public ResponseEntity<List<SkinTypeResponseDTO>> getAllSkinTypes() {
         return ResponseEntity.ok(masterService.getAllSkinTypes());
+    }
+
+    // GET all units by sub-category
+    @GetMapping("/by-subcategory/{subCatId}")
+    public ResponseEntity<?> getBySubCategory(
+            @PathVariable Long subCatId) {
+        return ResponseEntity.ok(masterService.getBySubCategory(subCatId));
     }
 
 

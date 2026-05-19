@@ -64,6 +64,8 @@ public class ProductAttributeConsumableMedical {
     @Column(name = "dimension_Size")
     private String dimensionSize;
 
+
+
     @Column(name = "sterile_or_non_sterile")
     private String sterileOrNonSterile;
 

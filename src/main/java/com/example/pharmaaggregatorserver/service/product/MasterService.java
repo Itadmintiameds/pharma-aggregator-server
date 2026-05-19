@@ -5,6 +5,7 @@ import com.example.pharmaaggregatorserver.entity.product.CosmeticPersonalCareMas
 import com.example.pharmaaggregatorserver.entity.product.CosmeticPersonalCareMasters.IntendedUseArea;
 import com.example.pharmaaggregatorserver.entity.product.CosmeticPersonalCareMasters.SkinType;
 import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.*;
+import com.example.pharmaaggregatorserver.mapper.product.DeviceSpecificationUnitMapper;
 import com.example.pharmaaggregatorserver.repository.product.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,7 +28,15 @@ public class MasterService {
     private final intendedUseAreaRepository intendedUseAreaRepository;
     private final hairTypeRepository hairTypeRepository;
     private final skinTypeRepository skinTypeRepository;
+    private final DeviceSpecificationUnitRepository deviceSpecificationUnitRepository;
+    private final DeviceSpecificationUnitMapper deviceSpecificationUnitMapper;
 
+    public List<DeviceSpecificationUnitDto> getBySubCategory(Long subCatId) {
+        return deviceSpecificationUnitRepository.findByDeviceSubCategory_DeviceSubCatId(subCatId)
+                .stream()
+                .map(deviceSpecificationUnitMapper::toDto)
+                .toList();
+    }
 
     public List<CountryResponseDTO> getAllCountries() {
         return countryRepository.findAll()
