@@ -182,6 +182,7 @@ public class TempSellerController {
             @RequestPart(value = "gstFile", required = false) MultipartFile gstFile,
             @RequestPart(value = "bankFile", required = false) MultipartFile bankFile,
             @RequestPart(value = "companyRegistrationCertificate", required = false) MultipartFile companyRegistrationCertificate,
+            @RequestPart(value = "authorizationLetter", required = false) MultipartFile authorizationLetter,
             @RequestPart(value = "licenseFiles", required = false) List<MultipartFile> licenseFiles,
             @RequestParam(value = "licenseNames", required = false) List<String> licenseNames,
             @RequestParam(value = "documentIds", required = false) List<Long> documentIds) {
@@ -191,6 +192,7 @@ public class TempSellerController {
         request.setGstFile(gstFile);
         request.setBankFile(bankFile);
         request.setCompanyRegistrationCertificate(companyRegistrationCertificate);
+        request.setAuthorizationLetter(authorizationLetter);
         request.setLicenseFiles(licenseFiles);
         request.setLicenseNames(licenseNames);
         request.setDocumentIds(documentIds);

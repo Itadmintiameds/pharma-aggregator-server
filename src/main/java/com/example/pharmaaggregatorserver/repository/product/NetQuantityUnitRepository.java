@@ -12,6 +12,7 @@ import java.util.Optional;
 public interface NetQuantityUnitRepository extends JpaRepository<NetQuantityUnit, Long> {
 
     Optional<NetQuantityUnit> findByUnitNameIgnoreCase(String unitName);
+    List<NetQuantityUnit> findByCategoryCategoryId(Long categoryId);
 
     Optional<NetQuantityUnit> findByUnitSymbolIgnoreCase(String unitSymbol);
 

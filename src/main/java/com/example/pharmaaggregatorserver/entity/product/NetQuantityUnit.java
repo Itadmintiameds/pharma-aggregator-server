@@ -37,4 +37,9 @@ public class NetQuantityUnit {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = true)
+    @JsonIgnore
+    private Category category;
 }

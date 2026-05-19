@@ -3,6 +3,7 @@ package com.example.pharmaaggregatorserver.dto.temp.seller;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -36,7 +37,7 @@ public class TempSellerDocumentUploadResponse {
      * S3 URL of the uploaded Company Registration Certificate (null if not uploaded).
      */
     private String companyRegistrationCertificateUrl;
-
+    private String authorizationLetterUrl;
     /**
      * S3 URLs for each uploaded license document, in request order.
      */
