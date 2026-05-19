@@ -3,8 +3,11 @@ package com.example.pharmaaggregatorserver.mapper.product;
 import com.example.pharmaaggregatorserver.dto.product.ProductAttributeSupplementsOrNutraceuticalsDto;
 import com.example.pharmaaggregatorserver.dto.product.ProductCertificateDocumentDto;
 import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.Certification;
+import com.example.pharmaaggregatorserver.entity.product.NetQuantityUnit;
 import com.example.pharmaaggregatorserver.entity.product.ProductAttributeSupplementsOrNutraceuticals;
 import com.example.pharmaaggregatorserver.entity.product.ProductCertificateDocument;
+import com.example.pharmaaggregatorserver.entity.product.ServingSizeUnit;
+import com.example.pharmaaggregatorserver.exception.NotFoundException;
 import com.example.pharmaaggregatorserver.repository.product.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -24,6 +27,8 @@ public class ProductAttributeSupplementsOrNutraceuticalsMapper {
     private final StorageConditionMasterRepository storageConditionMasterRepository;
     private final CountryMasterRepository countryMasterRepository;
     private final CertificationRepository certificationRepository;
+    private final NetQuantityUnitRepository netQuantityUnitRepository;
+    private final ServingSizeUnitRepository servingSizeUnitRepository;
 
     // ================= DTO → ENTITY =================
     public ProductAttributeSupplementsOrNutraceuticals toEntity(ProductAttributeSupplementsOrNutraceuticalsDto dto) {
@@ -52,6 +57,21 @@ public class ProductAttributeSupplementsOrNutraceuticalsMapper {
         }
 
         entity.setNetQuantity(dto.getNetQuantity());
+
+        if (dto.getNetQuantityUnitId() != null) {
+            NetQuantityUnit netQuantityUnit = netQuantityUnitRepository.findById(dto.getNetQuantityUnitId())
+                    .orElseThrow(() -> new NotFoundException("Net Quantity Not found for Id: " + dto.getNetQuantityUnitId()));
+            entity.setNetQuantityUnit(netQuantityUnit);
+        }
+
+        entity.setServingSize(dto.getServingSize());
+
+        if (dto.getServingSizeUnitId() != null) {
+            ServingSizeUnit servingSizeUnit = servingSizeUnitRepository.findById(dto.getServingSizeUnitId())
+                    .orElseThrow(() -> new NotFoundException("Serving Size Unit Not Found for Id: " + dto.getServingSizeUnitId()));
+            entity.setServingSizeUnit(servingSizeUnit);
+        }
+
         entity.setStrength(dto.getStrength());
         entity.setActiveIngredients(dto.getActiveIngredients());
         entity.setOtherIngredients(dto.getOtherIngredients());
@@ -149,6 +169,19 @@ public class ProductAttributeSupplementsOrNutraceuticalsMapper {
         }
 
         dto.setNetQuantity(entity.getNetQuantity());
+
+        if (entity.getNetQuantityUnit() != null) {
+            dto.setNetQuantityUnitId(entity.getNetQuantityUnit().getUnitId());
+            dto.setNetQuantityUnitName(entity.getNetQuantityUnit().getUnitName());
+        }
+
+        dto.setServingSize(entity.getServingSize());
+
+        if (entity.getServingSizeUnit() != null) {
+            dto.setServingSizeUnitId(entity.getServingSizeUnit().getId());
+            dto.setServingSizeUnitName(entity.getServingSizeUnit().getServingSizeUnit());
+        }
+
         dto.setStrength(entity.getStrength());
         dto.setActiveIngredients(entity.getActiveIngredients());
         dto.setOtherIngredients(entity.getOtherIngredients());

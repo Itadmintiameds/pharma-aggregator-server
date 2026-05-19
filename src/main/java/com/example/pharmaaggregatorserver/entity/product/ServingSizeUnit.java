@@ -12,14 +12,14 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "tbl_serving_size_master")
+@Table(name = "tbl_serving_size_unit_master")
 public class ServingSizeUnit {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "serving_size")
+    @Column(name = "serving_size_unit")
     private String servingSizeUnit;
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -50,7 +50,20 @@ public class ProductAttributeSupplementsOrNutraceuticals {
     private DosageForm dosageForm;      // Dosage Form*
 
     @Column(name = "net_quantity", nullable = false, length = 20)
-    private String netQuantity;       // Net Quantity*
+    private Double netQuantity;       // Net Quantity*
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "net_quantity_unit_id", nullable = true)
+    @JsonIgnore
+    private NetQuantityUnit netQuantityUnit;
+
+    @Column(name = "serving_size", nullable = true, length = 20)
+    private Double servingSize;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "serving_size_unit_id", nullable = true)
+    @JsonIgnore
+    private ServingSizeUnit servingSizeUnit;
 
     @Column(name = "strength", nullable = false)
     private String strength;        // Strength / Composition*

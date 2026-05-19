@@ -18,7 +18,12 @@ public class ProductAttributeSupplementsOrNutraceuticalsDto {
     private String variantName;
     private Long dosageFormId;
     private String dosageFormName;
-    private String netQuantity;
+    private Double netQuantity;
+    private Long netQuantityUnitId;
+    private String netQuantityUnitName;
+    private Double servingSize;
+    private Long servingSizeUnitId;
+    private String servingSizeUnitName;
     private String strength;
     private String activeIngredients;
     private String otherIngredients;
