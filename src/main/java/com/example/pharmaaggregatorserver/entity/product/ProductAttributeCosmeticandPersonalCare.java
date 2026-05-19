@@ -4,7 +4,9 @@ import com.example.pharmaaggregatorserver.entity.product.CosmeticPersonalCareMas
 import com.example.pharmaaggregatorserver.entity.product.CosmeticPersonalCareMasters.IntendedUseArea;
 import com.example.pharmaaggregatorserver.entity.product.CosmeticPersonalCareMasters.ProductsFormMaster;
 import com.example.pharmaaggregatorserver.entity.product.CosmeticPersonalCareMasters.SkinType;
-import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.*;
+import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.Certification;
+import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.CountryMaster;
+import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.StorageConditionMaster;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
@@ -140,7 +142,7 @@ public class ProductAttributeCosmeticandPersonalCare {
     private CountryMaster countryMaster;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "form_id" ,nullable = false)
+    @JoinColumn(name = "form_id" ,nullable = true)
     @JsonIgnoreProperties
     private ProductsFormMaster productsFormMaster;
 
