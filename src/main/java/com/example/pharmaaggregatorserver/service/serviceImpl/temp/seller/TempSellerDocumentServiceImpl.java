@@ -3,8 +3,10 @@ package com.example.pharmaaggregatorserver.service.serviceImpl.temp.seller;
 import com.example.pharmaaggregatorserver.dto.temp.seller.TempSellerDocumentUploadRequest;
 import com.example.pharmaaggregatorserver.dto.temp.seller.TempSellerDocumentUploadResponse;
 import com.example.pharmaaggregatorserver.entity.temp.seller.TempSeller;
+import com.example.pharmaaggregatorserver.entity.temp.seller.TempSellerCoordinator;
 import com.example.pharmaaggregatorserver.entity.temp.seller.TempSellerDocument;
 import com.example.pharmaaggregatorserver.exception.NotFoundException;
+import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerCoordinatorRepository;
 import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerDocumentRepository;
 import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerRepository;
 import com.example.pharmaaggregatorserver.service.S3Service;
@@ -35,6 +37,7 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
 
     private final TempSellerRepository tempSellerRepository;
     private final TempSellerDocumentRepository tempSellerDocumentRepository;
+    private final TempSellerCoordinatorRepository tempSellerCoordinatorRepository;
     private final S3Service s3Service;
 
     // ── Public API ─────────────────────────────────────────────────────────────
@@ -110,6 +113,27 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
             seller.setCompanyRegistrationCertificateUrl(companyRegistrationCertificateUrl);
             seller.setCompanyRegistrationCertificateVerified(false);
             log.info("Company Registration Certificate file uploaded → {}", companyRegistrationCertificateUrl);
+        }
+
+        // ── 3b. Authorization Letter ───────────────────────────────────────────────
+        String authorizationLetterUrl = null;
+
+        if (hasFile(request.getAuthorizationLetter())) {
+            TempSellerCoordinator coordinator = tempSellerCoordinatorRepository
+                    .findBySeller_TempSellerId(tempSellerId)
+                    .orElseThrow(() -> new NotFoundException(
+                            "Coordinator not found for sellerId: " + tempSellerId));
+
+            deleteIfRealUrl(coordinator.getAuthorizationLetterUrl());
+
+            String key = buildAuthorizationLetterKey(reqId, now, request.getAuthorizationLetter());
+            authorizationLetterUrl = s3Service.uploadFile(key, request.getAuthorizationLetter());
+
+            coordinator.setAuthorizationLetterUrl(authorizationLetterUrl);
+            coordinator.setAuthorizationLetterVerified(false);
+            tempSellerCoordinatorRepository.save(coordinator);
+
+            log.info("Authorization letter uploaded → {}", authorizationLetterUrl);
         }
 
         // ── 4. License / document files ────────────────────────────────────────
@@ -189,6 +213,14 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
      */
     private String buildCompanyRegistrationCertificateKey(String reqId, String timestamp, MultipartFile file) {
         return String.format("tempsellers/%s/companyregistrationcertificate/COMPANY_REGISTRATION_CERTIFICATE_%s.%s",
+                reqId, timestamp, extension(file));
+    }
+    /**
+     * tempsellers/{REQ_ID}/authorizationletter/AUTHORIZATION_LETTER_{timestamp}.{ext}
+     * e.g. tempsellers/REQ_001/authorizationletter/AUTHORIZATION_LETTER_20250101123045.pdf
+     */
+    private String buildAuthorizationLetterKey(String reqId, String timestamp, MultipartFile file) {
+        return String.format("tempsellers/%s/authorizationletter/AUTHORIZATION_LETTER_%s.%s",
                 reqId, timestamp, extension(file));
     }
 
