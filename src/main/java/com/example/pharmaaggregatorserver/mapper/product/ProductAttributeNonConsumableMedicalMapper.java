@@ -3,12 +3,10 @@ package com.example.pharmaaggregatorserver.mapper.product;
 import com.example.pharmaaggregatorserver.dto.product.NonConsumableMaterialTypeDto;
 import com.example.pharmaaggregatorserver.dto.product.ProductAttributeNonConsumableMedicalDto;
 import com.example.pharmaaggregatorserver.dto.product.ProductCertificateDocumentDto;
-import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.Certification;
-import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.DeviceCategory;
-import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.DeviceSubCategory;
-import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.NonConsumableMaterialType;
+import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.*;
 import com.example.pharmaaggregatorserver.entity.product.ProductAttributeNonConsumableMedical;
 import com.example.pharmaaggregatorserver.entity.product.ProductCertificateDocument;
+import com.example.pharmaaggregatorserver.exception.NotFoundException;
 import com.example.pharmaaggregatorserver.repository.product.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -27,6 +25,7 @@ public class ProductAttributeNonConsumableMedicalMapper {
     private final CountryMasterRepository countryMasterRepository;
     private final StorageConditionMasterRepository storageConditionMasterRepository;
     private final PowerSourceMasterRepository powerSourceMasterRepository;
+    private final DeviceSpecificationUnitRepository deviceSpecificationUnitRepo;
 
     public ProductAttributeNonConsumableMedical toEntity(ProductAttributeNonConsumableMedicalDto dto) {
         if (dto == null) return null;
@@ -39,6 +38,14 @@ public class ProductAttributeNonConsumableMedicalMapper {
         entity.setDeviceClassification(dto.getDeviceClassification());
         entity.setUdiNumber(dto.getUdiNumber());
         entity.setPurpose(dto.getPurpose());
+        entity.setDimensionSize(dto.getDimensionSize());
+
+        if (dto.getDeviceSpecificationUnitId() != null) {
+            DeviceSpecificationUnit deviceSpecificationUnit = deviceSpecificationUnitRepo.findById(dto.getDeviceSpecificationUnitId())
+                    .orElseThrow(() -> new NotFoundException("Device Specification Unit Not Found with Id: " + dto.getDeviceSpecificationUnitId()));
+            entity.setDeviceSpecificationUnit(deviceSpecificationUnit);
+        }
+
         entity.setKeyFeaturesSpecifications(dto.getKeyFeaturesSpecifications());
         entity.setWarrantyPeriod(dto.getWarrantyPeriod());
         entity.setServiceAvailability(dto.isServiceAvailability());
@@ -48,7 +55,7 @@ public class ProductAttributeNonConsumableMedicalMapper {
         // Device Category
         if (dto.getDeviceCategoryId() != null) {
             DeviceCategory deviceCategory = deviceCategoryRepo.findById(dto.getDeviceCategoryId())
-                    .orElseThrow(() -> new RuntimeException(
+                    .orElseThrow(() -> new NotFoundException(
                             "DeviceCategory not found: " + dto.getDeviceCategoryId()));
             entity.setDeviceCategory(deviceCategory);
         }
@@ -56,7 +63,7 @@ public class ProductAttributeNonConsumableMedicalMapper {
         // Device Sub-Category
         if (dto.getDeviceSubCategoryId() != null) {
             DeviceSubCategory deviceSubCategory = deviceSubCategoryRepo.findById(dto.getDeviceSubCategoryId())
-                    .orElseThrow(() -> new RuntimeException(
+                    .orElseThrow(() -> new NotFoundException(
                             "DeviceSubCategory not found: " + dto.getDeviceSubCategoryId()));
             entity.setDeviceSubCategory(deviceSubCategory);
         }
@@ -66,7 +73,7 @@ public class ProductAttributeNonConsumableMedicalMapper {
             List<NonConsumableMaterialType> materialTypes = new ArrayList<>();
             for (Long materialTypeId : dto.getMaterialTypeIds()) {
                 NonConsumableMaterialType materialType = materialTypeRepo.findById(materialTypeId)
-                        .orElseThrow(() -> new RuntimeException(
+                        .orElseThrow(() -> new NotFoundException(
                                 "MaterialType not found: " + materialTypeId));
                 materialTypes.add(materialType);
             }
@@ -76,21 +83,21 @@ public class ProductAttributeNonConsumableMedicalMapper {
         // Power Source
         if (dto.getPowerSourceId() != null) {
             entity.setPowerSource(powerSourceMasterRepository.findById(dto.getPowerSourceId())
-                    .orElseThrow(() -> new RuntimeException(
+                    .orElseThrow(() -> new NotFoundException(
                             "PowerSource not found: " + dto.getPowerSourceId())));
         }
 
         // Country of Origin
         if (dto.getCountryId() != null) {
             entity.setCountryMaster(countryMasterRepository.findById(dto.getCountryId())
-                    .orElseThrow(() -> new RuntimeException(
+                    .orElseThrow(() -> new NotFoundException(
                             "Country not found: " + dto.getCountryId())));
         }
 
         // Storage Condition
         if (dto.getStorageConditionId() != null) {
             entity.setStorageConditionMaster(storageConditionMasterRepository.findById(dto.getStorageConditionId())
-                    .orElseThrow(() -> new RuntimeException(
+                    .orElseThrow(() -> new NotFoundException(
                             "StorageCondition not found: " + dto.getStorageConditionId())));
         }
 
@@ -101,7 +108,7 @@ public class ProductAttributeNonConsumableMedicalMapper {
 
             for (ProductCertificateDocumentDto certDto : dto.getCertificateDocuments()) {
                 Certification certification = certificationRepo.findById(certDto.getCertificationId())
-                        .orElseThrow(() -> new RuntimeException(
+                        .orElseThrow(() -> new NotFoundException(
                                 "Certification not found: " + certDto.getCertificationId()));
 
                 certifications.add(certification);
@@ -137,7 +144,6 @@ public class ProductAttributeNonConsumableMedicalMapper {
         // Device Sub-Category
         if (entity.getDeviceSubCategory() != null) {
             dto.setDeviceSubCategoryId(entity.getDeviceSubCategory().getDeviceSubCatId());
-            // NOTE: deviceSubCategoryName in the DTO is typed Long — verify if this should be String
             dto.setDeviceSubCategoryName(entity.getDeviceSubCategory().getSubCategoryName());
         }
 
@@ -147,6 +153,13 @@ public class ProductAttributeNonConsumableMedicalMapper {
         dto.setDeviceClassification(entity.getDeviceClassification());
         dto.setUdiNumber(entity.getUdiNumber());
         dto.setPurpose(entity.getPurpose());
+        dto.setDimensionSize(entity.getDimensionSize());
+
+        if (entity.getDeviceSpecificationUnit() != null) {
+            dto.setDeviceSpecificationUnitId(entity.getDeviceSpecificationUnit().getUnitId());
+            dto.setDeviceSpecificationUnitName(entity.getDeviceSpecificationUnit().getUnitName());
+        }
+
         dto.setKeyFeaturesSpecifications(entity.getKeyFeaturesSpecifications());
 
         // Certificate Documents

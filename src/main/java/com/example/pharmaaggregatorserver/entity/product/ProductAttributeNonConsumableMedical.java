@@ -54,6 +54,14 @@ public class ProductAttributeNonConsumableMedical {
     @Column(name = "purpose", nullable = false, columnDefinition = "TEXT")
     private String purpose;     // Intended Use / Purpose*
 
+    @Column(name = "dimension_Size")
+    private Double dimensionSize;       // Technical Dimensions / Capacity / Configuration*
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "device_specification_unit_id", nullable = true)
+    @JsonIgnore
+    private DeviceSpecificationUnit deviceSpecificationUnit;
+
     @Column(name = "key_features_specifications", columnDefinition = "TEXT", nullable = false)
     private String keyFeaturesSpecifications;  // Key Features / Technical Specifications*
 
