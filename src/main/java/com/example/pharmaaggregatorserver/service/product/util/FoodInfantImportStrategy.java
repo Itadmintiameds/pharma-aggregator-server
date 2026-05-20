@@ -333,7 +333,7 @@ public class FoodInfantImportStrategy implements ProductImportStrategy{
         attr.setBrandName(getString(row, COL_BRAND_NAME));
         attr.setVariantName(getString(row, COL_VARIANT_NAME));
         attr.setNetQuantity(getString(row, COL_NET_QUANTITY));
-        attr.setServingSize(getString(row, COL_SERVING_SIZE));
+//        attr.setServingSize(getString(row, COL_SERVING_SIZE));
         attr.setVegNonvegIndicator(getString(row, COL_VEG_NON_VEG));
         attr.setAllergenInformation(getString(row, COL_ALLERGEN_INFO));
         attr.setActiveIngredients(getString(row, COL_ACTIVE_INGREDIENTS));
@@ -357,12 +357,17 @@ public class FoodInfantImportStrategy implements ProductImportStrategy{
         // ── Age Group ─────────────────────────────────────────────────────
         String ageGroupName = getString(row, COL_AGE_GROUP);
         if (!isBlank(ageGroupName)) {
-            attr.setAgeGroupId(
-                    ageGroupMasterRepository
-                            .findByAgeGroupIgnoreCase(ageGroupName)
-                            .orElseThrow(() -> new RuntimeException(
-                                    "Age group not found: " + ageGroupName))
-                            .getAgeGroupId());
+            List<Long> ageGroupIds = new ArrayList<>();
+            for (String agName : ageGroupName.split(",")) {
+                String trimmed = agName.trim();
+                ageGroupIds.add(
+                        ageGroupMasterRepository
+                                .findByAgeGroupIgnoreCase(trimmed)
+                                .orElseThrow(() -> new RuntimeException(
+                                        "Age group not found: " + trimmed))
+                                .getAgeGroupId());
+            }
+            attr.setAgeGroupIds(ageGroupIds);
         }
 
         // ── Storage Condition (single) ────────────────────────────────────
@@ -449,7 +454,7 @@ public class FoodInfantImportStrategy implements ProductImportStrategy{
         attr.setBrandName(getCsvString(r, H_BRAND_NAME));
         attr.setVariantName(getCsvString(r, H_VARIANT_NAME));
         attr.setNetQuantity(getCsvString(r, H_NET_QUANTITY));
-        attr.setServingSize(getCsvString(r, H_SERVING_SIZE));
+//        attr.setServingSize(getCsvString(r, H_SERVING_SIZE));
         attr.setVegNonvegIndicator(getCsvString(r, H_VEG_NON_VEG));
         attr.setAllergenInformation(getCsvString(r, H_ALLERGEN_INFO));
         attr.setActiveIngredients(getCsvString(r, H_ACTIVE_INGREDIENTS));
@@ -469,20 +474,26 @@ public class FoodInfantImportStrategy implements ProductImportStrategy{
                             .getProductFormId());
         }
 
+        // ── Age group ────────────────────────────────────
         String ageGroupName = getCsvString(r, H_AGE_GROUP);
         if (!isBlank(ageGroupName)) {
-            String normalizedCsv = ageGroupName.replaceAll("[^a-zA-Z0-9() ]", "").trim().toLowerCase();
-            attr.setAgeGroupId(
-                    ageGroupMasterRepository.findAll().stream()
-                            .filter(ag -> ag.getAgeGroup()
-                                    .replaceAll("[^a-zA-Z0-9() ]", "")
-                                    .trim()
-                                    .toLowerCase()
-                                    .equals(normalizedCsv))
-                            .findFirst()
-                            .orElseThrow(() -> new RuntimeException("Age group not found: " + ageGroupName))
-                            .getAgeGroupId()
-            );
+            List<Long> ageGroupIds = new ArrayList<>();
+            for (String agName : ageGroupName.split(",")) {
+                String normalizedCsv = agName.replaceAll("[^a-zA-Z0-9() ]", "").trim().toLowerCase();
+                ageGroupIds.add(
+                        ageGroupMasterRepository.findAll().stream()
+                                .filter(ag -> ag.getAgeGroup()
+                                        .replaceAll("[^a-zA-Z0-9() ]", "")
+                                        .trim()
+                                        .toLowerCase()
+                                        .equals(normalizedCsv))
+                                .findFirst()
+                                .orElseThrow(() -> new RuntimeException(
+                                        "Age group not found: " + agName.trim()))
+                                .getAgeGroupId()
+                );
+            }
+            attr.setAgeGroupIds(ageGroupIds);
         }
 
         // ── Storage Condition (single) ────────────────────────────────────
