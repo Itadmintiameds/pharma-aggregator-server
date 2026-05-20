@@ -332,7 +332,7 @@ public class FoodInfantImportStrategy implements ProductImportStrategy{
         // ── Basic text fields ─────────────────────────────────────────────
         attr.setBrandName(getString(row, COL_BRAND_NAME));
         attr.setVariantName(getString(row, COL_VARIANT_NAME));
-        attr.setNetQuantity(getString(row, COL_NET_QUANTITY));
+//        attr.setNetQuantity(getString(row, COL_NET_QUANTITY));
 //        attr.setServingSize(getString(row, COL_SERVING_SIZE));
         attr.setVegNonvegIndicator(getString(row, COL_VEG_NON_VEG));
         attr.setAllergenInformation(getString(row, COL_ALLERGEN_INFO));
@@ -453,7 +453,7 @@ public class FoodInfantImportStrategy implements ProductImportStrategy{
         // ── Basic text fields ─────────────────────────────────────────────
         attr.setBrandName(getCsvString(r, H_BRAND_NAME));
         attr.setVariantName(getCsvString(r, H_VARIANT_NAME));
-        attr.setNetQuantity(getCsvString(r, H_NET_QUANTITY));
+//        attr.setNetQuantity(getCsvString(r, H_NET_QUANTITY));
 //        attr.setServingSize(getCsvString(r, H_SERVING_SIZE));
         attr.setVegNonvegIndicator(getCsvString(r, H_VEG_NON_VEG));
         attr.setAllergenInformation(getCsvString(r, H_ALLERGEN_INFO));
