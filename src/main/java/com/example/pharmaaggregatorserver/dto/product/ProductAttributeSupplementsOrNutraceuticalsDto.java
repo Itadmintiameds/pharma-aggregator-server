@@ -30,8 +30,8 @@ public class ProductAttributeSupplementsOrNutraceuticalsDto {
     private String nutritionalInformation;
     private String nutritionalInformationImageUrl;
     private String intendedUse;
-    private Long ageGroupId;
-    private String ageGroupName;
+    private List<Long> ageGroupIds;
+    private List<AgeGroupMasterDto> ageGroupMastersDto;
     private String gender;
     private String vegOrNonVegIndicator;
     private String allergenInformation;

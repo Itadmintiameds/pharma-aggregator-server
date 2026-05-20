@@ -1,12 +1,10 @@
 package com.example.pharmaaggregatorserver.mapper.product;
 
+import com.example.pharmaaggregatorserver.dto.product.AgeGroupMasterDto;
 import com.example.pharmaaggregatorserver.dto.product.ProductAttributeSupplementsOrNutraceuticalsDto;
 import com.example.pharmaaggregatorserver.dto.product.ProductCertificateDocumentDto;
+import com.example.pharmaaggregatorserver.entity.product.*;
 import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.Certification;
-import com.example.pharmaaggregatorserver.entity.product.NetQuantityUnit;
-import com.example.pharmaaggregatorserver.entity.product.ProductAttributeSupplementsOrNutraceuticals;
-import com.example.pharmaaggregatorserver.entity.product.ProductCertificateDocument;
-import com.example.pharmaaggregatorserver.entity.product.ServingSizeUnit;
 import com.example.pharmaaggregatorserver.exception.NotFoundException;
 import com.example.pharmaaggregatorserver.repository.product.*;
 import lombok.RequiredArgsConstructor;
@@ -83,10 +81,19 @@ public class ProductAttributeSupplementsOrNutraceuticalsMapper {
 
         entity.setIntendedUse(dto.getIntendedUse());
 
-        if (dto.getAgeGroupId() != null) {
-            entity.setAgeGroupMaster(ageGroupMasterRepository.findById(dto.getAgeGroupId())
-                    .orElseThrow(() -> new RuntimeException(
-                            "Age Group Not Found with id: " + dto.getAgeGroupId())));
+//        if (dto.getAgeGroupId() != null) {
+//            entity.setAgeGroupMaster(ageGroupMasterRepository.findById(dto.getAgeGroupId())
+//                    .orElseThrow(() -> new RuntimeException(
+//                            "Age Group Not Found with id: " + dto.getAgeGroupId())));
+//        }
+
+        if (dto.getAgeGroupIds() != null && !dto.getAgeGroupIds().isEmpty()) {
+            List<AgeGroupMaster> ageGroups = dto.getAgeGroupIds().stream()
+                    .map(id -> ageGroupMasterRepository.findById(id)
+                            .orElseThrow(() -> new RuntimeException(
+                                    "Age Group Not Found with id: " + id)))
+                    .toList();
+            entity.setAgeGroups(ageGroups);
         }
 
         entity.setGender(dto.getGender());
@@ -189,9 +196,22 @@ public class ProductAttributeSupplementsOrNutraceuticalsMapper {
         dto.setNutritionalInformationImageUrl(entity.getNutritionalInformationImageUrl());
         dto.setIntendedUse(entity.getIntendedUse());
 
-        if (entity.getAgeGroupMaster() != null) {
-            dto.setAgeGroupId(entity.getAgeGroupMaster().getAgeGroupId());
-            dto.setAgeGroupName(entity.getAgeGroupMaster().getAgeGroup());
+        if (entity.getAgeGroups() != null && !entity.getAgeGroups().isEmpty()) {
+            dto.setAgeGroupIds(
+                    entity.getAgeGroups().stream()
+                            .map(AgeGroupMaster::getAgeGroupId)
+                            .toList()
+            );
+            dto.setAgeGroupMastersDto(
+                    entity.getAgeGroups().stream()
+                            .map(ag -> {
+                                AgeGroupMasterDto agDto = new AgeGroupMasterDto();
+                                agDto.setAgeGroupId(ag.getAgeGroupId());
+                                agDto.setAgeGroup(ag.getAgeGroup());
+                                return agDto;
+                            })
+                            .toList()
+            );
         }
 
         dto.setGender(entity.getGender());

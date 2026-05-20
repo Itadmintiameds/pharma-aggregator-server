@@ -90,10 +90,19 @@ public class ProductAttributeSupplementsOrNutraceuticals {
     @Column(name = "intended_use", nullable = false)
     private String intendedUse;     // Intended Use / Health Benefit*
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "age_group_master_id", nullable = false)
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "age_group_master_id", nullable = false)
+//    @JsonIgnore
+//    private AgeGroupMaster ageGroupMaster;      // Age Group*
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "tm_supplements_age_group_mapping",
+            joinColumns = @JoinColumn(name = "product_attribute_id"),
+            inverseJoinColumns = @JoinColumn(name = "age_group_id")
+    )
     @JsonIgnore
-    private AgeGroupMaster ageGroupMaster;      // Age Group*
+    private List<AgeGroupMaster> ageGroups = new ArrayList<>();
 
     @Column(name = "gender", nullable = false, length = 60)
     private String gender;      // Gender*

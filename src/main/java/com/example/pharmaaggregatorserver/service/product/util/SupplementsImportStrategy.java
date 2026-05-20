@@ -366,14 +366,29 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         }
 
         // ── Age Group ─────────────────────────────────────────────────────
+//        String ageGroupName = getString(row, COL_AGE_GROUP);
+//        if (!isBlank(ageGroupName)) {
+//            attr.setAgeGroupId(
+//                    ageGroupMasterRepository
+//                            .findByAgeGroupIgnoreCase(ageGroupName)
+//                            .orElseThrow(() -> new RuntimeException(
+//                                    "Age group not found: " + ageGroupName))
+//                            .getAgeGroupId());
+//        }
+
         String ageGroupName = getString(row, COL_AGE_GROUP);
         if (!isBlank(ageGroupName)) {
-            attr.setAgeGroupId(
-                    ageGroupMasterRepository
-                            .findByAgeGroupIgnoreCase(ageGroupName)
-                            .orElseThrow(() -> new RuntimeException(
-                                    "Age group not found: " + ageGroupName))
-                            .getAgeGroupId());
+            List<Long> ageGroupIds = new ArrayList<>();
+            for (String agName : ageGroupName.split(",")) {
+                String trimmed = agName.trim();
+                ageGroupIds.add(
+                        ageGroupMasterRepository
+                                .findByAgeGroupIgnoreCase(trimmed)
+                                .orElseThrow(() -> new RuntimeException(
+                                        "Age group not found: " + trimmed))
+                                .getAgeGroupId());
+            }
+            attr.setAgeGroupIds(ageGroupIds);
         }
 
         // ── Flavour ───────────────────────────────────────────────────────
@@ -505,18 +520,23 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
 
         String ageGroupName = getCsvString(r, H_AGE_GROUP);
         if (!isBlank(ageGroupName)) {
-            String normalizedCsv = ageGroupName.replaceAll("[^a-zA-Z0-9() ]", "").trim().toLowerCase();
-            attr.setAgeGroupId(
-                    ageGroupMasterRepository.findAll().stream()
-                            .filter(ag -> ag.getAgeGroup()
-                                    .replaceAll("[^a-zA-Z0-9() ]", "")
-                                    .trim()
-                                    .toLowerCase()
-                                    .equals(normalizedCsv))
-                            .findFirst()
-                            .orElseThrow(() -> new RuntimeException("Age group not found: " + ageGroupName))
-                            .getAgeGroupId()
-            );
+            List<Long> ageGroupIds = new ArrayList<>();
+            for (String agName : ageGroupName.split(",")) {
+                String normalizedCsv = agName.replaceAll("[^a-zA-Z0-9() ]", "").trim().toLowerCase();
+                ageGroupIds.add(
+                        ageGroupMasterRepository.findAll().stream()
+                                .filter(ag -> ag.getAgeGroup()
+                                        .replaceAll("[^a-zA-Z0-9() ]", "")
+                                        .trim()
+                                        .toLowerCase()
+                                        .equals(normalizedCsv))
+                                .findFirst()
+                                .orElseThrow(() -> new RuntimeException(
+                                        "Age group not found: " + agName.trim()))
+                                .getAgeGroupId()
+                );
+            }
+            attr.setAgeGroupIds(ageGroupIds);
         }
 
         // ── Flavour ───────────────────────────────────────────────────────
