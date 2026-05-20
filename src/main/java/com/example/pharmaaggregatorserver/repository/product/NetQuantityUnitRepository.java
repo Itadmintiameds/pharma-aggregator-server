@@ -20,4 +20,6 @@ public interface NetQuantityUnitRepository extends JpaRepository<NetQuantityUnit
     List<NetQuantityUnit> findByUnitTypeIgnoreCase(String unitType);
 
     List<NetQuantityUnit> findByIsActiveTrue();
+
+    Optional<NetQuantityUnit> findByUnitNameIgnoreCaseAndCategory_CategoryId(String unitName, Long categoryId);
 }
