@@ -2,6 +2,7 @@ package com.example.pharmaaggregatorserver.service.product.util;
 
 import com.example.pharmaaggregatorserver.dto.product.*;
 import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.Certification;
+import com.example.pharmaaggregatorserver.exception.NotFoundException;
 import com.example.pharmaaggregatorserver.exception.ValidationException;
 import com.example.pharmaaggregatorserver.repository.product.*;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,8 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
     private final StorageConditionMasterRepository storageConditionRepository;
     private final PackTypeRepository packTypeRepository;
     private final CertificationRepository certificationRepository;
+    private final NetQuantityUnitRepository netQuantityUnitRepository;
+    private final ServingSizeUnitRepository servingSizeUnitRepository;
 
     // ── Valid GST percentages ─────────────────────────────────────────────
     private static final Set<Long> VALID_GST_VALUES = Set.of(0L, 5L, 12L, 18L);
@@ -45,45 +48,48 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
     private static final int COL_VARIANT_NAME = 4;
     private static final int COL_DOSAGE_FORM = 5;
     private static final int COL_NET_QUANTITY = 6;
-    private static final int COL_STRENGTH = 7;
-    private static final int COL_ACTIVE_INGREDIENTS = 8;
-    private static final int COL_OTHER_INGREDIENTS = 9;
-    private static final int COL_NUTRITIONAL_INFO = 10;
-    private static final int COL_INTENDED_USE = 11;
-    private static final int COL_AGE_GROUP = 12;
-    private static final int COL_GENDER = 13;
-    private static final int COL_VEG_NON_VEG = 14;
-    private static final int COL_ALLERGEN_INFO = 15;
-    private static final int COL_FLAVOUR = 16;
-    private static final int COL_PRODUCT_CLAIMS = 17;
-    private static final int COL_WARNINGS = 18;
-    private static final int COL_DESCRIPTION = 19;
-    private static final int COL_STORAGE_CONDITION = 20;
-    private static final int COL_MANUFACTURER = 21;
-    private static final int COL_COUNTRY = 22;
-    private static final int COL_CERTIFICATIONS = 23;  // → ProductCertificateDocumentDto list
-    private static final int COL_PACK_TYPE = 24;
-    private static final int COL_UNIT_PER_PACK = 25;
-    private static final int COL_NUMBER_OF_PACKS = 26;
-    // col 27 = Pack Size (auto-calculated) — not read
-    private static final int COL_MIN_ORDER_QTY = 28;
-    private static final int COL_MAX_ORDER_QTY = 29;
-    private static final int COL_BATCH_NUMBER = 30;
-    private static final int COL_MFG_DATE = 31;
-    private static final int COL_EXPIRY_DATE = 32;
-    private static final int COL_STOCK_QTY = 33;
-    private static final int COL_DATE_OF_ENTRY = 34;  // ignored — always LocalDate.now()
-    private static final int COL_MRP = 35;
-    private static final int COL_SELLING_PRICE = 36;
-    private static final int COL_DISCOUNT_PCT = 37;
-    private static final int COL_GST_PCT = 38;
-    private static final int COL_HSN_CODE = 39;
-    // col 68 = Product Image URL* — skipped
+    private static final int COL_NET_QUANTITY_UNIT = 7;     // NEW
+    private static final int COL_SERVING_SIZE = 8;          // NEW
+    private static final int COL_SERVING_SIZE_UNIT = 9;     // NEW
+    private static final int COL_STRENGTH = 10;  // was 7
+    private static final int COL_ACTIVE_INGREDIENTS = 11;  // was 8
+    private static final int COL_OTHER_INGREDIENTS = 12;  // was 9
+    private static final int COL_NUTRITIONAL_INFO = 13;  // was 10
+    private static final int COL_INTENDED_USE = 14;  // was 11
+    private static final int COL_AGE_GROUP = 15;  // was 12
+    private static final int COL_GENDER = 16;  // was 13
+    private static final int COL_VEG_NON_VEG = 17;  // was 14
+    private static final int COL_ALLERGEN_INFO = 18;  // was 15
+    private static final int COL_FLAVOUR = 19;  // was 16
+    private static final int COL_PRODUCT_CLAIMS = 20;  // was 17
+    private static final int COL_WARNINGS = 21;  // was 18
+    private static final int COL_DESCRIPTION = 22;  // was 19
+    private static final int COL_STORAGE_CONDITION = 23;  // was 20
+    private static final int COL_MANUFACTURER = 24;  // was 21
+    private static final int COL_COUNTRY = 25;  // was 22
+    private static final int COL_CERTIFICATIONS = 26;  // was 23 → ProductCertificateDocumentDto list
+    private static final int COL_PACK_TYPE = 27;  // was 24
+    private static final int COL_UNIT_PER_PACK = 28;  // was 25
+    private static final int COL_NUMBER_OF_PACKS = 29;  // was 26
+    // col 30 = Pack Size (Auto) — not read
+    private static final int COL_MIN_ORDER_QTY = 31;  // was 28
+    private static final int COL_MAX_ORDER_QTY = 32;  // was 29
+    private static final int COL_BATCH_NUMBER = 33;  // was 30
+    private static final int COL_MFG_DATE = 34;  // was 31
+    private static final int COL_EXPIRY_DATE = 35;  // was 32
+    private static final int COL_STOCK_QTY = 36;  // was 33
+    private static final int COL_DATE_OF_ENTRY = 37;  // was 34 — ignored, always LocalDate.now()
+    private static final int COL_MRP = 38;  // was 35
+    private static final int COL_SELLING_PRICE = 39;  // was 36
+    private static final int COL_DISCOUNT_PCT = 40;  // was 37
+    private static final int COL_GST_PCT = 41;  // was 38
+    private static final int COL_HSN_CODE = 42;  // was 39
+    // col 71 = Product Image URL* — skipped
 
     // ── Additional discount slabs ─────────────────────────────────────────
-    // 4 slabs × 7 cols each, starting at col 40
+    // 4 slabs × 7 cols each, starting at col 43
     // Per slab: [Slab label | MinQty | Discount% | StartDate | StartTime | EndDate | EndTime]
-    private static final int COL_ADD_DISCOUNT_START = 40;
+    private static final int COL_ADD_DISCOUNT_START = 43;  // was 40
     private static final int ADD_DISCOUNT_SLAB_SIZE = 7;
     private static final int ADD_DISCOUNT_SLAB_COUNT = 4;
 
@@ -95,6 +101,9 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
     private static final String H_VARIANT_NAME = "Variant Name";
     private static final String H_DOSAGE_FORM = "Dosage Form*";
     private static final String H_NET_QUANTITY = "Net Quantity*";
+    private static final String H_NET_QUANTITY_UNIT = "Net Quantity Unit*";   // NEW
+    private static final String H_SERVING_SIZE = "Serving Size*";        // NEW
+    private static final String H_SERVING_SIZE_UNIT = "Serving Size Unit*";   // NEW
     private static final String H_STRENGTH = "Strength / Composition*";
     private static final String H_ACTIVE_INGREDIENTS = "Active Ingredients*";
     private static final String H_OTHER_INGREDIENTS = "Excipients / Other Ingredients";
@@ -129,13 +138,13 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
     private static final String H_HSN_CODE = "HSN Code*";
 
     // Additional discount slabs — duplicate headers in CSV; use index-based access.
-    // Slab 0: base 40, Slab 1: base 47, Slab 2: base 54, Slab 3: base 61
-    private static final int[] CSV_SLAB_MIN_QTY_COLS = {41, 48, 55, 62};
-    private static final int[] CSV_SLAB_DISCOUNT_COLS = {42, 49, 56, 63};
-    private static final int[] CSV_SLAB_START_DATE_COLS = {43, 50, 57, 64};
-    private static final int[] CSV_SLAB_START_TIME_COLS = {44, 51, 58, 65};
-    private static final int[] CSV_SLAB_END_DATE_COLS = {45, 52, 59, 66};
-    private static final int[] CSV_SLAB_END_TIME_COLS = {46, 53, 60, 67};
+// Slab 0: base 43, Slab 1: base 50, Slab 2: base 57, Slab 3: base 64
+    private static final int[] CSV_SLAB_MIN_QTY_COLS = {44, 51, 58, 65};  // was {41,48,55,62}
+    private static final int[] CSV_SLAB_DISCOUNT_COLS = {45, 52, 59, 66};  // was {42,49,56,63}
+    private static final int[] CSV_SLAB_START_DATE_COLS = {46, 53, 60, 67};  // was {43,50,57,64}
+    private static final int[] CSV_SLAB_START_TIME_COLS = {47, 54, 61, 68};  // was {44,51,58,65}
+    private static final int[] CSV_SLAB_END_DATE_COLS = {48, 55, 62, 69};  // was {45,52,59,66}
+    private static final int[] CSV_SLAB_END_TIME_COLS = {49, 56, 63, 70};  // was {46,53,60,67}
 
     // =========================================================
     // ================= EXCEL ENTRY POINT =====================
@@ -343,7 +352,18 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         // ── Basic text fields ─────────────────────────────────────────────
         attr.setBrandName(getString(row, COL_BRAND_NAME));
         attr.setVariantName(getString(row, COL_VARIANT_NAME));
-//        attr.setNetQuantity(getString(row, COL_NET_QUANTITY));
+        attr.setNetQuantity(getDouble(row, COL_NET_QUANTITY));
+
+        String netQuantityUnit = getString(row, COL_NET_QUANTITY_UNIT);
+        if (!isBlank(netQuantityUnit)) {
+            attr.setNetQuantityUnitId(
+                    netQuantityUnitRepository
+                            .findByUnitNameIgnoreCaseAndCategory_CategoryId(netQuantityUnit, categoryId)
+                            .orElseThrow(() -> new RuntimeException("Net quantity unit not found: " + netQuantityUnit))
+                            .getUnitId()
+            );
+        }
+
         attr.setStrength(getString(row, COL_STRENGTH));
         attr.setActiveIngredients(getString(row, COL_ACTIVE_INGREDIENTS));
         attr.setOtherIngredients(getString(row, COL_OTHER_INGREDIENTS));
@@ -356,13 +376,27 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
 
         // ── Dosage Form ───────────────────────────────────────────────────
         String dosageFormName = getString(row, COL_DOSAGE_FORM);
+        Long dosageId = 0L;
         if (!isBlank(dosageFormName)) {
-            attr.setDosageFormId(
-                    dosageFormRepository
-                            .findByDosageNameIgnoreCaseAndCategory_CategoryId(dosageFormName, categoryId)
+            dosageId = dosageFormRepository
+                    .findByDosageNameIgnoreCaseAndCategory_CategoryId(dosageFormName, categoryId)
+                    .orElseThrow(() -> new RuntimeException(
+                            "Dosage form not found: " + dosageFormName))
+                    .getDosageId();
+            attr.setDosageFormId(dosageId);
+        }
+
+        attr.setServingSize(getDouble(row, COL_SERVING_SIZE));
+
+        String servingSizeUnit = getString(row, COL_SERVING_SIZE_UNIT);
+        if (!isBlank(servingSizeUnit)) {
+            attr.setServingSizeUnitId(
+                    servingSizeUnitRepository
+                            .findByServingSizeUnitIgnoreCaseAndDosageForm_DosageId(servingSizeUnit, dosageId)
                             .orElseThrow(() -> new RuntimeException(
-                                    "Dosage form not found: " + dosageFormName))
-                            .getDosageId());
+                                    "Serving size unit not found: " + servingSizeUnit))
+                            .getId()
+            );
         }
 
         // ── Age Group ─────────────────────────────────────────────────────
@@ -485,7 +519,17 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         // ── Basic text fields ─────────────────────────────────────────────
         attr.setBrandName(getCsvString(r, H_BRAND_NAME));
         attr.setVariantName(getCsvString(r, H_VARIANT_NAME));
-//        attr.setNetQuantity(getCsvString(r, H_NET_QUANTITY));
+        attr.setNetQuantity(getCsvDouble(r, H_NET_QUANTITY));
+
+        String netQuantityUnit = getCsvString(r, H_NET_QUANTITY_UNIT);
+        if (!isBlank(netQuantityUnit)) {
+            attr.setNetQuantityUnitId(
+                    netQuantityUnitRepository.findByUnitNameIgnoreCaseAndCategory_CategoryId(netQuantityUnit, categoryId)
+                            .orElseThrow(() -> new NotFoundException("Net Quantity Unit not found: " + netQuantityUnit))
+                            .getUnitId()
+            );
+        }
+
         attr.setStrength(getCsvString(r, H_STRENGTH));
         attr.setActiveIngredients(getCsvString(r, H_ACTIVE_INGREDIENTS));
         attr.setOtherIngredients(getCsvString(r, H_OTHER_INGREDIENTS));
@@ -498,13 +542,27 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
 
         // ── Dosage Form ───────────────────────────────────────────────────
         String dosageFormName = getCsvString(r, H_DOSAGE_FORM);
+        Long dosageId = 0L;
         if (!isBlank(dosageFormName)) {
-            attr.setDosageFormId(
-                    dosageFormRepository
-                            .findByDosageNameIgnoreCaseAndCategory_CategoryId(dosageFormName, categoryId)
+            dosageId = dosageFormRepository
+                    .findByDosageNameIgnoreCaseAndCategory_CategoryId(dosageFormName, categoryId)
+                    .orElseThrow(() -> new RuntimeException(
+                            "Dosage form not found: " + dosageFormName))
+                    .getDosageId();
+            attr.setDosageFormId(dosageId);
+        }
+
+        attr.setServingSize(getCsvDouble(r, H_SERVING_SIZE));
+
+        String servingSizeUnit = getCsvString(r, H_SERVING_SIZE_UNIT);
+        if (!isBlank(servingSizeUnit)) {
+            attr.setServingSizeUnitId(
+                    servingSizeUnitRepository
+                            .findByServingSizeUnitIgnoreCaseAndDosageForm_DosageId(servingSizeUnit, dosageId)
                             .orElseThrow(() -> new RuntimeException(
-                                    "Dosage form not found: " + dosageFormName))
-                            .getDosageId());
+                                    "Serving size unit not found: " + servingSizeUnit))
+                            .getId()
+            );
         }
 
         // ── Age Group ─────────────────────────────────────────────────────
@@ -1120,6 +1178,11 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         return cell != null ? cell.toString().trim() : null;
     }
 
+    private Double getDouble(Row row, int col) {
+        Cell cell = row.getCell(col);
+        return cell != null ? cell.getNumericCellValue() : 0.0;
+    }
+
     private Long getLong(Row row, int col) {
         Cell cell = row.getCell(col);
         if (cell == null) return null;
@@ -1164,6 +1227,15 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         try {
             String v = r.get(header);
             return (v != null && !v.isBlank()) ? v.trim() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private Double getCsvDouble(CSVRecord r, String header) {
+        try {
+            String v = getCsvString(r, header);
+            return v != null ? Double.parseDouble(v) : null;
         } catch (Exception e) {
             return null;
         }
