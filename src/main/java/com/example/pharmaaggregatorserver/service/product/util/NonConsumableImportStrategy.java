@@ -32,6 +32,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
     private final CountryMasterRepository countryRepository;
     private final StorageConditionMasterRepository storageConditionRepository;
     private final PackTypeRepository packTypeRepository;
+    private final DeviceSpecificationUnitRepository deviceSpecificationUnitRepository;
 
     // ── Valid GST percentages ─────────────────────────────────────────────
     private static final Set<Long> VALID_GST_VALUES = Set.of(0L, 5L, 12L, 18L);
@@ -46,44 +47,46 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
     private static final int COL_DEVICE_CLASSIFICATION = 6;
     private static final int COL_UDI = 7;
     private static final int COL_PURPOSE = 8;
-    private static final int COL_KEY_FEATURES = 9;
-    private static final int COL_SAFETY_PRECAUTIONS = 10; // "Safety Instructions / Precautions*"
-    private static final int COL_CERTIFICATIONS = 11; // "Certifications / Compliance*"
-    private static final int COL_MATERIAL_TYPES = 12; // "Material / Build Type*"
-    private static final int COL_POWER_SOURCE = 13;
-    private static final int COL_WARRANTY = 14; // "Warranty Period (in months)*"
-    private static final int COL_SERVICE_AVAILABILITY = 15; // "AMC / Service Availability* (Yes/No)"
-    private static final int COL_COUNTRY = 16; // "Country of Origin*"
-    private static final int COL_MANUFACTURER = 17; // "Manufacture Name*"
-    private static final int COL_PRODUCT_DESCRIPTION = 18; // "Product Description*"
-    private static final int COL_STORAGE_CONDITION = 19; // "Storage Condition (if applicable)"
+    private static final int COL_TECHNICAL_DIMENSIONS = 9;      // NEW
+    private static final int COL_DEVICE_SPEC_UNIT_NAME = 10;    // NEW
+    private static final int COL_KEY_FEATURES = 11;             // was 9
+    private static final int COL_SAFETY_PRECAUTIONS = 12;       // was 10
+    private static final int COL_CERTIFICATIONS = 13;           // was 11
+    private static final int COL_MATERIAL_TYPES = 14;           // was 12
+    private static final int COL_POWER_SOURCE = 15;             // was 13
+    private static final int COL_WARRANTY = 16;                 // was 14
+    private static final int COL_SERVICE_AVAILABILITY = 17;     // was 15
+    private static final int COL_COUNTRY = 18;                  // was 16
+    private static final int COL_MANUFACTURER = 19;             // was 17
+    private static final int COL_PRODUCT_DESCRIPTION = 20;      // was 18
+    private static final int COL_STORAGE_CONDITION = 21;        // was 19
 
     // ===== PACKAGING =====
-    private static final int COL_PACK_TYPE = 20;
-    private static final int COL_UNIT_PER_PACK = 21;
-    private static final int COL_NUMBER_OF_PACKS = 22;
-    // col 23 = Pack Size (auto-calculated formula) — not read
+    private static final int COL_PACK_TYPE = 22;                // was 20
+    private static final int COL_UNIT_PER_PACK = 23;            // was 21
+    private static final int COL_NUMBER_OF_PACKS = 24;          // was 22
+// col 25 = Pack Size (auto-calculated formula) — not read
 
     // ===== PRICING =====
-    private static final int COL_MIN_ORDER_QTY = 24;
-    private static final int COL_MAX_ORDER_QTY = 25;
-    private static final int COL_MFG_DATE = 26; // "Manufacturing Date*"
-    private static final int COL_STOCK_QTY = 27;
-    private static final int COL_DATE_OF_ENTRY = 28; // ignored — always LocalDate.now()
-    private static final int COL_MRP = 29;
-    private static final int COL_SELLING_PRICE = 30;
-    private static final int COL_DISCOUNT = 31;
-    private static final int COL_GST = 32;
-    private static final int COL_HSN = 33;
+    private static final int COL_MIN_ORDER_QTY = 26;            // was 24
+    private static final int COL_MAX_ORDER_QTY = 27;            // was 25
+    private static final int COL_MFG_DATE = 28;                 // was 26
+    private static final int COL_STOCK_QTY = 29;                // was 27
+    private static final int COL_DATE_OF_ENTRY = 30;            // was 28 — ignored, always LocalDate.now()
+    private static final int COL_MRP = 31;                      // was 29
+    private static final int COL_SELLING_PRICE = 32;            // was 30
+    private static final int COL_DISCOUNT = 33;                 // was 31
+    private static final int COL_GST = 34;                      // was 32
+    private static final int COL_HSN = 35;                      // was 33
 
     // ===== ADDITIONAL DISCOUNT SLABS =====
-    // 4 slabs × 7 cols each, starting at col 35
+    // 4 slabs × 7 cols each, starting at col 36
     // Layout per slab: [Slab label | MinQty | Discount% | StartDate | StartTime | EndDate | EndTime]
-    private static final int COL_ADD_DISCOUNT_START = 34;
+    private static final int COL_ADD_DISCOUNT_START = 36;       // was 34
     private static final int ADD_DISCOUNT_SLAB_SIZE = 7;
     private static final int ADD_DISCOUNT_SLAB_COUNT = 4;
 
-    // col 63 = Product Image URL* (not persisted by this strategy)
+// col 63 = Product Image URL* (not persisted by this strategy)
 
     // ===== CSV HEADER CONSTANTS =====
     private static final String H_DEVICE_CATEGORY = "Device Category*";
@@ -95,6 +98,8 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
     private static final String H_DEVICE_CLASSIFICATION = "Device Classification (Class A/B/C/D)*";
     private static final String H_UDI = "UDI (Unique Device Identification)/Serial Number";
     private static final String H_PURPOSE = "Intended Use / Purpose*";
+    private static final String H_TECHNICAL_DIMENSIONS = "Technical Dimensions / Capacity / Configuration*"; // NEW
+    private static final String H_DEVICE_SPEC_UNIT_NAME = "Device Specification Unit Name*";               // NEW
     private static final String H_KEY_FEATURES = "Key Features / Technical Specifications*";
     private static final String H_SAFETY_PRECAUTIONS = "Safety Instructions  / Precautions*";
     private static final String H_CERTIFICATIONS = "Certifications / Compliance*";
@@ -124,13 +129,13 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
 // unreliable; use index-based access matching the Excel column layout.
 // Layout per slab (0-based): base | base+1 MinQty | base+2 Disc% | base+3 StartDate
 //                            | base+4 StartTime  | base+5 EndDate | base+6 EndTime
-// Slab 0 base=34, Slab 1 base=41, Slab 2 base=48, Slab 3 base=55
-    private static final int[] CSV_SLAB_MIN_QTY_COLS = {35, 42, 49, 56};
-    private static final int[] CSV_SLAB_DISCOUNT_COLS = {36, 43, 50, 57};
-    private static final int[] CSV_SLAB_START_DATE_COLS = {37, 44, 51, 58};
-    private static final int[] CSV_SLAB_START_TIME_COLS = {38, 45, 52, 59};
-    private static final int[] CSV_SLAB_END_DATE_COLS = {39, 46, 53, 60};
-    private static final int[] CSV_SLAB_END_TIME_COLS = {40, 47, 54, 61};
+// Slab 0 base=36, Slab 1 base=43, Slab 2 base=50, Slab 3 base=57
+    private static final int[] CSV_SLAB_MIN_QTY_COLS = {37, 44, 51, 58}; // was {35,42,49,56}
+    private static final int[] CSV_SLAB_DISCOUNT_COLS = {38, 45, 52, 59}; // was {36,43,50,57}
+    private static final int[] CSV_SLAB_START_DATE_COLS = {39, 46, 53, 60}; // was {37,44,51,58}
+    private static final int[] CSV_SLAB_START_TIME_COLS = {40, 47, 54, 61}; // was {38,45,52,59}
+    private static final int[] CSV_SLAB_END_DATE_COLS = {41, 48, 55, 62}; // was {39,46,53,60}
+    private static final int[] CSV_SLAB_END_TIME_COLS = {42, 49, 56, 63}; // was {40,47,54,61}
 
     // =========================================================
     // ================= EXCEL ENTRY POINT =====================
@@ -329,6 +334,18 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         dto.setDeviceClassification(getString(row, COL_DEVICE_CLASSIFICATION));
         dto.setUdiNumber(getString(row, COL_UDI));
         dto.setPurpose(getString(row, COL_PURPOSE));
+        dto.setDimensionSize(getDouble(row, COL_TECHNICAL_DIMENSIONS));
+
+        String deviceSpecificationUnit = getString(row, COL_DEVICE_SPEC_UNIT_NAME);
+        if (!isBlank(deviceSpecificationUnit)) {
+            dto.setDeviceSpecificationUnitId(
+                    deviceSpecificationUnitRepository
+                            .findByDeviceSubCategory_DeviceSubCatIdAndUnitNameIgnoreCase(
+                                    dto.getDeviceSubCategoryId(), deviceSpecificationUnit)
+                            .orElseThrow(() -> new RuntimeException("Device specification unit not found: " + deviceSpecificationUnit))
+                            .getUnitId()
+            );
+        }
         dto.setKeyFeaturesSpecifications(getString(row, COL_KEY_FEATURES));
 
         // ===== CERTIFICATIONS =====
@@ -451,6 +468,18 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         dto.setDeviceClassification(getCsvString(r, H_DEVICE_CLASSIFICATION));
         dto.setUdiNumber(getCsvString(r, H_UDI));
         dto.setPurpose(getCsvString(r, H_PURPOSE));
+        dto.setDimensionSize(getCsvDouble(r, H_TECHNICAL_DIMENSIONS));
+
+        String deviceSpecificationUnit = getCsvString(r, H_DEVICE_SPEC_UNIT_NAME);
+        if (!isBlank(deviceSpecificationUnit)) {
+            dto.setDeviceSpecificationUnitId(
+                    deviceSpecificationUnitRepository
+                            .findByDeviceSubCategory_DeviceSubCatIdAndUnitNameIgnoreCase(
+                                    dto.getDeviceSubCategoryId(), deviceSpecificationUnit)
+                            .orElseThrow(() -> new RuntimeException("Device specification unit not found: " + deviceSpecificationUnit))
+                            .getUnitId()
+            );
+        }
         dto.setKeyFeaturesSpecifications(getCsvString(r, H_KEY_FEATURES));
 
         String certCell = getCsvString(r, H_CERTIFICATIONS);
@@ -1129,6 +1158,27 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         return cell != null ? cell.toString().trim() : null;
     }
 
+    private Double getDouble(Row row, int col) {
+        Cell cell = row.getCell(col);
+        if (cell == null) return null;
+        try {
+            switch (cell.getCellType()) {
+                case NUMERIC:
+                    return cell.getNumericCellValue();
+                case STRING:
+                    String s = cell.getStringCellValue().trim();
+                    if (s.isEmpty()) return null;
+                    return Double.parseDouble(s);
+                case FORMULA:
+                    return cell.getNumericCellValue();
+                default:
+                    return null;
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private Long getLong(Row row, int col) {
         Cell cell = row.getCell(col);
         if (cell == null) return null;
@@ -1174,6 +1224,15 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         try {
             String v = r.get(header);
             return (v != null && !v.isBlank()) ? v.trim() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private Double getCsvDouble(CSVRecord r, String header) {
+        try {
+            String v = getCsvString(r, header);
+            return v != null ? Double.parseDouble(v) : null;
         } catch (Exception e) {
             return null;
         }

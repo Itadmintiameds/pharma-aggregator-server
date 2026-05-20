@@ -1180,7 +1180,23 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
 
     private Double getDouble(Row row, int col) {
         Cell cell = row.getCell(col);
-        return cell != null ? cell.getNumericCellValue() : 0.0;
+        if (cell == null) return null;
+        try {
+            switch (cell.getCellType()) {
+                case NUMERIC:
+                    return cell.getNumericCellValue();
+                case STRING:
+                    String s = cell.getStringCellValue().trim();
+                    if (s.isEmpty()) return null;
+                    return Double.parseDouble(s);
+                case FORMULA:
+                    return cell.getNumericCellValue();
+                default:
+                    return null;
+            }
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private Long getLong(Row row, int col) {
