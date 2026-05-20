@@ -46,7 +46,7 @@ public class ProductAttributeFoodInfant {
     private ProductFormMaster productFormMaster;
 
     @Column(name = "net_quantity")
-    private String netQuantity;
+    private Double netQuantity;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "unit_id", nullable = false)

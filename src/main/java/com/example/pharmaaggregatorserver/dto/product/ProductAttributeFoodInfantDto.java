@@ -18,7 +18,7 @@ public class ProductAttributeFoodInfantDto {
     private String brandName;
     private String variantName;
     private Long productFormId;
-    private String netQuantity;
+    private Double netQuantity;
     private Long unitId;
     private Double servingSize;
     private Long servingSizeUnitId;
