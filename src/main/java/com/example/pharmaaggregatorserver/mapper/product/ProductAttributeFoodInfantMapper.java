@@ -1,12 +1,12 @@
 package com.example.pharmaaggregatorserver.mapper.product;
 
+import com.example.pharmaaggregatorserver.dto.product.AgeGroupMasterDto;
 import com.example.pharmaaggregatorserver.dto.product.ProductAttributeFoodInfantDto;
 import com.example.pharmaaggregatorserver.dto.product.ProductCertificateDocumentDto;
 import com.example.pharmaaggregatorserver.dto.product.ProductUserManualDto;
+import com.example.pharmaaggregatorserver.entity.product.*;
 import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.Certification;
-import com.example.pharmaaggregatorserver.entity.product.ProductAttributeFoodInfant;
-import com.example.pharmaaggregatorserver.entity.product.ProductCertificateDocument;
-import com.example.pharmaaggregatorserver.entity.product.ProductUserManual;
+import com.example.pharmaaggregatorserver.exception.NotFoundException;
 import com.example.pharmaaggregatorserver.repository.product.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -26,6 +26,10 @@ public class ProductAttributeFoodInfantMapper {
     private final StorageConditionMasterRepository storageConditionRepository;
     private final CountryMasterRepository countryRepository;
     private final CertificationRepository certificationRepository;
+    private final AgeGroupMapper ageGroupMapper;
+    private final NetQuantityUnitRepository netQuantityUnitRepository;
+    private final ServingSizeUnitRepository servingSizeUnitRepository;
+
 
     // ===================== TO ENTITY =====================
     public ProductAttributeFoodInfant toEntity(ProductAttributeFoodInfantDto dto) {
@@ -67,10 +71,34 @@ public class ProductAttributeFoodInfantMapper {
                         .orElseThrow(() -> new RuntimeException("Form not found"))
         );
 
-        entity.setAgeGroupMaster(
-                ageGroupRepository.findById(dto.getAgeGroupId())
-                        .orElseThrow(() -> new RuntimeException("AgeGroup not found"))
+        entity.setNetQuantityUnit(
+                netQuantityUnitRepository.findById(dto.getUnitId())
+                        .orElseThrow(() -> new RuntimeException("Net Quantity Unit not found"))
         );
+
+        if (dto.getServingSizeUnitId() != null) {
+            ServingSizeUnit servingSizeUnit = servingSizeUnitRepository.findById(dto.getServingSizeUnitId())
+                    .orElseThrow(() -> new NotFoundException("Serving Size Unit Not Found for Id: " + dto.getServingSizeUnitId()));
+            entity.setServingSizeUnit(servingSizeUnit);
+        }
+
+        if (dto.getAgeGroupMastersDto() != null &&
+                !dto.getAgeGroupMastersDto().isEmpty()) {
+
+            List<AgeGroupMaster> ageGroups =
+                    dto.getAgeGroupMastersDto()
+                            .stream()
+                            .map(ageGroupMapper::toEntity)
+                            .map(ageGroup ->
+                                    ageGroupRepository.findById(ageGroup.getAgeGroupId())
+                                            .orElseThrow(() ->
+                                                    new RuntimeException(
+                                                            "AgeGroup not found: "
+                                                                    + ageGroup.getAgeGroupId())))
+                            .toList();
+
+            entity.setAgeGroups(ageGroups);
+        }
 
         entity.setStorageConditionMaster(
                 storageConditionRepository.findById(dto.getStorageConditionId())
@@ -157,8 +185,25 @@ public class ProductAttributeFoodInfantMapper {
             dto.setProductFormId(entity.getProductFormMaster().getProductFormId());
         }
 
-        if (entity.getAgeGroupMaster() != null) {
-            dto.setAgeGroupId(entity.getAgeGroupMaster().getAgeGroupId());
+        if (entity.getNetQuantity() != null) {
+            dto.setUnitId(entity.getNetQuantityUnit().getUnitId());
+        }
+
+        if (entity.getServingSizeUnit() != null) {
+            dto.setServingSizeUnitId(entity.getServingSizeUnit().getId());
+            dto.setServingSizeUnitName(entity.getServingSizeUnit().getServingSizeUnit());
+        }
+
+        if (entity.getAgeGroups() != null &&
+                !entity.getAgeGroups().isEmpty()) {
+
+            List<AgeGroupMasterDto> ageGroupDtos =
+                    entity.getAgeGroups()
+                            .stream()
+                            .map(ageGroupMapper::toDto)
+                            .toList();
+
+            dto.setAgeGroupMastersDto(ageGroupDtos);
         }
 
         if (entity.getStorageConditionMaster() != null) {

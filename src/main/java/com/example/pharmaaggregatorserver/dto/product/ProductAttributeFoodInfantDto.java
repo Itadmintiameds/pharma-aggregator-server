@@ -19,8 +19,12 @@ public class ProductAttributeFoodInfantDto {
     private String variantName;
     private Long productFormId;
     private String netQuantity;
-    private String servingSize;
-    private Long ageGroupId;
+    private Long unitId;
+    private Double servingSize;
+    private Long servingSizeUnitId;
+    private String servingSizeUnitName;
+    private List<Long> ageGroupIds;
+    private List<AgeGroupMasterDto> ageGroupMastersDto;
     private String vegNonvegIndicator;
     private String allergenInformation;
     private String nutritionalInformation;

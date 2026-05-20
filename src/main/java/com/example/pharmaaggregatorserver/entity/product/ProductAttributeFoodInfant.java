@@ -48,12 +48,26 @@ public class ProductAttributeFoodInfant {
     @Column(name = "net_quantity")
     private String netQuantity;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "unit_id", nullable = false)
+    private NetQuantityUnit netQuantityUnit;
+
     @Column(name = "serving_size")
-    private String servingSize;
+    private Double servingSize;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "age_group_id", nullable = false)
-    private AgeGroupMaster ageGroupMaster;
+    @JoinColumn(name = "serving_size_unit_id", nullable = true)
+    @JsonIgnore
+    private ServingSizeUnit servingSizeUnit;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "tm_foodinfant_age_group",
+            joinColumns = @JoinColumn(name = "product_attribute_id"),
+            inverseJoinColumns = @JoinColumn(name = "age_group_id")
+    )
+    @JsonIgnore
+    private List<AgeGroupMaster> ageGroups = new ArrayList<>();
 
     @Column(name = "veg_nonveg_indicator")
     private String vegNonvegIndicator;

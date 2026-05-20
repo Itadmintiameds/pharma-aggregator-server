@@ -99,11 +99,11 @@ public class MastersController {
         return ResponseEntity.ok(masterService.getAllSkinTypes());
     }
 
-    // GET all units by sub-category
+    // GET all Device Specification Units for Medical Devices by sub-category ID
     @GetMapping("/by-subcategory/{subCatId}")
-    public ResponseEntity<?> getBySubCategory(
+    public ResponseEntity<?> getDeviceSpecificationUnitForMedicalDevicesBySubCategory(
             @PathVariable Long subCatId) {
-        return ResponseEntity.ok(masterService.getBySubCategory(subCatId));
+        return ResponseEntity.ok(masterService.getDeviceSpecificationUnitForMedicalDevicesBySubCategory(subCatId));
     }
 
 
