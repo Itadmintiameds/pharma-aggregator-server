@@ -115,26 +115,26 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
             log.info("Company Registration Certificate file uploaded → {}", companyRegistrationCertificateUrl);
         }
 
-        // ── 3b. Authorization Letter ───────────────────────────────────────────────
-        String authorizationLetterUrl = null;
-
-        if (hasFile(request.getAuthorizationLetter())) {
-            TempSellerCoordinator coordinator = tempSellerCoordinatorRepository
-                    .findBySeller_TempSellerId(tempSellerId)
-                    .orElseThrow(() -> new NotFoundException(
-                            "Coordinator not found for sellerId: " + tempSellerId));
-
-            deleteIfRealUrl(coordinator.getAuthorizationLetterUrl());
-
-            String key = buildAuthorizationLetterKey(reqId, now, request.getAuthorizationLetter());
-            authorizationLetterUrl = s3Service.uploadFile(key, request.getAuthorizationLetter());
-
-            coordinator.setAuthorizationLetterUrl(authorizationLetterUrl);
-            coordinator.setAuthorizationLetterVerified(false);
-            tempSellerCoordinatorRepository.save(coordinator);
-
-            log.info("Authorization letter uploaded → {}", authorizationLetterUrl);
-        }
+//        // ── 3b. Authorization Letter ───────────────────────────────────────────────
+//        String authorizationLetterUrl = null;
+//
+//        if (hasFile(request.getAuthorizationLetter())) {
+//            TempSellerCoordinator coordinator = tempSellerCoordinatorRepository
+//                    .findBySeller_TempSellerId(tempSellerId)
+//                    .orElseThrow(() -> new NotFoundException(
+//                            "Coordinator not found for sellerId: " + tempSellerId));
+//
+//            deleteIfRealUrl(coordinator.getAuthorizationLetterUrl());
+//
+//            String key = buildAuthorizationLetterKey(reqId, now, request.getAuthorizationLetter());
+//            authorizationLetterUrl = s3Service.uploadFile(key, request.getAuthorizationLetter());
+//
+//            coordinator.setAuthorizationLetterUrl(authorizationLetterUrl);
+//            coordinator.setAuthorizationLetterVerified(false);
+//            tempSellerCoordinatorRepository.save(coordinator);
+//
+//            log.info("Authorization letter uploaded → {}", authorizationLetterUrl);
+       // }
 
         // ── 4. License / document files ────────────────────────────────────────
         List<MultipartFile> licenseFiles = request.getLicenseFiles();

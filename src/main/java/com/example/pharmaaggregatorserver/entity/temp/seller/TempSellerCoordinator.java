@@ -43,11 +43,11 @@ public class TempSellerCoordinator {
     @Column(name = "isPhoneVerified", nullable = false)
     private boolean isPhoneVerified;
 
-    @Column(name = "authorization_letter_url", nullable = false, columnDefinition = "VARCHAR(255) DEFAULT 'PENDING'")
-    private String authorizationLetterUrl;
-
-    @Column(name = "is_authorization_letter_verified", columnDefinition = "boolean default false", nullable = false)
-    private boolean isAuthorizationLetterVerified = false;
+//    @Column(name = "authorization_letter_url", nullable = false, columnDefinition = "VARCHAR(255) DEFAULT 'PENDING'")
+//    private String authorizationLetterUrl;
+//
+//    @Column(name = "is_authorization_letter_verified", columnDefinition = "boolean default false", nullable = false)
+//    private boolean isAuthorizationLetterVerified = false;
 
     @Column(name = "created_by", length = 100)
     private String createdBy;
