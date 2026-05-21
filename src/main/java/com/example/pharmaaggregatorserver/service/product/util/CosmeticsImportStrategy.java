@@ -344,7 +344,7 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
         // ── Net Quantity Unit ─────────────────────────────────────────────────
         String unitName = getString(row, COL_NET_QUANTITY_UNIT);
         if (!isBlank(unitName)) {
-            netQuantityUnitRepository.findByUnitNameIgnoreCase(unitName)
+            netQuantityUnitRepository.findByUnitNameIgnoreCaseAndCategory_CategoryId(unitName, categoryId)
                     .ifPresent(u -> attr.setUnitId(u.getUnitId()));
         }
 
@@ -482,7 +482,7 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
         String unitName = getCsvString(r, H_NET_QUANTITY_UNIT);
         if (!isBlank(unitName)) {
             attr.setUnitId(
-                    netQuantityUnitRepository.findByUnitNameIgnoreCase(unitName)
+                    netQuantityUnitRepository.findByUnitNameIgnoreCaseAndCategory_CategoryId(unitName, categoryId)
                             .orElseThrow(() -> new RuntimeException(
                                     "Net Quantity Unit not found: " + unitName))
                             .getUnitId());
