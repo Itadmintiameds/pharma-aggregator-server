@@ -13,4 +13,7 @@ public interface ServingSizeUnitRepository extends JpaRepository<ServingSizeUnit
     List<ServingSizeUnit> findByProductForm_ProductFormId(Long id);
 
     Optional<ServingSizeUnit> findByServingSizeUnitIgnoreCaseAndDosageForm_DosageId(String servingSizeUnit, Long dosageId);
+
+    Optional<ServingSizeUnit> findByServingSizeUnitIgnoreCaseAndProductForm_ProductFormId(String servingSizeUnit, Long productFormId);
+
 }

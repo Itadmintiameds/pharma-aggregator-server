@@ -2,6 +2,8 @@ package com.example.pharmaaggregatorserver.service.product.util;
 
 import com.example.pharmaaggregatorserver.dto.product.*;
 import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.Certification;
+import com.example.pharmaaggregatorserver.entity.product.NetQuantityUnit;
+import com.example.pharmaaggregatorserver.entity.product.ServingSizeUnit;
 import com.example.pharmaaggregatorserver.exception.ValidationException;
 import com.example.pharmaaggregatorserver.repository.product.*;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
+
 @Slf4j
 @Component("FOOD_AND_INFANT_NUTRITION")
 @RequiredArgsConstructor
@@ -32,6 +35,8 @@ public class FoodInfantImportStrategy implements ProductImportStrategy{
     private final PackTypeRepository packTypeRepository;
     private final CertificationRepository certificationRepository;
     private final ProductFormMasterRepository productFormMasterRepository;
+    private final NetQuantityUnitRepository netQuantityUnitRepository;
+    private final ServingSizeUnitRepository servingSizeUnitRepository;
 
     // ── Valid GST percentages ─────────────────────────────────────────────
     private static final Set<Long> VALID_GST_VALUES = Set.of(0L, 5L, 12L, 18L);
@@ -44,42 +49,44 @@ public class FoodInfantImportStrategy implements ProductImportStrategy{
     private static final int COL_VARIANT_NAME = 4;
     private static final int COL_PRODUCT_FORM = 5;
     private static final int COL_NET_QUANTITY = 6;
-    private static final int COL_SERVING_SIZE = 7;
-    private static final int COL_AGE_GROUP = 8;
-    private static final int COL_VEG_NON_VEG = 9;
-    private static final int COL_ALLERGEN_INFO = 10;
-    private static final int COL_NUTRITIONAL_INFO = 11;
-    private static final int COL_ACTIVE_INGREDIENTS = 12;
-    private static final int COL_ADDITIVES_PRESERVATIVES= 13;
-    private static final int COL_PRODUCT_CLAIMS = 14;
-    private static final int COL_WARNINGS = 15;
-    private static final int COL_DESCRIPTION = 16;
-    private static final int COL_STORAGE_CONDITION = 17;
-    private static final int COL_MANUFACTURER = 18;
-    private static final int COL_COUNTRY = 19;
-    private static final int COL_CERTIFICATIONS = 20;  // → ProductCertificateDocumentDto list
-    private static final int COL_PACK_TYPE = 21;
-    private static final int COL_UNIT_PER_PACK = 22;
-    private static final int COL_NUMBER_OF_PACKS = 23;
-    // col 24 = Pack Size (auto-calculated) — not read
-    private static final int COL_MIN_ORDER_QTY = 25;
-    private static final int COL_MAX_ORDER_QTY = 26;
-    private static final int COL_BATCH_NUMBER = 27;
-    private static final int COL_MFG_DATE = 28;
-    private static final int COL_EXPIRY_DATE = 29;
-    private static final int COL_STOCK_QTY = 30;
-    private static final int COL_DATE_OF_ENTRY = 31;  // ignored — always LocalDate.now()
-    private static final int COL_MRP = 32;
-    private static final int COL_SELLING_PRICE = 33;
-    private static final int COL_DISCOUNT_PCT = 34;
-    private static final int COL_GST_PCT = 35;
-    private static final int COL_HSN_CODE = 36;
+    private static final int COL_NET_QUANTITY_UNIT = 7;
+    private static final int COL_SERVING_SIZE = 8;
+    private static final int COL_SERVING_SIZE_UNIT = 9;
+    private static final int COL_AGE_GROUP = 10;
+    private static final int COL_VEG_NON_VEG = 11;
+    private static final int COL_ALLERGEN_INFO = 12;
+    private static final int COL_NUTRITIONAL_INFO = 13;
+    private static final int COL_ACTIVE_INGREDIENTS = 14;
+    private static final int COL_ADDITIVES_PRESERVATIVES= 15;
+    private static final int COL_PRODUCT_CLAIMS = 16;
+    private static final int COL_WARNINGS = 17;
+    private static final int COL_DESCRIPTION = 18;
+    private static final int COL_STORAGE_CONDITION = 19;
+    private static final int COL_MANUFACTURER = 20;
+    private static final int COL_COUNTRY = 21;
+    private static final int COL_CERTIFICATIONS = 22;  // → ProductCertificateDocumentDto list
+    private static final int COL_PACK_TYPE = 23;
+    private static final int COL_UNIT_PER_PACK = 24;
+    private static final int COL_NUMBER_OF_PACKS = 25;
+    // col 26 = Pack Size (auto-calculated) — not read
+    private static final int COL_MIN_ORDER_QTY = 27;
+    private static final int COL_MAX_ORDER_QTY = 28;
+    private static final int COL_BATCH_NUMBER = 29;
+    private static final int COL_MFG_DATE = 30;
+    private static final int COL_EXPIRY_DATE = 31;
+    private static final int COL_STOCK_QTY = 32;
+    private static final int COL_DATE_OF_ENTRY = 33;  // ignored — always LocalDate.now()
+    private static final int COL_MRP = 34;
+    private static final int COL_SELLING_PRICE = 35;
+    private static final int COL_DISCOUNT_PCT = 36;
+    private static final int COL_GST_PCT = 37;
+    private static final int COL_HSN_CODE = 38;
     // col 68 = Product Image URL* — skipped
 
     // ── Additional discount slabs ─────────────────────────────────────────
-    // 4 slabs × 7 cols each, starting at col 37
+    // 4 slabs × 7 cols each, starting at col 39
     // Per slab: [Slab label | MinQty | Discount% | StartDate | StartTime | EndDate | EndTime]
-    private static final int COL_ADD_DISCOUNT_START = 37;
+    private static final int COL_ADD_DISCOUNT_START = 39;
     private static final int ADD_DISCOUNT_SLAB_SIZE = 7;
     private static final int ADD_DISCOUNT_SLAB_COUNT = 4;
 
@@ -91,7 +98,9 @@ public class FoodInfantImportStrategy implements ProductImportStrategy{
     private static final String H_VARIANT_NAME = "Variant Name*";
     private static final String H_PRODUCT_FORM = "Product Form*";
     private static final String H_NET_QUANTITY = "Net Quantity*";
+    private static final String H_NET_QUANTITY_UNIT = "Net Quantity Unit*";   // NEW
     private static final String H_SERVING_SIZE = "Serving Size*";
+    private static final String H_SERVING_SIZE_UNIT = "Serving Size Unit*";   // NEW
     private static final String H_AGE_GROUP = "Age Group*";
     private static final String H_VEG_NON_VEG = "Veg / Non-Veg Indicator*";
     private static final String H_ALLERGEN_INFO = "Allergen Information*";
@@ -332,8 +341,6 @@ public class FoodInfantImportStrategy implements ProductImportStrategy{
         // ── Basic text fields ─────────────────────────────────────────────
         attr.setBrandName(getString(row, COL_BRAND_NAME));
         attr.setVariantName(getString(row, COL_VARIANT_NAME));
-//        attr.setNetQuantity(getString(row, COL_NET_QUANTITY));
-//        attr.setServingSize(getString(row, COL_SERVING_SIZE));
         attr.setVegNonvegIndicator(getString(row, COL_VEG_NON_VEG));
         attr.setAllergenInformation(getString(row, COL_ALLERGEN_INFO));
         attr.setActiveIngredients(getString(row, COL_ACTIVE_INGREDIENTS));
@@ -342,17 +349,109 @@ public class FoodInfantImportStrategy implements ProductImportStrategy{
         attr.setAdditivesPreservatives(getString(row, COL_ADDITIVES_PRESERVATIVES));
         attr.setProductClaims(getString(row, COL_PRODUCT_CLAIMS));
 
+//        String netQuantityUnit = getString(row, COL_NET_QUANTITY_UNIT);
+//        if (!isBlank(netQuantityUnit)) {
+//            attr.setUnitId(
+//                    netQuantityUnitRepository
+//                            .findByUnitNameIgnoreCaseAndCategory_CategoryId(netQuantityUnit, categoryId)
+//                            .orElseThrow(() -> new RuntimeException("Net quantity unit not found: " + netQuantityUnit))
+//                            .getUnitId()
+//            );
+//        }
+
+        String netQuantityUnit = getString(row, COL_NET_QUANTITY_UNIT);
+
+        if (!isBlank(netQuantityUnit)) {
+
+            String normalizedExcelValue = netQuantityUnit
+                    .replaceAll("\\s+", "")
+                    .trim()
+                    .toLowerCase();
+
+            NetQuantityUnit matchedUnit = netQuantityUnitRepository
+                    .findByCategoryCategoryId(categoryId)
+                    .stream()
+                    .filter(unit -> unit.getUnitName() != null)
+                    .filter(unit -> unit.getUnitName()
+                            .replaceAll("\\s+", "")
+                            .trim()
+                            .toLowerCase()
+                            .equals(normalizedExcelValue))
+                    .findFirst()
+                    .orElseThrow(() ->
+                            new RuntimeException("Net quantity unit not found: " + netQuantityUnit)
+                    );
+
+            attr.setUnitId(matchedUnit.getUnitId());
+        }
+
 
         // ── Product Form ───────────────────────────────────────────────────
+//        String productForm = getString(row, COL_PRODUCT_FORM);
+//        Long productFormId = 0L;
+//        if (!isBlank(productForm)) {
+//            attr.setProductFormId(
+//                    productFormMasterRepository
+//                            .findByProductFormIgnoreCase(productForm)
+//                            .orElseThrow(() -> new RuntimeException(
+//                                    "Product form not found: " + productForm))
+//                            .getProductFormId());
+//        }
+
         String productForm = getString(row, COL_PRODUCT_FORM);
+        Long productFormId = null;
         if (!isBlank(productForm)) {
-            attr.setProductFormId(
+            productFormId =
                     productFormMasterRepository
                             .findByProductFormIgnoreCase(productForm)
                             .orElseThrow(() -> new RuntimeException(
                                     "Product form not found: " + productForm))
-                            .getProductFormId());
+                            .getProductFormId();
+
+            attr.setProductFormId(productFormId);
         }
+
+        attr.setServingSize(getDouble(row, COL_SERVING_SIZE));
+
+        String servingSizeUnit = getString(row, COL_SERVING_SIZE_UNIT);
+
+        if (!isBlank(servingSizeUnit) && productFormId != null) {
+
+            String normalizedUnit = servingSizeUnit
+                    .replaceAll("\\s+", "")
+                    .trim();
+
+            ServingSizeUnit matchedUnit =
+                    servingSizeUnitRepository
+                            .findByProductForm_ProductFormId(productFormId)
+                            .stream()
+                            .filter(unit -> unit.getServingSizeUnit() != null)
+                            .filter(unit ->
+                                    unit.getServingSizeUnit()
+                                            .replaceAll("\\s+", "")
+                                            .trim()
+                                            .equalsIgnoreCase(normalizedUnit)
+                            )
+                            .findFirst()
+                            .orElseThrow(() ->
+                                    new RuntimeException(
+                                            "Serving size unit not found: " + servingSizeUnit
+                                    )
+                            );
+
+            attr.setServingSizeUnitId(matchedUnit.getId());
+        }
+
+//        String servingSizeUnit = getString(row, COL_SERVING_SIZE_UNIT);
+//        if (!isBlank(servingSizeUnit)) {
+//            attr.setServingSizeUnitId(
+//                    servingSizeUnitRepository
+//                            .findByServingSizeUnitIgnoreCaseAndProductForm_ProductFormId(servingSizeUnit, productFormId)
+//                            .orElseThrow(() -> new RuntimeException(
+//                                    "Serving size unit not found: " + servingSizeUnit))
+//                            .getId()
+//            );
+//        }
 
         // ── Age Group ─────────────────────────────────────────────────────
         String ageGroupName = getString(row, COL_AGE_GROUP);
@@ -453,8 +552,6 @@ public class FoodInfantImportStrategy implements ProductImportStrategy{
         // ── Basic text fields ─────────────────────────────────────────────
         attr.setBrandName(getCsvString(r, H_BRAND_NAME));
         attr.setVariantName(getCsvString(r, H_VARIANT_NAME));
-//        attr.setNetQuantity(getCsvString(r, H_NET_QUANTITY));
-//        attr.setServingSize(getCsvString(r, H_SERVING_SIZE));
         attr.setVegNonvegIndicator(getCsvString(r, H_VEG_NON_VEG));
         attr.setAllergenInformation(getCsvString(r, H_ALLERGEN_INFO));
         attr.setActiveIngredients(getCsvString(r, H_ACTIVE_INGREDIENTS));
@@ -1045,6 +1142,27 @@ public class FoodInfantImportStrategy implements ProductImportStrategy{
     private String getString(Row row, int col) {
         Cell cell = row.getCell(col);
         return cell != null ? cell.toString().trim() : null;
+    }
+
+    private Double getDouble(Row row, int col) {
+        Cell cell = row.getCell(col);
+        if (cell == null) return null;
+        try {
+            switch (cell.getCellType()) {
+                case NUMERIC:
+                    return cell.getNumericCellValue();
+                case STRING:
+                    String s = cell.getStringCellValue().trim();
+                    if (s.isEmpty()) return null;
+                    return Double.parseDouble(s);
+                case FORMULA:
+                    return cell.getNumericCellValue();
+                default:
+                    return null;
+            }
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private Long getLong(Row row, int col) {

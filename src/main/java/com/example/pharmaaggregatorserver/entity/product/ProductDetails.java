@@ -30,10 +30,10 @@ public class ProductDetails {
     @Column(name = "product_name")
     private String productName;
 
-    @Column(name = "warnings_precautions")
+    @Column(name = "warnings_precautions", columnDefinition = "TEXT")
     private String warningsPrecautions;
 
-    @Column(name = "product_description")
+    @Column(name = "product_description", columnDefinition = "TEXT")
     private String productDescription;
 
     @Column(name = "manufacturer_name")
