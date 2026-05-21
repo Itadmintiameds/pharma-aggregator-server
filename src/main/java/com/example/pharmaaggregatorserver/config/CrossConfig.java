@@ -20,7 +20,8 @@ public class CrossConfig {
         configuration.setAllowedOrigins(Arrays.asList(
                 "http://localhost:3000",
                 "https://pharma-aggregator-test.tiameds.ai",
-                "https://tiameds-admin-dashboard.vercel.app"
+                "https://tiameds-admin-dashboard.vercel.app",
+                "https://admin-test.tiameds.ai"
         ));
 
         // Allow HTTP methods
