@@ -348,7 +348,7 @@ public class FoodInfantImportStrategy implements ProductImportStrategy{
         attr.setActiveIngredients(getString(row, COL_ACTIVE_INGREDIENTS));
         attr.setAdditivesPreservatives(getString(row, COL_ADDITIVES_PRESERVATIVES));
         attr.setProductClaims(getString(row, COL_PRODUCT_CLAIMS));
-
+        attr.setNetQuantity(getDouble(row, COL_NET_QUANTITY));
 //        String netQuantityUnit = getString(row, COL_NET_QUANTITY_UNIT);
 //        if (!isBlank(netQuantityUnit)) {
 //            attr.setUnitId(
