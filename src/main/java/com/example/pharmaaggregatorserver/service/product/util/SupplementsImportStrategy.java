@@ -1127,7 +1127,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         // ── Excipients / Other Ingredients (optional) ─────────────────────
         String otherIngredients = getCsvString(r, H_OTHER_INGREDIENTS);
         if (!isBlank(otherIngredients)) {
-            if (!otherIngredients.matches("[A-Za-z0-9 ]+"))
+            if (!otherIngredients.matches("[A-Za-z0-9 ,\\-]+"))
                 errors.add("Excipients / Other Ingredients must contain only alphabets, numbers, and spaces");
         }
 
