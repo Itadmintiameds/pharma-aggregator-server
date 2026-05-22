@@ -740,6 +740,27 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
             errors.add("Intended Use / Purpose must be at least 10 characters");
         }
 
+        // ── Technical Dimensions ──────────────────────────────────────────────
+        String technicalDimensionsRaw = getString(row, COL_TECHNICAL_DIMENSIONS);
+        Double technicalDimensionsVal = getDouble(row, COL_TECHNICAL_DIMENSIONS);
+        validateRequired(technicalDimensionsRaw, "Technical Dimensions", errors);
+        if (!isBlank(technicalDimensionsRaw)) {
+            if (technicalDimensionsVal == null)
+                errors.add("Technical Dimensions must be a numeric or decimal value");
+            else if (technicalDimensionsVal <= 0)
+                errors.add("Technical Dimensions must be greater than 0");
+            if (technicalDimensionsRaw.length() > 10)
+                errors.add("Technical Dimensions must not exceed 10 characters");
+            if (technicalDimensionsVal != null) {
+                String[] parts = technicalDimensionsRaw.split("\\.");
+                if (parts.length == 2 && parts[1].length() > 2)
+                    errors.add("Technical Dimensions must not have more than 2 decimal places");
+            }
+        }
+
+        // ── Device Specification Unit Name ───────────────────────────────────
+        validateRequired(getString(row, COL_DEVICE_SPEC_UNIT_NAME), "Device Specification Unit Name", errors);
+
         // ── Key Features ──────────────────────────────────────────────────
         String keyFeatures = getString(row, COL_KEY_FEATURES);
         validateRequired(keyFeatures, "Key Features / Technical Specifications", errors);
@@ -957,6 +978,27 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         if (!isBlank(purpose) && purpose.length() < 10) {
             errors.add("Intended Use / Purpose must be at least 10 characters");
         }
+
+        // ── Technical Dimensions ──────────────────────────────────────────────
+        String technicalDimensionsRaw = getCsvString(r, H_TECHNICAL_DIMENSIONS);
+        Double technicalDimensionsVal = getCsvDouble(r, H_TECHNICAL_DIMENSIONS);
+        validateRequired(technicalDimensionsRaw, "Technical Dimensions", errors);
+        if (!isBlank(technicalDimensionsRaw)) {
+            if (technicalDimensionsVal == null)
+                errors.add("Technical Dimensions must be a numeric or decimal value");
+            else if (technicalDimensionsVal <= 0)
+                errors.add("Technical Dimensions must be greater than 0");
+            if (technicalDimensionsRaw.length() > 10)
+                errors.add("Technical Dimensions must not exceed 10 characters");
+            if (technicalDimensionsVal != null) {
+                String[] parts = technicalDimensionsRaw.split("\\.");
+                if (parts.length == 2 && parts[1].length() > 2)
+                    errors.add("Technical Dimensions must not have more than 2 decimal places");
+            }
+        }
+
+        // ── Device Specification Unit Name ───────────────────────────────────
+        validateRequired(getCsvString(r, H_DEVICE_SPEC_UNIT_NAME), "Device Specification Unit Name", errors);
 
         // ── Key Features ──────────────────────────────────────────────────
         String keyFeatures = getCsvString(r, H_KEY_FEATURES);
