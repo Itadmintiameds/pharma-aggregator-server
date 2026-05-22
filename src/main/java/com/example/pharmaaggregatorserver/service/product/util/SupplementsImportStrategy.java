@@ -40,6 +40,15 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
     // ── Valid GST percentages ─────────────────────────────────────────────
     private static final Set<Long> VALID_GST_VALUES = Set.of(0L, 5L, 12L, 18L);
 
+    // ── Valid Gender values ───────────────────────────────────────────────
+    private static final Set<String> VALID_GENDER_VALUES = Set.of("male", "female", "unisex");
+
+    // ── Valid Veg/Non-Veg values ──────────────────────────────────────────
+    private static final Set<String> VALID_VEG_NON_VEG_VALUES = Set.of("veg", "non-veg");
+
+    // ── Valid Nutritional Information values ──────────────────────────────
+    private static final Set<String> VALID_NUTRITIONAL_INFO_VALUES = Set.of("as per the label", "image upload");
+
     // ── Column indices (0-based, data starts at row index 2) ──────────────
     private static final int COL_THERAPEUTIC_CAT = 0;
     private static final int COL_THERAPEUTIC_SUBCAT = 1;
@@ -792,13 +801,52 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         if (!isBlank(brandName) && brandName.length() > 60)
             errors.add("Brand Name must not exceed 60 characters");
 
+        // ── Variant Name (optional) ───────────────────────────────────────
+        String variantName = getString(row, COL_VARIANT_NAME);
+        if (!isBlank(variantName) && variantName.length() > 60)
+            errors.add("Variant Name must not exceed 60 characters");
+
         // ── Dosage Form ───────────────────────────────────────────────────
         validateRequired(getString(row, COL_DOSAGE_FORM), "Dosage Form", errors);
 
         // ── Net Quantity ──────────────────────────────────────────────────
-        validateRequired(getString(row, COL_NET_QUANTITY), "Net Quantity", errors);
+        String netQuantityRaw = getString(row, COL_NET_QUANTITY);
+        Double netQuantityVal = getDouble(row, COL_NET_QUANTITY);
+        validateRequired(netQuantityRaw, "Net Quantity", errors);
+        if (!isBlank(netQuantityRaw)) {
+            if (netQuantityVal == null)
+                errors.add("Net Quantity must be a numeric or decimal value");
+            else if (netQuantityVal <= 0)
+                errors.add("Net Quantity must be greater than 0");
+            if (netQuantityRaw.length() > 10)
+                errors.add("Net Quantity must not exceed 10 characters");
+        }
 
-        // ── Strength ──────────────────────────────────────────────────────
+        // ── Net Quantity Unit ─────────────────────────────────────────────
+        validateRequired(getString(row, COL_NET_QUANTITY_UNIT), "Net Quantity Unit", errors);
+
+        // ── Serving Size ──────────────────────────────────────────────────
+        String servingSizeRaw = getString(row, COL_SERVING_SIZE);
+        Double servingSizeVal = getDouble(row, COL_SERVING_SIZE);
+        validateRequired(servingSizeRaw, "Serving Size", errors);
+        if (!isBlank(servingSizeRaw)) {
+            if (servingSizeVal == null)
+                errors.add("Serving Size must be a numeric or decimal value");
+            else if (servingSizeVal <= 0)
+                errors.add("Serving Size must be greater than 0");
+            if (servingSizeRaw.length() > 10)
+                errors.add("Serving Size must not exceed 10 characters");
+            if (servingSizeVal != null) {
+                String[] parts = servingSizeRaw.split("\\.");
+                if (parts.length == 2 && parts[1].length() > 2)
+                    errors.add("Serving Size must not have more than 2 decimal places");
+            }
+        }
+
+        // ── Serving Size Unit ─────────────────────────────────────────────
+        validateRequired(getString(row, COL_SERVING_SIZE_UNIT), "Serving Size Unit", errors);
+
+        // ── Strength / Composition ────────────────────────────────────────
         validateRequired(getString(row, COL_STRENGTH), "Strength / Composition", errors);
 
         // ── Active Ingredients ────────────────────────────────────────────
@@ -807,26 +855,49 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         if (!isBlank(activeIngredients) && activeIngredients.length() > 1000)
             errors.add("Active Ingredients must not exceed 1000 characters");
 
+        // ── Excipients / Other Ingredients (optional) ─────────────────────
+        String otherIngredients = getString(row, COL_OTHER_INGREDIENTS);
+        if (!isBlank(otherIngredients)) {
+            if (!otherIngredients.matches("[A-Za-z0-9 ,\\-]+"))
+                errors.add("Excipients / Other Ingredients must contain only alphabets, numbers, and spaces");
+        }
+
+        // ── Nutritional Information Table ─────────────────────────────────
+        String nutritionalInfo = getString(row, COL_NUTRITIONAL_INFO);
+        validateRequired(nutritionalInfo, "Nutritional Information Table", errors);
+        if (!isBlank(nutritionalInfo) && !VALID_NUTRITIONAL_INFO_VALUES.contains(nutritionalInfo.toLowerCase()))
+            errors.add("Nutritional Information Table must be one of: 'As per the label', 'Image upload'");
+
         // ── Intended Use ──────────────────────────────────────────────────
         String intendedUse = getString(row, COL_INTENDED_USE);
         validateRequired(intendedUse, "Intended Use / Health Benefit", errors);
-        if (!isBlank(intendedUse) && intendedUse.length() > 1000)
-            errors.add("Intended Use / Health Benefit must not exceed 1000 characters");
+        if (!isBlank(intendedUse)) {
+            if (intendedUse.length() < 10) errors.add("Intended Use / Health Benefit must be at least 10 characters");
+            if (intendedUse.length() > 1000) errors.add("Intended Use / Health Benefit must not exceed 1000 characters");
+        }
 
         // ── Age Group ─────────────────────────────────────────────────────
         validateRequired(getString(row, COL_AGE_GROUP), "Age Group", errors);
 
         // ── Gender ────────────────────────────────────────────────────────
-        validateRequired(getString(row, COL_GENDER), "Gender", errors);
+        String gender = getString(row, COL_GENDER);
+        validateRequired(gender, "Gender", errors);
+        if (!isBlank(gender) && !VALID_GENDER_VALUES.contains(gender.toLowerCase()))
+            errors.add("Gender must be one of: Male, Female, Unisex");
 
         // ── Veg / Non-Veg ─────────────────────────────────────────────────
-        validateRequired(getString(row, COL_VEG_NON_VEG), "Veg / Non-Veg Indicator", errors);
+        String vegNonVeg = getString(row, COL_VEG_NON_VEG);
+        validateRequired(vegNonVeg, "Veg / Non-Veg Indicator", errors);
+        if (!isBlank(vegNonVeg) && !VALID_VEG_NON_VEG_VALUES.contains(vegNonVeg.toLowerCase()))
+            errors.add("Veg / Non-Veg Indicator must be one of: Veg, Non-Veg");
 
         // ── Allergen Information ──────────────────────────────────────────
         String allergenInfo = getString(row, COL_ALLERGEN_INFO);
         validateRequired(allergenInfo, "Allergen Information", errors);
-        if (!isBlank(allergenInfo) && allergenInfo.length() > 500)
-            errors.add("Allergen Information must not exceed 500 characters");
+        if (!isBlank(allergenInfo)) {
+            if (allergenInfo.length() < 3) errors.add("Allergen Information must be at least 3 characters");
+            if (allergenInfo.length() > 500) errors.add("Allergen Information must not exceed 500 characters");
+        }
 
         // ── Flavour ───────────────────────────────────────────────────────
         validateRequired(getString(row, COL_FLAVOUR), "Flavour", errors);
@@ -834,8 +905,12 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         // ── Product Claims ────────────────────────────────────────────────
         String productClaims = getString(row, COL_PRODUCT_CLAIMS);
         validateRequired(productClaims, "Product Claims", errors);
-        if (!isBlank(productClaims) && productClaims.length() > 1000)
-            errors.add("Product Claims must not exceed 1000 characters");
+        if (!isBlank(productClaims)) {
+            if (!productClaims.matches("[A-Za-z0-9 ,\\-]+"))
+                errors.add("Product Claims must contain only alphabets, numbers, spaces, hyphens, and commas");
+            if (productClaims.length() > 1000)
+                errors.add("Product Claims must not exceed 1000 characters");
+        }
 
         // ── Warnings / Precautions ────────────────────────────────────────
         String warnings = getString(row, COL_WARNINGS);
@@ -846,8 +921,10 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         // ── Product Description ───────────────────────────────────────────
         String description = getString(row, COL_DESCRIPTION);
         validateRequired(description, "Product Description", errors);
-        if (!isBlank(description) && description.length() > 1000)
-            errors.add("Product Description must not exceed 1000 characters");
+        if (!isBlank(description)) {
+            if (description.length() < 10) errors.add("Product Description must be at least 10 characters");
+            if (description.length() > 1000) errors.add("Product Description must not exceed 1000 characters");
+        }
 
         // ── Storage Condition ─────────────────────────────────────────────
         validateRequired(getString(row, COL_STORAGE_CONDITION), "Storage Condition", errors);
@@ -993,13 +1070,52 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         if (!isBlank(brandName) && brandName.length() > 60)
             errors.add("Brand Name must not exceed 60 characters");
 
+        // ── Variant Name (optional) ───────────────────────────────────────
+        String variantName = getCsvString(r, H_VARIANT_NAME);
+        if (!isBlank(variantName) && variantName.length() > 60)
+            errors.add("Variant Name must not exceed 60 characters");
+
         // ── Dosage Form ───────────────────────────────────────────────────
         validateRequired(getCsvString(r, H_DOSAGE_FORM), "Dosage Form", errors);
 
         // ── Net Quantity ──────────────────────────────────────────────────
-        validateRequired(getCsvString(r, H_NET_QUANTITY), "Net Quantity", errors);
+        String netQuantityRaw = getCsvString(r, H_NET_QUANTITY);
+        Double netQuantityVal = getCsvDouble(r, H_NET_QUANTITY);
+        validateRequired(netQuantityRaw, "Net Quantity", errors);
+        if (!isBlank(netQuantityRaw)) {
+            if (netQuantityVal == null)
+                errors.add("Net Quantity must be a numeric or decimal value");
+            else if (netQuantityVal <= 0)
+                errors.add("Net Quantity must be greater than 0");
+            if (netQuantityRaw.length() > 10)
+                errors.add("Net Quantity must not exceed 10 characters");
+        }
 
-        // ── Strength ──────────────────────────────────────────────────────
+        // ── Net Quantity Unit ─────────────────────────────────────────────
+        validateRequired(getCsvString(r, H_NET_QUANTITY_UNIT), "Net Quantity Unit", errors);
+
+        // ── Serving Size ──────────────────────────────────────────────────
+        String servingSizeRaw = getCsvString(r, H_SERVING_SIZE);
+        Double servingSizeVal = getCsvDouble(r, H_SERVING_SIZE);
+        validateRequired(servingSizeRaw, "Serving Size", errors);
+        if (!isBlank(servingSizeRaw)) {
+            if (servingSizeVal == null)
+                errors.add("Serving Size must be a numeric or decimal value");
+            else if (servingSizeVal <= 0)
+                errors.add("Serving Size must be greater than 0");
+            if (servingSizeRaw.length() > 10)
+                errors.add("Serving Size must not exceed 10 characters");
+            if (servingSizeVal != null) {
+                String[] parts = servingSizeRaw.split("\\.");
+                if (parts.length == 2 && parts[1].length() > 2)
+                    errors.add("Serving Size must not have more than 2 decimal places");
+            }
+        }
+
+        // ── Serving Size Unit ─────────────────────────────────────────────
+        validateRequired(getCsvString(r, H_SERVING_SIZE_UNIT), "Serving Size Unit", errors);
+
+        // ── Strength / Composition ────────────────────────────────────────
         validateRequired(getCsvString(r, H_STRENGTH), "Strength / Composition", errors);
 
         // ── Active Ingredients ────────────────────────────────────────────
@@ -1008,26 +1124,49 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         if (!isBlank(activeIngredients) && activeIngredients.length() > 1000)
             errors.add("Active Ingredients must not exceed 1000 characters");
 
+        // ── Excipients / Other Ingredients (optional) ─────────────────────
+        String otherIngredients = getCsvString(r, H_OTHER_INGREDIENTS);
+        if (!isBlank(otherIngredients)) {
+            if (!otherIngredients.matches("[A-Za-z0-9 ]+"))
+                errors.add("Excipients / Other Ingredients must contain only alphabets, numbers, and spaces");
+        }
+
+        // ── Nutritional Information Table ─────────────────────────────────
+        String nutritionalInfo = getCsvString(r, H_NUTRITIONAL_INFO);
+        validateRequired(nutritionalInfo, "Nutritional Information Table", errors);
+        if (!isBlank(nutritionalInfo) && !VALID_NUTRITIONAL_INFO_VALUES.contains(nutritionalInfo.toLowerCase()))
+            errors.add("Nutritional Information Table must be one of: 'As per the label', 'Image upload'");
+
         // ── Intended Use ──────────────────────────────────────────────────
         String intendedUse = getCsvString(r, H_INTENDED_USE);
         validateRequired(intendedUse, "Intended Use / Health Benefit", errors);
-        if (!isBlank(intendedUse) && intendedUse.length() > 1000)
-            errors.add("Intended Use / Health Benefit must not exceed 1000 characters");
+        if (!isBlank(intendedUse)) {
+            if (intendedUse.length() < 10) errors.add("Intended Use / Health Benefit must be at least 10 characters");
+            if (intendedUse.length() > 1000) errors.add("Intended Use / Health Benefit must not exceed 1000 characters");
+        }
 
         // ── Age Group ─────────────────────────────────────────────────────
         validateRequired(getCsvString(r, H_AGE_GROUP), "Age Group", errors);
 
         // ── Gender ────────────────────────────────────────────────────────
-        validateRequired(getCsvString(r, H_GENDER), "Gender", errors);
+        String gender = getCsvString(r, H_GENDER);
+        validateRequired(gender, "Gender", errors);
+        if (!isBlank(gender) && !VALID_GENDER_VALUES.contains(gender.toLowerCase()))
+            errors.add("Gender must be one of: Male, Female, Unisex");
 
         // ── Veg / Non-Veg ─────────────────────────────────────────────────
-        validateRequired(getCsvString(r, H_VEG_NON_VEG), "Veg / Non-Veg Indicator", errors);
+        String vegNonVeg = getCsvString(r, H_VEG_NON_VEG);
+        validateRequired(vegNonVeg, "Veg / Non-Veg Indicator", errors);
+        if (!isBlank(vegNonVeg) && !VALID_VEG_NON_VEG_VALUES.contains(vegNonVeg.toLowerCase()))
+            errors.add("Veg / Non-Veg Indicator must be one of: Veg, Non-Veg");
 
         // ── Allergen Information ──────────────────────────────────────────
         String allergenInfo = getCsvString(r, H_ALLERGEN_INFO);
         validateRequired(allergenInfo, "Allergen Information", errors);
-        if (!isBlank(allergenInfo) && allergenInfo.length() > 500)
-            errors.add("Allergen Information must not exceed 500 characters");
+        if (!isBlank(allergenInfo)) {
+            if (allergenInfo.length() < 3) errors.add("Allergen Information must be at least 3 characters");
+            if (allergenInfo.length() > 500) errors.add("Allergen Information must not exceed 500 characters");
+        }
 
         // ── Flavour ───────────────────────────────────────────────────────
         validateRequired(getCsvString(r, H_FLAVOUR), "Flavour", errors);
@@ -1035,8 +1174,12 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         // ── Product Claims ────────────────────────────────────────────────
         String productClaims = getCsvString(r, H_PRODUCT_CLAIMS);
         validateRequired(productClaims, "Product Claims", errors);
-        if (!isBlank(productClaims) && productClaims.length() > 1000)
-            errors.add("Product Claims must not exceed 1000 characters");
+        if (!isBlank(productClaims)) {
+            if (!productClaims.matches("[A-Za-z0-9 ,\\-]+"))
+                errors.add("Product Claims must contain only alphabets, numbers, spaces, hyphens, and commas");
+            if (productClaims.length() > 1000)
+                errors.add("Product Claims must not exceed 1000 characters");
+        }
 
         // ── Warnings / Precautions ────────────────────────────────────────
         String warnings = getCsvString(r, H_WARNINGS);
@@ -1047,8 +1190,10 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         // ── Product Description ───────────────────────────────────────────
         String description = getCsvString(r, H_DESCRIPTION);
         validateRequired(description, "Product Description", errors);
-        if (!isBlank(description) && description.length() > 1000)
-            errors.add("Product Description must not exceed 1000 characters");
+        if (!isBlank(description)) {
+            if (description.length() < 10) errors.add("Product Description must be at least 10 characters");
+            if (description.length() > 1000) errors.add("Product Description must not exceed 1000 characters");
+        }
 
         // ── Storage Condition ─────────────────────────────────────────────
         validateRequired(getCsvString(r, H_STORAGE_CONDITION), "Storage Condition", errors);
