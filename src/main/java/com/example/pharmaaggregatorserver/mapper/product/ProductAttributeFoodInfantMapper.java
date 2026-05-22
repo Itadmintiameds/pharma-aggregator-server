@@ -82,7 +82,35 @@ public class ProductAttributeFoodInfantMapper {
             entity.setServingSizeUnit(servingSizeUnit);
         }
 
-        if (dto.getAgeGroupMastersDto() != null &&
+//        if (dto.getAgeGroupMastersDto() != null &&
+//                !dto.getAgeGroupMastersDto().isEmpty()) {
+//
+//            List<AgeGroupMaster> ageGroups =
+//                    dto.getAgeGroupMastersDto()
+//                            .stream()
+//                            .map(ageGroupMapper::toEntity)
+//                            .map(ageGroup ->
+//                                    ageGroupRepository.findById(ageGroup.getAgeGroupId())
+//                                            .orElseThrow(() ->
+//                                                    new RuntimeException(
+//                                                            "AgeGroup not found: "
+//                                                                    + ageGroup.getAgeGroupId())))
+//                            .toList();
+//
+//            entity.setAgeGroups(ageGroups);
+//        }
+
+        // ================= AGE GROUP =================
+
+        if (dto.getAgeGroupIds() != null &&
+                !dto.getAgeGroupIds().isEmpty()) {
+
+            List<AgeGroupMaster> ageGroups =
+                    ageGroupRepository.findAllById(dto.getAgeGroupIds());
+
+            entity.setAgeGroups(ageGroups);
+
+        } else if (dto.getAgeGroupMastersDto() != null &&
                 !dto.getAgeGroupMastersDto().isEmpty()) {
 
             List<AgeGroupMaster> ageGroups =
