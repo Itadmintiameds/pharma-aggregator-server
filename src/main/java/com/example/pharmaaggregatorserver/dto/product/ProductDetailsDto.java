@@ -7,6 +7,7 @@ import com.example.pharmaaggregatorserver.entity.product.ProductImage;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 
 @Data
@@ -29,7 +30,8 @@ public class ProductDetailsDto {
     private Set<ProductAttributeNonConsumableMedicalDto> productAttributeNonConsumableMedicals;
     private Set<ProductAttributeSupplementsOrNutraceuticalsDto> productAttributeSupplementsOrNutraceuticals;
     private Set<CosmeticAndPersonalUseProductAttributeDTO> productAttributeCosmeticAndPersonalUse;
-
     private Set<ProductImageDto> productImages;
+    private List<String> retainedImageUrls;
     private Set<ProductAttributeFoodInfantDto> productAttributeFoodInfants;
+
 }

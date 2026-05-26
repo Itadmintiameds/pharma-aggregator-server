@@ -7,11 +7,13 @@ import com.example.pharmaaggregatorserver.repository.product.ProductImageReposit
 import com.example.pharmaaggregatorserver.service.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -76,6 +78,38 @@ public class ProductImageService {
         return images.stream()
                 .map(ProductImage::getProductImage)
                 .collect(Collectors.toList());
+    }
+
+
+
+    @Transactional
+    public void updateProductImages(
+            ProductDetails product,
+            List<String> retainedImageUrls
+    ) {
+
+        Set<ProductImage> existingImages = product.getProductImages();
+
+        if (existingImages == null) return;
+
+        List<ProductImage> toDelete = existingImages.stream()
+                .filter(img ->
+                        retainedImageUrls == null ||
+                                !retainedImageUrls.contains(img.getProductImage()))
+                .toList();
+
+        for (ProductImage image : toDelete) {
+
+            if (image.getProductImage() != null) {
+                String key = s3Service.extractKeyFromUrl(
+                        image.getProductImage()
+                );
+
+                s3Service.deleteFile(key);
+            }
+
+            existingImages.remove(image);
+        }
     }
 
 }

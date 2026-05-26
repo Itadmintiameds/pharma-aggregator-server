@@ -11,6 +11,7 @@ import com.example.pharmaaggregatorserver.exception.NotFoundException;
 import com.example.pharmaaggregatorserver.mapper.product.*;
 import com.example.pharmaaggregatorserver.repository.product.*;
 import com.example.pharmaaggregatorserver.repository.seller.SellerRepository;
+import com.example.pharmaaggregatorserver.service.S3Service;
 import com.example.pharmaaggregatorserver.service.product.ProductDetailsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +46,8 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
     private final intendedUseAreaRepository intendedUseAreaRepository;
     private final FlavourRepository flavourRepository;
     private final CertificationRepository certificationRepository;
+    private final S3Service s3Service;
+    private final ProductImageService productImageService;
 
 
     @Override
@@ -379,6 +382,24 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
     }
 
 
+//    @Override
+//    @Transactional
+//    public void deleteProductById(String productId, Long userId) {
+//
+//        Seller seller = sellerRepo.findByUserId(userId)
+//                .orElseThrow(() -> new RuntimeException("Seller not found"));
+//
+//        ProductDetails product = productRepo.findById(productId)
+//                .orElseThrow(() -> new RuntimeException("Product not found"));
+//
+//        if (!product.getSeller().getSellerId().equals(seller.getSellerId())) {
+//            throw new RuntimeException("Unauthorized to delete this product");
+//        }
+//
+//        productRepo.delete(product);
+//    }
+
+
     @Override
     @Transactional
     public void deleteProductById(String productId, Long userId) {
@@ -391,6 +412,18 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
 
         if (!product.getSeller().getSellerId().equals(seller.getSellerId())) {
             throw new RuntimeException("Unauthorized to delete this product");
+        }
+
+        if (product.getProductImages() != null && !product.getProductImages().isEmpty()) {
+            for (ProductImage image : product.getProductImages()) {
+
+                String imageUrl = image.getProductImage();
+
+                if (imageUrl != null && !imageUrl.isBlank()) {
+                    String key = s3Service.extractKeyFromUrl(imageUrl);
+                    s3Service.deleteFile(key);
+                }
+            }
         }
 
         productRepo.delete(product);
@@ -953,6 +986,12 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
 
             existingFoodAttrs.add(mapped);
         }
+
+       //  PRODUCT IMAGES UPDATE
+        productImageService.updateProductImages(
+                existingProduct,
+                dto.getRetainedImageUrls()
+        );
 
         // =========================================================
         // ✅ SAVE
