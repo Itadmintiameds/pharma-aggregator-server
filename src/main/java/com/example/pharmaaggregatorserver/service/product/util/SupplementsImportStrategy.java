@@ -826,25 +826,27 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         validateRequired(getString(row, COL_NET_QUANTITY_UNIT), "Net Quantity Unit", errors);
 
         // ── Serving Size ──────────────────────────────────────────────────
-        String servingSizeRaw = getString(row, COL_SERVING_SIZE);
-        Double servingSizeVal = getDouble(row, COL_SERVING_SIZE);
-        validateRequired(servingSizeRaw, "Serving Size", errors);
-        if (!isBlank(servingSizeRaw)) {
-            if (servingSizeVal == null)
-                errors.add("Serving Size must be a numeric or decimal value");
-            else if (servingSizeVal <= 0)
-                errors.add("Serving Size must be greater than 0");
-            if (servingSizeRaw.length() > 10)
-                errors.add("Serving Size must not exceed 10 characters");
-            if (servingSizeVal != null) {
-                String[] parts = servingSizeRaw.split("\\.");
-                if (parts.length == 2 && parts[1].length() > 2)
-                    errors.add("Serving Size must not have more than 2 decimal places");
-            }
-        }
+        // COMMENTED OUT - Serving Size is now non-mandatory
+        // String servingSizeRaw = getString(row, COL_SERVING_SIZE);
+        // Double servingSizeVal = getDouble(row, COL_SERVING_SIZE);
+        // validateRequired(servingSizeRaw, "Serving Size", errors);
+        // if (!isBlank(servingSizeRaw)) {
+        //     if (servingSizeVal == null)
+        //         errors.add("Serving Size must be a numeric or decimal value");
+        //     else if (servingSizeVal <= 0)
+        //         errors.add("Serving Size must be greater than 0");
+        //     if (servingSizeRaw.length() > 10)
+        //         errors.add("Serving Size must not exceed 10 characters");
+        //     if (servingSizeVal != null) {
+        //         String[] parts = servingSizeRaw.split("\\.");
+        //         if (parts.length == 2 && parts[1].length() > 2)
+        //             errors.add("Serving Size must not have more than 2 decimal places");
+        //     }
+        // }
 
         // ── Serving Size Unit ─────────────────────────────────────────────
-        validateRequired(getString(row, COL_SERVING_SIZE_UNIT), "Serving Size Unit", errors);
+        // COMMENTED OUT - Serving Size Unit is now non-mandatory
+        // validateRequired(getString(row, COL_SERVING_SIZE_UNIT), "Serving Size Unit", errors);
 
         // ── Strength / Composition ────────────────────────────────────────
         validateRequired(getString(row, COL_STRENGTH), "Strength / Composition", errors);
@@ -873,7 +875,8 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         validateRequired(intendedUse, "Intended Use / Health Benefit", errors);
         if (!isBlank(intendedUse)) {
             if (intendedUse.length() < 10) errors.add("Intended Use / Health Benefit must be at least 10 characters");
-            if (intendedUse.length() > 1000) errors.add("Intended Use / Health Benefit must not exceed 1000 characters");
+            if (intendedUse.length() > 1000)
+                errors.add("Intended Use / Health Benefit must not exceed 1000 characters");
         }
 
         // ── Age Group ─────────────────────────────────────────────────────
@@ -1095,25 +1098,27 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         validateRequired(getCsvString(r, H_NET_QUANTITY_UNIT), "Net Quantity Unit", errors);
 
         // ── Serving Size ──────────────────────────────────────────────────
-        String servingSizeRaw = getCsvString(r, H_SERVING_SIZE);
-        Double servingSizeVal = getCsvDouble(r, H_SERVING_SIZE);
-        validateRequired(servingSizeRaw, "Serving Size", errors);
-        if (!isBlank(servingSizeRaw)) {
-            if (servingSizeVal == null)
-                errors.add("Serving Size must be a numeric or decimal value");
-            else if (servingSizeVal <= 0)
-                errors.add("Serving Size must be greater than 0");
-            if (servingSizeRaw.length() > 10)
-                errors.add("Serving Size must not exceed 10 characters");
-            if (servingSizeVal != null) {
-                String[] parts = servingSizeRaw.split("\\.");
-                if (parts.length == 2 && parts[1].length() > 2)
-                    errors.add("Serving Size must not have more than 2 decimal places");
-            }
-        }
+        // COMMENTED OUT - Serving Size is now non-mandatory
+        // String servingSizeRaw = getCsvString(r, H_SERVING_SIZE);
+        // Double servingSizeVal = getCsvDouble(r, H_SERVING_SIZE);
+        // validateRequired(servingSizeRaw, "Serving Size", errors);
+        // if (!isBlank(servingSizeRaw)) {
+        //     if (servingSizeVal == null)
+        //         errors.add("Serving Size must be a numeric or decimal value");
+        //     else if (servingSizeVal <= 0)
+        //         errors.add("Serving Size must be greater than 0");
+        //     if (servingSizeRaw.length() > 10)
+        //         errors.add("Serving Size must not exceed 10 characters");
+        //     if (servingSizeVal != null) {
+        //         String[] parts = servingSizeRaw.split("\\.");
+        //         if (parts.length == 2 && parts[1].length() > 2)
+        //             errors.add("Serving Size must not have more than 2 decimal places");
+        //     }
+        // }
 
         // ── Serving Size Unit ─────────────────────────────────────────────
-        validateRequired(getCsvString(r, H_SERVING_SIZE_UNIT), "Serving Size Unit", errors);
+        // COMMENTED OUT - Serving Size Unit is now non-mandatory
+        // validateRequired(getCsvString(r, H_SERVING_SIZE_UNIT), "Serving Size Unit", errors);
 
         // ── Strength / Composition ────────────────────────────────────────
         validateRequired(getCsvString(r, H_STRENGTH), "Strength / Composition", errors);
@@ -1142,7 +1147,8 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
         validateRequired(intendedUse, "Intended Use / Health Benefit", errors);
         if (!isBlank(intendedUse)) {
             if (intendedUse.length() < 10) errors.add("Intended Use / Health Benefit must be at least 10 characters");
-            if (intendedUse.length() > 1000) errors.add("Intended Use / Health Benefit must not exceed 1000 characters");
+            if (intendedUse.length() > 1000)
+                errors.add("Intended Use / Health Benefit must not exceed 1000 characters");
         }
 
         // ── Age Group ─────────────────────────────────────────────────────
