@@ -382,24 +382,6 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
     }
 
 
-//    @Override
-//    @Transactional
-//    public void deleteProductById(String productId, Long userId) {
-//
-//        Seller seller = sellerRepo.findByUserId(userId)
-//                .orElseThrow(() -> new RuntimeException("Seller not found"));
-//
-//        ProductDetails product = productRepo.findById(productId)
-//                .orElseThrow(() -> new RuntimeException("Product not found"));
-//
-//        if (!product.getSeller().getSellerId().equals(seller.getSellerId())) {
-//            throw new RuntimeException("Unauthorized to delete this product");
-//        }
-//
-//        productRepo.delete(product);
-//    }
-
-
     @Override
     @Transactional
     public void deleteProductById(String productId, Long userId) {

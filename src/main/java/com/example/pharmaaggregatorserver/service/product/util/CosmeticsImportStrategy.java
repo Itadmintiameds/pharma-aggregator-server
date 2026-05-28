@@ -882,12 +882,12 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
             errors.add("Minimum Order Qty must be ≤ Maximum Order Qty");
 
         // ── Batch Number ──────────────────────────────────────────────────────
-        String batchNumber = getString(row, COL_BATCH_NUMBER);
-        validateRequired(batchNumber, "Batch Number", errors);
-        if (!isBlank(batchNumber) && !batchNumber.matches("[A-Za-z0-9]+"))
-            errors.add("Batch Number must be alphanumeric only");
-        if (pricingDetailsService.isBatchNumberExistsForSeller(batchNumber, userId))
-            errors.add("Batch Number '" + batchNumber + "' already exists for this seller");
+//        String batchNumber = getString(row, COL_BATCH_NUMBER);
+//        validateRequired(batchNumber, "Batch Number", errors);
+//        if (!isBlank(batchNumber) && !batchNumber.matches("[A-Za-z0-9]+"))
+//            errors.add("Batch Number must be alphanumeric only");
+//        if (pricingDetailsService.isBatchNumberExistsForSeller(batchNumber, userId))
+//            errors.add("Batch Number '" + batchNumber + "' already exists for this seller");
 
         // ── Manufacturing Date / Expiry Date ──────────────────────────────────
         LocalDate mfgDate = getDate(row, COL_MFG_DATE);
@@ -1092,12 +1092,12 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
             errors.add("Minimum Order Qty must be ≤ Maximum Order Qty");
 
         // ── Batch Number ──────────────────────────────────────────────────────
-        String batchNumber = getCsvString(r, H_BATCH_NUMBER);
-        validateRequired(batchNumber, "Batch Number", errors);
-        if (!isBlank(batchNumber) && !batchNumber.matches("[A-Za-z0-9]+"))
-            errors.add("Batch Number must be alphanumeric only");
-        if (pricingDetailsService.isBatchNumberExistsForSeller(batchNumber, userId))
-            errors.add("Batch Number '" + batchNumber + "' already exists for this seller");
+//        String batchNumber = getCsvString(r, H_BATCH_NUMBER);
+//        validateRequired(batchNumber, "Batch Number", errors);
+//        if (!isBlank(batchNumber) && !batchNumber.matches("[A-Za-z0-9]+"))
+//            errors.add("Batch Number must be alphanumeric only");
+//        if (pricingDetailsService.isBatchNumberExistsForSeller(batchNumber, userId))
+//            errors.add("Batch Number '" + batchNumber + "' already exists for this seller");
 
         // ── Manufacturing Date / Expiry Date ──────────────────────────────────
         LocalDate mfgDate = parseCsvDate(getCsvString(r, H_MFG_DATE));

@@ -12,9 +12,17 @@ public class PricingDetailsServiceImpl implements PricingDetailsService {
     private final PricingDetailsRepository pricingDetailsRepository;
 
     @Override
-    public boolean isBatchNumberExistsForSeller(String batchLotNumber, Long sellerId) {
+    public boolean isBatchNumberExistsForSeller(
+            String batchLotNumber,
+            Long sellerId,
+            Long categoryId
+    ) {
 
         return pricingDetailsRepository
-                .existsByBatchLotNumberAndUserId(batchLotNumber, sellerId);
+                .existsByBatchLotNumberAndUserIdAndCategoryId(
+                        batchLotNumber,
+                        sellerId,
+                        categoryId
+                );
     }
 }

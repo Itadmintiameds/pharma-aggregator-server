@@ -23,14 +23,21 @@ public class PricingDetailsController {
     @GetMapping("/validateBatchNumber")
     public ResponseEntity<?> validateBatchNumber(
             @RequestParam String batchLotNumber,
+            @RequestParam Long categoryId,
             Authentication authentication
     ) {
 
-        UserDetailsImpl user = (UserDetailsImpl) authentication.getPrincipal();
+        UserDetailsImpl user =
+                (UserDetailsImpl) authentication.getPrincipal();
 
         Long sellerId = user.getId();
+
         boolean exists = pricingDetailsService
-                .isBatchNumberExistsForSeller(batchLotNumber, sellerId);
+                .isBatchNumberExistsForSeller(
+                        batchLotNumber,
+                        sellerId,
+                        categoryId
+                );
 
         Map<String, Object> response = new HashMap<>();
         response.put("exists", exists);

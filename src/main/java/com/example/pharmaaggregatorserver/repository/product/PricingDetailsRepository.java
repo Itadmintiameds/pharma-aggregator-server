@@ -22,10 +22,12 @@ public interface PricingDetailsRepository extends JpaRepository<PricingDetails, 
         FROM PricingDetails p
         WHERE p.batchLotNumber = :batchLotNumber
         AND p.productDetails.seller.user.userId = :userId
+        AND p.productDetails.category.categoryId = :categoryId
     """)
-    boolean existsByBatchLotNumberAndUserId(
+    boolean existsByBatchLotNumberAndUserIdAndCategoryId(
             @Param("batchLotNumber") String batchLotNumber,
-            @Param("userId") Long userId
+            @Param("userId") Long userId,
+            @Param("categoryId") Long categoryId
     );
 }
 
