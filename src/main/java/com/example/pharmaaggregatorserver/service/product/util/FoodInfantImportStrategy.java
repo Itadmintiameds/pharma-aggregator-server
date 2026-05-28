@@ -6,6 +6,7 @@ import com.example.pharmaaggregatorserver.entity.product.NetQuantityUnit;
 import com.example.pharmaaggregatorserver.entity.product.ServingSizeUnit;
 import com.example.pharmaaggregatorserver.exception.ValidationException;
 import com.example.pharmaaggregatorserver.repository.product.*;
+import com.example.pharmaaggregatorserver.service.product.PricingDetailsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVRecord;
@@ -37,6 +38,7 @@ public class FoodInfantImportStrategy implements ProductImportStrategy{
     private final ProductFormMasterRepository productFormMasterRepository;
     private final NetQuantityUnitRepository netQuantityUnitRepository;
     private final ServingSizeUnitRepository servingSizeUnitRepository;
+    private final PricingDetailsService pricingDetailsService;
 
     // ── Valid GST percentages ─────────────────────────────────────────────
     private static final Set<Long> VALID_GST_VALUES = Set.of(0L, 5L, 12L, 18L);
@@ -57,7 +59,7 @@ public class FoodInfantImportStrategy implements ProductImportStrategy{
     private static final int COL_ALLERGEN_INFO = 12;
     private static final int COL_NUTRITIONAL_INFO = 13;
     private static final int COL_ACTIVE_INGREDIENTS = 14;
-    private static final int COL_ADDITIVES_PRESERVATIVES= 15;
+    private static final int COL_ADDITIVES_PRESERVATIVES = 15;
     private static final int COL_PRODUCT_CLAIMS = 16;
     private static final int COL_WARNINGS = 17;
     private static final int COL_DESCRIPTION = 18;
@@ -144,10 +146,10 @@ public class FoodInfantImportStrategy implements ProductImportStrategy{
     // =========================================================
 
     @Override
-    public ProductDetailsDto mapRow(Row row, Long categoryId) {
+    public ProductDetailsDto mapRow(Row row, Long categoryId, Long userId) {
         log.info("Food & Infants Excel import Called");
 
-        validateMandatoryExcel(row);
+        validateMandatoryExcel(row, userId);
 
         ProductDetailsDto dto = new ProductDetailsDto();
 
@@ -228,10 +230,10 @@ public class FoodInfantImportStrategy implements ProductImportStrategy{
     // =========================================================
 
     @Override
-    public ProductDetailsDto mapCsv(CSVRecord r, Long categoryId) {
+    public ProductDetailsDto mapCsv(CSVRecord r, Long categoryId, Long userId) {
         log.info("Supplements/Nutraceuticals CSV import Called");
 
-        validateMandatoryCsv(r);
+        validateMandatoryCsv(r, userId);
 
         ProductDetailsDto dto = new ProductDetailsDto();
 
@@ -751,7 +753,7 @@ public class FoodInfantImportStrategy implements ProductImportStrategy{
     // ================= EXCEL VALIDATION ======================
     // =========================================================
 
-    private void validateMandatoryExcel(Row row) {
+    private void validateMandatoryExcel(Row row, Long userId) {
         List<String> errors = new ArrayList<>();
 
         // ── Product Name ──────────────────────────────────────────────────
@@ -883,6 +885,8 @@ public class FoodInfantImportStrategy implements ProductImportStrategy{
                 errors.add("Batch Number must be at least 3 characters");
             if (batchNumber.length() > 20)
                 errors.add("Batch Number must not exceed 20 characters");
+            if (pricingDetailsService.isBatchNumberExistsForSeller(batchNumber, userId))
+                errors.add("Batch Number '" + batchNumber + "' already exists for this seller");
         }
 
         // ── Manufacturing Date ────────────────────────────────────────────
@@ -946,7 +950,7 @@ public class FoodInfantImportStrategy implements ProductImportStrategy{
     // ================= CSV VALIDATION ========================
     // =========================================================
 
-    private void validateMandatoryCsv(CSVRecord r) {
+    private void validateMandatoryCsv(CSVRecord r, Long userId) {
         List<String> errors = new ArrayList<>();
 
         // ── Product Name ──────────────────────────────────────────────────
@@ -1076,6 +1080,8 @@ public class FoodInfantImportStrategy implements ProductImportStrategy{
                 errors.add("Batch Number must be at least 3 characters");
             if (batchNumber.length() > 20)
                 errors.add("Batch Number must not exceed 20 characters");
+            if (pricingDetailsService.isBatchNumberExistsForSeller(batchNumber, userId))
+                errors.add("Batch Number '" + batchNumber + "' already exists for this seller");
         }
 
         // ── Manufacturing Date ────────────────────────────────────────────

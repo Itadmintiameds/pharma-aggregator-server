@@ -3,6 +3,7 @@ package com.example.pharmaaggregatorserver.service.product.util;
 import com.example.pharmaaggregatorserver.dto.product.*;
 import com.example.pharmaaggregatorserver.exception.ValidationException;
 import com.example.pharmaaggregatorserver.repository.product.*;
+import com.example.pharmaaggregatorserver.service.product.PricingDetailsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVRecord;
@@ -36,6 +37,7 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
     private final ProductSubcategoryMasterRepository productSubCategoryMasterRepository;
     private final NetQuantityUnitRepository netQuantityUnitRepository;
     private final ProductsFormMasterRepository productsFormMasterRepository;
+    private final PricingDetailsService pricingDetailsService;
 
     // ── Valid GST percentages ─────────────────────────────────────────────
     private static final Set<Long> VALID_GST_VALUES = Set.of(0L, 5L, 12L, 18L);
@@ -137,10 +139,10 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
     // =========================================================
 
     @Override
-    public ProductDetailsDto mapRow(Row row, Long categoryId) {
+    public ProductDetailsDto mapRow(Row row, Long categoryId, Long userId) {
         log.info("Cosmetics Excel import Called");
 
-        validateMandatoryExcel(row);
+        validateMandatoryExcel(row, userId);
 
         ProductDetailsDto dto = new ProductDetailsDto();
 
@@ -221,10 +223,10 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
     // =========================================================
 
     @Override
-    public ProductDetailsDto mapCsv(CSVRecord r, Long categoryId) {
+    public ProductDetailsDto mapCsv(CSVRecord r, Long categoryId, Long userId) {
         log.info("Cosmetics CSV import Called");
 
-        validateMandatoryCsv(r);
+        validateMandatoryCsv(r, userId);
 
         ProductDetailsDto dto = new ProductDetailsDto();
 
@@ -719,7 +721,7 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
     // ================= EXCEL VALIDATION ======================
     // =========================================================
 
-    private void validateMandatoryExcel(Row row) {
+    private void validateMandatoryExcel(Row row, Long userId) {
         List<String> errors = new ArrayList<>();
 
         validateRequired(getString(row, COL_PRODUCT_NAME), "Product Name", errors);
@@ -884,6 +886,8 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
         validateRequired(batchNumber, "Batch Number", errors);
         if (!isBlank(batchNumber) && !batchNumber.matches("[A-Za-z0-9]+"))
             errors.add("Batch Number must be alphanumeric only");
+        if (pricingDetailsService.isBatchNumberExistsForSeller(batchNumber, userId))
+            errors.add("Batch Number '" + batchNumber + "' already exists for this seller");
 
         // ── Manufacturing Date / Expiry Date ──────────────────────────────────
         LocalDate mfgDate = getDate(row, COL_MFG_DATE);
@@ -928,7 +932,7 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
     // ================= CSV VALIDATION ========================
     // =========================================================
 
-    private void validateMandatoryCsv(CSVRecord r) {
+    private void validateMandatoryCsv(CSVRecord r, Long userId) {
         List<String> errors = new ArrayList<>();
 
         validateRequired(getCsvString(r, H_PRODUCT_NAME), "Product Name", errors);
@@ -1092,6 +1096,8 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
         validateRequired(batchNumber, "Batch Number", errors);
         if (!isBlank(batchNumber) && !batchNumber.matches("[A-Za-z0-9]+"))
             errors.add("Batch Number must be alphanumeric only");
+        if (pricingDetailsService.isBatchNumberExistsForSeller(batchNumber, userId))
+            errors.add("Batch Number '" + batchNumber + "' already exists for this seller");
 
         // ── Manufacturing Date / Expiry Date ──────────────────────────────────
         LocalDate mfgDate = parseCsvDate(getCsvString(r, H_MFG_DATE));

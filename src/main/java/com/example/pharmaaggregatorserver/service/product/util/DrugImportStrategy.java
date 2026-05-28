@@ -4,6 +4,7 @@ import com.example.pharmaaggregatorserver.dto.product.*;
 import com.example.pharmaaggregatorserver.entity.product.Molecule;
 import com.example.pharmaaggregatorserver.exception.ValidationException;
 import com.example.pharmaaggregatorserver.repository.product.*;
+import com.example.pharmaaggregatorserver.service.product.PricingDetailsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVRecord;
@@ -29,6 +30,7 @@ public class DrugImportStrategy implements ProductImportStrategy {
     private final TherapeuticCategoryRepository therapeuticCategoryRepository;
     private final TherapeuticSubcategoryRepository therapeuticSubcategoryRepository;
     private final StorageConditionMasterRepository storageConditionRepository;
+    private final PricingDetailsService pricingDetailsService;
 
     // ── Valid GST percentages ─────────────────────────────────────────────
     private static final Set<Long> VALID_GST_VALUES = Set.of(0L, 5L, 12L, 18L);
@@ -106,10 +108,10 @@ public class DrugImportStrategy implements ProductImportStrategy {
 
     // ── Excel entry point ─────────────────────────────────────────────────
     @Override
-    public ProductDetailsDto mapRow(Row row, Long categoryId) {
+    public ProductDetailsDto mapRow(Row row, Long categoryId, Long userId) {
         log.info("Drugs Excel import Called");
 
-        validateMandatoryExcel(row);
+        validateMandatoryExcel(row, userId);
 
         ProductDetailsDto dto = new ProductDetailsDto();
 
@@ -192,10 +194,10 @@ public class DrugImportStrategy implements ProductImportStrategy {
 
     // ── CSV entry point ───────────────────────────────────────────────────
     @Override
-    public ProductDetailsDto mapCsv(CSVRecord r, Long categoryId) {
+    public ProductDetailsDto mapCsv(CSVRecord r, Long categoryId, Long userId) {
         log.info("Drugs CSV import Called");
 
-        validateMandatoryCsv(r);
+        validateMandatoryCsv(r, userId);
 
         ProductDetailsDto dto = new ProductDetailsDto();
 
@@ -488,7 +490,7 @@ public class DrugImportStrategy implements ProductImportStrategy {
     }
 
     // ── Excel validation ──────────────────────────────────────────────────
-    private void validateMandatoryExcel(Row row) {
+    private void validateMandatoryExcel(Row row, Long userId) {
         List<String> errors = new ArrayList<>();
 
         // ── Product Name ──────────────────────────────────────────────────
@@ -579,6 +581,9 @@ public class DrugImportStrategy implements ProductImportStrategy {
             if (batchNumber.length() > 20) {
                 errors.add("Batch Number must not exceed 20 characters");
             }
+            if (pricingDetailsService.isBatchNumberExistsForSeller(batchNumber, userId)) {
+                errors.add("Batch Number '" + batchNumber + "' already exists for this seller");
+            }
         }
 
         // ── Manufacturing Date ────────────────────────────────────────────
@@ -659,7 +664,7 @@ public class DrugImportStrategy implements ProductImportStrategy {
     }
 
     // ── CSV validation ────────────────────────────────────────────────────
-    private void validateMandatoryCsv(CSVRecord r) {
+    private void validateMandatoryCsv(CSVRecord r, Long userId) {
         List<String> errors = new ArrayList<>();
 
         // ── Product Name ──────────────────────────────────────────────────
@@ -749,6 +754,9 @@ public class DrugImportStrategy implements ProductImportStrategy {
             }
             if (batchNumber.length() > 20) {
                 errors.add("Batch Number must not exceed 20 characters");
+            }
+            if (pricingDetailsService.isBatchNumberExistsForSeller(batchNumber, userId)) {
+                errors.add("Batch Number '" + batchNumber + "' already exists for this seller");
             }
         }
 

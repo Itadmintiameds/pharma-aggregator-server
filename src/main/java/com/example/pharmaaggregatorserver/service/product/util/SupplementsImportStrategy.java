@@ -5,6 +5,7 @@ import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMas
 import com.example.pharmaaggregatorserver.exception.NotFoundException;
 import com.example.pharmaaggregatorserver.exception.ValidationException;
 import com.example.pharmaaggregatorserver.repository.product.*;
+import com.example.pharmaaggregatorserver.service.product.PricingDetailsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVRecord;
@@ -36,6 +37,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
     private final CertificationRepository certificationRepository;
     private final NetQuantityUnitRepository netQuantityUnitRepository;
     private final ServingSizeUnitRepository servingSizeUnitRepository;
+    private final PricingDetailsService pricingDetailsService;
 
     // ── Valid GST percentages ─────────────────────────────────────────────
     private static final Set<Long> VALID_GST_VALUES = Set.of(0L, 5L, 12L, 18L);
@@ -160,10 +162,10 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
     // =========================================================
 
     @Override
-    public ProductDetailsDto mapRow(Row row, Long categoryId) {
+    public ProductDetailsDto mapRow(Row row, Long categoryId, Long userId) {
         log.info("Supplements/Nutraceuticals Excel import Called");
 
-        validateMandatoryExcel(row);
+        validateMandatoryExcel(row, userId);
 
         ProductDetailsDto dto = new ProductDetailsDto();
 
@@ -244,10 +246,10 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
     // =========================================================
 
     @Override
-    public ProductDetailsDto mapCsv(CSVRecord r, Long categoryId) {
+    public ProductDetailsDto mapCsv(CSVRecord r, Long categoryId, Long userId) {
         log.info("Supplements/Nutraceuticals CSV import Called");
 
-        validateMandatoryCsv(r);
+        validateMandatoryCsv(r, userId);
 
         ProductDetailsDto dto = new ProductDetailsDto();
 
@@ -780,7 +782,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
     // ================= EXCEL VALIDATION ======================
     // =========================================================
 
-    private void validateMandatoryExcel(Row row) {
+    private void validateMandatoryExcel(Row row, Long userId) {
         List<String> errors = new ArrayList<>();
 
         // ── Product Name ──────────────────────────────────────────────────
@@ -989,6 +991,8 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
                 errors.add("Batch Number must be at least 3 characters");
             if (batchNumber.length() > 20)
                 errors.add("Batch Number must not exceed 20 characters");
+            if (pricingDetailsService.isBatchNumberExistsForSeller(batchNumber, userId))
+                errors.add("Batch Number '" + batchNumber + "' already exists for this seller");
         }
 
         // ── Manufacturing Date ────────────────────────────────────────────
@@ -1052,7 +1056,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
     // ================= CSV VALIDATION ========================
     // =========================================================
 
-    private void validateMandatoryCsv(CSVRecord r) {
+    private void validateMandatoryCsv(CSVRecord r, Long userId) {
         List<String> errors = new ArrayList<>();
 
         // ── Product Name ──────────────────────────────────────────────────
@@ -1261,6 +1265,8 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
                 errors.add("Batch Number must be at least 3 characters");
             if (batchNumber.length() > 20)
                 errors.add("Batch Number must not exceed 20 characters");
+            if (pricingDetailsService.isBatchNumberExistsForSeller(batchNumber, userId))
+                errors.add("Batch Number '" + batchNumber + "' already exists for this seller");
         }
 
         // ── Manufacturing Date ────────────────────────────────────────────

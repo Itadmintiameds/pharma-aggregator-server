@@ -142,7 +142,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
     // =========================================================
 
     @Override
-    public ProductDetailsDto mapRow(Row row, Long categoryId) {
+    public ProductDetailsDto mapRow(Row row, Long categoryId, Long userId) {
         log.info("Non-Consumable Excel import Called");
 
         validateMandatoryExcel(row);
@@ -221,7 +221,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
     // =========================================================
 
     @Override
-    public ProductDetailsDto mapCsv(CSVRecord r, Long categoryId) {
+    public ProductDetailsDto mapCsv(CSVRecord r, Long categoryId, Long userId) {
         log.info("Non-Consumable CSV import Called");
 
         validateMandatoryCsv(r);

@@ -89,7 +89,7 @@ public class UniversalExcelImportService {
                     total++;
 
                     try {
-                        ProductDetailsDto dto = strategy.mapRow(row, categoryId);
+                        ProductDetailsDto dto = strategy.mapRow(row, categoryId, userId);
                         dto.setCategoryId(categoryId);
                         productService.createProduct(dto, userId);
                         success++;
@@ -141,7 +141,7 @@ public class UniversalExcelImportService {
 
                 total++;
                 try {
-                    ProductDetailsDto dto = strategy.mapCsv(record, categoryId);
+                    ProductDetailsDto dto = strategy.mapCsv(record, categoryId, userId);
                     dto.setCategoryId(categoryId);
                     productService.createProduct(dto, userId);
                     success++;

@@ -10,9 +10,9 @@ public interface ProductImportStrategy {
      * Maps a single Excel row (0-indexed columns, data starts at row index 2)
      * to a ProductDetailsDto ready for productService.createProduct().
      */
-    ProductDetailsDto mapRow(Row row, Long categoryId);
+    ProductDetailsDto mapRow(Row row, Long categoryId, Long userId);
 
-    default ProductDetailsDto mapCsv(CSVRecord record, Long categoryId) {
+    default ProductDetailsDto mapCsv(CSVRecord record, Long categoryId, Long userId) {
         throw new UnsupportedOperationException("CSV import not supported for this category");
     }
 }
