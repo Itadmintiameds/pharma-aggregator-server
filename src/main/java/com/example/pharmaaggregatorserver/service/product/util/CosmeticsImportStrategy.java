@@ -127,12 +127,12 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
 
     // Additional discount slabs — duplicate headers in CSV; use index-based access.
     // Slab 0: base 33, Slab 1: base 40, Slab 2: base 47, Slab 3: base 54
-    private static final int[] CSV_SLAB_MIN_QTY_COLS    = {36, 43, 50, 57}; // was {35,42,49,56}
-    private static final int[] CSV_SLAB_DISCOUNT_COLS   = {37, 44, 51, 58}; // was {36,43,50,57}
+    private static final int[] CSV_SLAB_MIN_QTY_COLS = {36, 43, 50, 57}; // was {35,42,49,56}
+    private static final int[] CSV_SLAB_DISCOUNT_COLS = {37, 44, 51, 58}; // was {36,43,50,57}
     private static final int[] CSV_SLAB_START_DATE_COLS = {38, 45, 52, 59}; // was {37,44,51,58}
     private static final int[] CSV_SLAB_START_TIME_COLS = {39, 46, 53, 60}; // was {38,45,52,59}
-    private static final int[] CSV_SLAB_END_DATE_COLS   = {40, 47, 54, 61}; // was {39,46,53,60}
-    private static final int[] CSV_SLAB_END_TIME_COLS   = {41, 48, 55, 62}; // was {40,47,54,61}
+    private static final int[] CSV_SLAB_END_DATE_COLS = {40, 47, 54, 61}; // was {39,46,53,60}
+    private static final int[] CSV_SLAB_END_TIME_COLS = {41, 48, 55, 62}; // was {40,47,54,61}
 
     // =========================================================
     // ================= EXCEL ENTRY POINT =====================
@@ -142,7 +142,7 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
     public ProductDetailsDto mapRow(Row row, Long categoryId, Long userId) {
         log.info("Cosmetics Excel import Called");
 
-        validateMandatoryExcel(row, userId);
+        validateMandatoryExcel(row, categoryId, userId);
 
         ProductDetailsDto dto = new ProductDetailsDto();
 
@@ -226,7 +226,7 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
     public ProductDetailsDto mapCsv(CSVRecord r, Long categoryId, Long userId) {
         log.info("Cosmetics CSV import Called");
 
-        validateMandatoryCsv(r, userId);
+        validateMandatoryCsv(r, categoryId, userId);
 
         ProductDetailsDto dto = new ProductDetailsDto();
 
@@ -721,7 +721,7 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
     // ================= EXCEL VALIDATION ======================
     // =========================================================
 
-    private void validateMandatoryExcel(Row row, Long userId) {
+    private void validateMandatoryExcel(Row row, Long categoryId, Long userId) {
         List<String> errors = new ArrayList<>();
 
         validateRequired(getString(row, COL_PRODUCT_NAME), "Product Name", errors);
@@ -882,12 +882,12 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
             errors.add("Minimum Order Qty must be ≤ Maximum Order Qty");
 
         // ── Batch Number ──────────────────────────────────────────────────────
-//        String batchNumber = getString(row, COL_BATCH_NUMBER);
-//        validateRequired(batchNumber, "Batch Number", errors);
-//        if (!isBlank(batchNumber) && !batchNumber.matches("[A-Za-z0-9]+"))
-//            errors.add("Batch Number must be alphanumeric only");
-//        if (pricingDetailsService.isBatchNumberExistsForSeller(batchNumber, userId))
-//            errors.add("Batch Number '" + batchNumber + "' already exists for this seller");
+        String batchNumber = getString(row, COL_BATCH_NUMBER);
+        validateRequired(batchNumber, "Batch Number", errors);
+        if (!isBlank(batchNumber) && !batchNumber.matches("[A-Za-z0-9]+"))
+            errors.add("Batch Number must be alphanumeric only");
+        if (pricingDetailsService.isBatchNumberExistsForSeller(batchNumber, userId, categoryId))
+            errors.add("Batch Number '" + batchNumber + "' already exists for this seller");
 
         // ── Manufacturing Date / Expiry Date ──────────────────────────────────
         LocalDate mfgDate = getDate(row, COL_MFG_DATE);
@@ -932,7 +932,7 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
     // ================= CSV VALIDATION ========================
     // =========================================================
 
-    private void validateMandatoryCsv(CSVRecord r, Long userId) {
+    private void validateMandatoryCsv(CSVRecord r, Long categoryId, Long userId) {
         List<String> errors = new ArrayList<>();
 
         validateRequired(getCsvString(r, H_PRODUCT_NAME), "Product Name", errors);
@@ -1092,12 +1092,12 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
             errors.add("Minimum Order Qty must be ≤ Maximum Order Qty");
 
         // ── Batch Number ──────────────────────────────────────────────────────
-//        String batchNumber = getCsvString(r, H_BATCH_NUMBER);
-//        validateRequired(batchNumber, "Batch Number", errors);
-//        if (!isBlank(batchNumber) && !batchNumber.matches("[A-Za-z0-9]+"))
-//            errors.add("Batch Number must be alphanumeric only");
-//        if (pricingDetailsService.isBatchNumberExistsForSeller(batchNumber, userId))
-//            errors.add("Batch Number '" + batchNumber + "' already exists for this seller");
+        String batchNumber = getCsvString(r, H_BATCH_NUMBER);
+        validateRequired(batchNumber, "Batch Number", errors);
+        if (!isBlank(batchNumber) && !batchNumber.matches("[A-Za-z0-9]+"))
+            errors.add("Batch Number must be alphanumeric only");
+        if (pricingDetailsService.isBatchNumberExistsForSeller(batchNumber, userId, categoryId))
+            errors.add("Batch Number '" + batchNumber + "' already exists for this seller");
 
         // ── Manufacturing Date / Expiry Date ──────────────────────────────────
         LocalDate mfgDate = parseCsvDate(getCsvString(r, H_MFG_DATE));

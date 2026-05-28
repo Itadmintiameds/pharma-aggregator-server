@@ -38,113 +38,113 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
     private static final Set<Long> VALID_GST_VALUES = Set.of(0L, 5L, 12L, 18L);
 
     // ===== COLUMN INDEX (0-based) =========================================
-    private static final int COL_DEVICE_CATEGORY            = 0;
-    private static final int COL_DEVICE_SUBCATEGORY         = 1;
-    private static final int COL_PRODUCT_NAME               = 2;
-    private static final int COL_BRAND_NAME                 = 3;
+    private static final int COL_DEVICE_CATEGORY = 0;
+    private static final int COL_DEVICE_SUBCATEGORY = 1;
+    private static final int COL_PRODUCT_NAME = 2;
+    private static final int COL_BRAND_NAME = 3;
 
     // ===== MATERIAL / PRODUCT DETAILS =====
-    private static final int COL_DIMENSION_SIZE             = 4;
+    private static final int COL_DIMENSION_SIZE = 4;
     private static final int COL_DEV_SPECIFICATION_UNIT_NAME = 5;  // FIX: was missing value + compile error
-    private static final int COL_STERILE                    = 6;   // shifted by 1
-    private static final int COL_DISPOSABLE                 = 7;   // shifted by 1
+    private static final int COL_STERILE = 6;   // shifted by 1
+    private static final int COL_DISPOSABLE = 7;   // shifted by 1
 
     // ===== DESCRIPTION =====
-    private static final int COL_PURPOSE                    = 8;
-    private static final int COL_KEY_FEATURES               = 9;
-    private static final int COL_SAFETY_INSTRUCTIONS        = 10;
-    private static final int COL_CERTIFICATIONS             = 11;
+    private static final int COL_PURPOSE = 8;
+    private static final int COL_KEY_FEATURES = 9;
+    private static final int COL_SAFETY_INSTRUCTIONS = 10;
+    private static final int COL_CERTIFICATIONS = 11;
 
     // ===== MATERIAL =====
-    private static final int COL_MATERIAL_TYPES             = 12;
+    private static final int COL_MATERIAL_TYPES = 12;
 
     // ===== MANUFACTURING =====
-    private static final int COL_COUNTRY                    = 13;
-    private static final int COL_MANUFACTURER               = 14;
-    private static final int COL_PRODUCT_DESCRIPTION        = 15;
-    private static final int COL_STORAGE_CONDITION          = 16;
+    private static final int COL_COUNTRY = 13;
+    private static final int COL_MANUFACTURER = 14;
+    private static final int COL_PRODUCT_DESCRIPTION = 15;
+    private static final int COL_STORAGE_CONDITION = 16;
 
     // ===== PACKAGING =====
-    private static final int COL_PACK_TYPE                  = 17;
-    private static final int COL_UNIT_PER_PACK              = 18;
-    private static final int COL_NUMBER_OF_PACKS            = 19;
+    private static final int COL_PACK_TYPE = 17;
+    private static final int COL_UNIT_PER_PACK = 18;
+    private static final int COL_NUMBER_OF_PACKS = 19;
 
     // col 20 = Pack Size (Auto-calculated)
-    private static final int COL_MIN_ORDER_QTY              = 21;
-    private static final int COL_MAX_ORDER_QTY              = 22;
-    private static final int COL_BATCH_NUMBER               = 23;
-    private static final int COL_MANUFACTURING_DATE         = 24;
-    private static final int COL_EXPIRY_DATE                = 25;
-    private static final int COL_STOCK_QUANTITY             = 26;
-    private static final int COL_DATE_OF_ENTRY              = 27; // ignored — always LocalDate.now()
+    private static final int COL_MIN_ORDER_QTY = 21;
+    private static final int COL_MAX_ORDER_QTY = 22;
+    private static final int COL_BATCH_NUMBER = 23;
+    private static final int COL_MANUFACTURING_DATE = 24;
+    private static final int COL_EXPIRY_DATE = 25;
+    private static final int COL_STOCK_QUANTITY = 26;
+    private static final int COL_DATE_OF_ENTRY = 27; // ignored — always LocalDate.now()
 
     // ===== PRICING =====
-    private static final int COL_MRP                        = 28;
-    private static final int COL_SELLING_PRICE              = 29;
-    private static final int COL_DISCOUNT                   = 30;
-    private static final int COL_GST                        = 31;
-    private static final int COL_HSN                        = 32;
+    private static final int COL_MRP = 28;
+    private static final int COL_SELLING_PRICE = 29;
+    private static final int COL_DISCOUNT = 30;
+    private static final int COL_GST = 31;
+    private static final int COL_HSN = 32;
 
     // ===== ADDITIONAL DISCOUNT =====
-    private static final int COL_ADD_DISCOUNT_START         = 33;
-    private static final int ADD_DISCOUNT_SLAB_SIZE         = 7;
-    private static final int ADD_DISCOUNT_SLAB_COUNT        = 4;
+    private static final int COL_ADD_DISCOUNT_START = 33;
+    private static final int ADD_DISCOUNT_SLAB_SIZE = 7;
+    private static final int ADD_DISCOUNT_SLAB_COUNT = 4;
 
     // ===== CSV HEADER CONSTANTS =====
     // ===== BASIC =====
-    private static final String H_DEVICE_CATEGORY           = "Device Category*";
-    private static final String H_DEVICE_SUBCATEGORY        = "Device Sub Category*";
-    private static final String H_PRODUCT_NAME              = "Product Name*";
-    private static final String H_BRAND_NAME                = "Brand Name*";
+    private static final String H_DEVICE_CATEGORY = "Device Category*";
+    private static final String H_DEVICE_SUBCATEGORY = "Device Sub Category*";
+    private static final String H_PRODUCT_NAME = "Product Name*";
+    private static final String H_BRAND_NAME = "Brand Name*";
 
     // ===== MATERIAL =====
-    private static final String H_MATERIAL_TYPES            = "Material / Build Type*";
-    private static final String H_DIMENSION_SIZE            = "Size / Dimension / Gauge*";
+    private static final String H_MATERIAL_TYPES = "Material / Build Type*";
+    private static final String H_DIMENSION_SIZE = "Size / Dimension / Gauge*";
     private static final String H_DEV_SPECIFICATION_UNIT_NAME = "Device Specification Unit Name*";
-    private static final String H_STERILE                   = "Sterile / Non-Sterile*";
-    private static final String H_DISPOSABLE                = "Disposable / Reusable*";
+    private static final String H_STERILE = "Sterile / Non-Sterile*";
+    private static final String H_DISPOSABLE = "Disposable / Reusable*";
 
     // ===== DESCRIPTION =====
-    private static final String H_PURPOSE                   = "Intended Use / Purpose*";
-    private static final String H_KEY_FEATURES              = "Key Features / Technical Specifications*";
-    private static final String H_SAFETY_INSTRUCTIONS       = "Safety Instructions  / Precautions*";
-    private static final String H_CERTIFICATIONS            = "Certifications / Compliance*";
+    private static final String H_PURPOSE = "Intended Use / Purpose*";
+    private static final String H_KEY_FEATURES = "Key Features / Technical Specifications*";
+    private static final String H_SAFETY_INSTRUCTIONS = "Safety Instructions  / Precautions*";
+    private static final String H_CERTIFICATIONS = "Certifications / Compliance*";
 
     // ===== MANUFACTURING =====
-    private static final String H_COUNTRY                   = "Country of Origin*";
-    private static final String H_MANUFACTURER              = "Manufacture Name*";
-    private static final String H_PRODUCT_DESCRIPTION       = "Product Description*";
-    private static final String H_STORAGE_CONDITION         = "Storage Condition (if applicable)";
+    private static final String H_COUNTRY = "Country of Origin*";
+    private static final String H_MANUFACTURER = "Manufacture Name*";
+    private static final String H_PRODUCT_DESCRIPTION = "Product Description*";
+    private static final String H_STORAGE_CONDITION = "Storage Condition (if applicable)";
 
     // ===== PACKAGING =====
-    private static final String H_PACK_TYPE                 = "Pack Type";
-    private static final String H_UNIT_PER_PACK             = "Unit Per Pack";
-    private static final String H_NUMBER_OF_PACKS           = "Number Of Packs";
+    private static final String H_PACK_TYPE = "Pack Type";
+    private static final String H_UNIT_PER_PACK = "Unit Per Pack";
+    private static final String H_NUMBER_OF_PACKS = "Number Of Packs";
 
     // ===== NEW COLUMNS =====
-    private static final String H_MIN_ORDER_QTY             = "Minimum Order Qty*";
-    private static final String H_MAX_ORDER_QTY             = "Max Order Qty*";
-    private static final String H_BATCH_NUMBER              = "Batch Number*";
-    private static final String H_MANUFACTURING_DATE        = "Manufacturing Date*";
-    private static final String H_EXPIRY_DATE               = "Expiry Date*";
-    private static final String H_STOCK_QUANTITY            = "Stock Quantity*";
-    private static final String H_DATE_OF_ENTRY             = "Date of Entry*"; // ignored — always LocalDate.now()
+    private static final String H_MIN_ORDER_QTY = "Minimum Order Qty*";
+    private static final String H_MAX_ORDER_QTY = "Max Order Qty*";
+    private static final String H_BATCH_NUMBER = "Batch Number*";
+    private static final String H_MANUFACTURING_DATE = "Manufacturing Date*";
+    private static final String H_EXPIRY_DATE = "Expiry Date*";
+    private static final String H_STOCK_QUANTITY = "Stock Quantity*";
+    private static final String H_DATE_OF_ENTRY = "Date of Entry*"; // ignored — always LocalDate.now()
 
     // ===== PRICING =====
-    private static final String H_MRP                       = "MRP (INR)*";
-    private static final String H_SELLING_PRICE             = "Selling Price(INR)*";
-    private static final String H_DISCOUNT                  = "Discount %";
-    private static final String H_GST                       = "GST %";
-    private static final String H_HSN                       = "HSN Code*";
+    private static final String H_MRP = "MRP (INR)*";
+    private static final String H_SELLING_PRICE = "Selling Price(INR)*";
+    private static final String H_DISCOUNT = "Discount %";
+    private static final String H_GST = "GST %";
+    private static final String H_HSN = "HSN Code*";
 
     // Each slab block = 7 cols: [label | minQty | disc% | startDate | startTime | endDate | endTime]
     // Slab label cols: 33, 40, 47, 54 (sub-header row 1) — shifted by 1 for the new unit column
-    private static final int[] CSV_SLAB_MIN_QTY_COLS    = {34, 41, 48, 55};
-    private static final int[] CSV_SLAB_DISCOUNT_COLS   = {35, 42, 49, 56};
+    private static final int[] CSV_SLAB_MIN_QTY_COLS = {34, 41, 48, 55};
+    private static final int[] CSV_SLAB_DISCOUNT_COLS = {35, 42, 49, 56};
     private static final int[] CSV_SLAB_START_DATE_COLS = {36, 43, 50, 57};
     private static final int[] CSV_SLAB_START_TIME_COLS = {37, 44, 51, 58};
-    private static final int[] CSV_SLAB_END_DATE_COLS   = {38, 45, 52, 59};
-    private static final int[] CSV_SLAB_END_TIME_COLS   = {39, 46, 53, 60};
+    private static final int[] CSV_SLAB_END_DATE_COLS = {38, 45, 52, 59};
+    private static final int[] CSV_SLAB_END_TIME_COLS = {39, 46, 53, 60};
 
     // =========================================================
     // ================= EXCEL ENTRY POINT =====================
@@ -154,7 +154,7 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
     public ProductDetailsDto mapRow(Row row, Long categoryId, Long userId) {
         log.info("Consumable Excel import Called");
 
-        validateMandatoryExcel(row, userId);
+        validateMandatoryExcel(row, categoryId, userId);
 
         ProductDetailsDto dto = new ProductDetailsDto();
 
@@ -174,15 +174,15 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
                 categoryId
         )));
 
-        Long mainDiscountPct  = getLong(row, COL_DISCOUNT);
-        Long mainMinOrderQty  = getLong(row, COL_MIN_ORDER_QTY);
-        Long mainMaxOrderQty  = getLong(row, COL_MAX_ORDER_QTY);
+        Long mainDiscountPct = getLong(row, COL_DISCOUNT);
+        Long mainMinOrderQty = getLong(row, COL_MIN_ORDER_QTY);
+        Long mainMaxOrderQty = getLong(row, COL_MAX_ORDER_QTY);
         Set<Long> seenSlabMpqs = new HashSet<>();
         Set<AdditionalDiscountDto> additionalDiscounts = new HashSet<>();
 
         for (int slab = 0; slab < ADD_DISCOUNT_SLAB_COUNT; slab++) {
-            int base     = COL_ADD_DISCOUNT_START + (slab * ADD_DISCOUNT_SLAB_SIZE);
-            Long minQty  = getLong(row, base + 1);
+            int base = COL_ADD_DISCOUNT_START + (slab * ADD_DISCOUNT_SLAB_SIZE);
+            Long minQty = getLong(row, base + 1);
             Long discount = getLong(row, base + 2);
 
             if ((minQty == null || minQty == 0) && (discount == null || discount == 0)) continue;
@@ -203,7 +203,7 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
             additionalDiscounts.add(d);
         }
 
-        LocalDate mfgDate    = getDate(row, COL_MANUFACTURING_DATE);
+        LocalDate mfgDate = getDate(row, COL_MANUFACTURING_DATE);
         LocalDate expiryDate = getDate(row, COL_EXPIRY_DATE);
         Long shelfLifeMonths = calculateShelfLifeMonths(mfgDate, expiryDate);
 
@@ -238,7 +238,7 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
     public ProductDetailsDto mapCsv(CSVRecord r, Long categoryId, Long userId) {
         log.info("Consumable CSV import Called");
 
-        validateMandatoryCsv(r, userId);
+        validateMandatoryCsv(r, categoryId, userId);
 
         ProductDetailsDto dto = new ProductDetailsDto();
 
@@ -256,20 +256,20 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
                 categoryId
         )));
 
-        Long mainDiscountPct  = getCsvLong(r, H_DISCOUNT);
-        Long mainMinOrderQty  = getCsvLong(r, H_MIN_ORDER_QTY);
-        Long mainMaxOrderQty  = getCsvLong(r, H_MAX_ORDER_QTY);
+        Long mainDiscountPct = getCsvLong(r, H_DISCOUNT);
+        Long mainMinOrderQty = getCsvLong(r, H_MIN_ORDER_QTY);
+        Long mainMaxOrderQty = getCsvLong(r, H_MAX_ORDER_QTY);
         Set<Long> seenSlabMpqs = new HashSet<>();
         Set<AdditionalDiscountDto> additionalDiscounts = new HashSet<>();
 
         for (int slab = 0; slab < ADD_DISCOUNT_SLAB_COUNT; slab++) {
-            Long minQty  = getCsvLongByIndex(r, CSV_SLAB_MIN_QTY_COLS[slab]);
+            Long minQty = getCsvLongByIndex(r, CSV_SLAB_MIN_QTY_COLS[slab]);
             Long discount = getCsvLongByIndex(r, CSV_SLAB_DISCOUNT_COLS[slab]);
 
             if ((minQty == null || minQty == 0) && (discount == null || discount == 0)) continue;
 
             LocalDate slabStartDate = parseCsvDate(getCsvStringByIndex(r, CSV_SLAB_START_DATE_COLS[slab]));
-            LocalDate slabEndDate   = parseCsvDate(getCsvStringByIndex(r, CSV_SLAB_END_DATE_COLS[slab]));
+            LocalDate slabEndDate = parseCsvDate(getCsvStringByIndex(r, CSV_SLAB_END_DATE_COLS[slab]));
 
             validateAdditionalDiscountSlab(
                     slab + 1, minQty, discount,
@@ -287,7 +287,7 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
             additionalDiscounts.add(d);
         }
 
-        LocalDate mfgDate    = parseCsvDate(getCsvString(r, H_MANUFACTURING_DATE));
+        LocalDate mfgDate = parseCsvDate(getCsvString(r, H_MANUFACTURING_DATE));
         LocalDate expiryDate = parseCsvDate(getCsvString(r, H_EXPIRY_DATE));
         Long shelfLifeMonths = calculateShelfLifeMonths(mfgDate, expiryDate);
 
@@ -633,7 +633,7 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
     // ================= EXCEL VALIDATION ======================
     // =========================================================
 
-    private void validateMandatoryExcel(Row row, Long userId) {
+    private void validateMandatoryExcel(Row row, Long categoryId, Long userId) {
         List<String> errors = new ArrayList<>();
 
         // ── Product Name ──────────────────────────────────────────────────
@@ -781,18 +781,18 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
         }
 
         // ── Batch Number ──────────────────────────────────────────────────
-//        String batchNumber = getString(row, COL_BATCH_NUMBER);
-//        validateRequired(batchNumber, "Batch Number", errors);
-//        if (batchNumber != null && !batchNumber.isBlank()) {
-//            if (!batchNumber.matches("[A-Za-z0-9]+"))
-//                errors.add("Batch Number must be alphanumeric only (no special characters)");
-//            if (batchNumber.length() < 3)
-//                errors.add("Batch Number must be at least 3 characters");
-//            if (batchNumber.length() > 20)
-//                errors.add("Batch Number must not exceed 20 characters");
-//            if (pricingDetailsService.isBatchNumberExistsForSeller(batchNumber, userId))
-//                errors.add("Batch Number '" + batchNumber + "' already exists for this seller");
-//        }
+        String batchNumber = getString(row, COL_BATCH_NUMBER);
+        validateRequired(batchNumber, "Batch Number", errors);
+        if (batchNumber != null && !batchNumber.isBlank()) {
+            if (!batchNumber.matches("[A-Za-z0-9]+"))
+                errors.add("Batch Number must be alphanumeric only (no special characters)");
+            if (batchNumber.length() < 3)
+                errors.add("Batch Number must be at least 3 characters");
+            if (batchNumber.length() > 20)
+                errors.add("Batch Number must not exceed 20 characters");
+            if (pricingDetailsService.isBatchNumberExistsForSeller(batchNumber, userId, categoryId))
+                errors.add("Batch Number '" + batchNumber + "' already exists for this seller");
+        }
 
         // ── Manufacturing Date ────────────────────────────────────────────
         LocalDate mfgDate = getDate(row, COL_MANUFACTURING_DATE);
@@ -879,7 +879,7 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
     // ================= CSV VALIDATION ========================
     // =========================================================
 
-    private void validateMandatoryCsv(CSVRecord r, Long userId) {
+    private void validateMandatoryCsv(CSVRecord r, Long categoryId, Long userId) {
         List<String> errors = new ArrayList<>();
 
         // ── Product Name ──────────────────────────────────────────────────
@@ -1027,18 +1027,18 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
         }
 
         // ── Batch Number ──────────────────────────────────────────────────
-//        String batchNumber = getCsvString(r, H_BATCH_NUMBER);
-//        validateRequired(batchNumber, "Batch Number", errors);
-//        if (batchNumber != null && !batchNumber.isBlank()) {
-//            if (!batchNumber.matches("[A-Za-z0-9]+"))
-//                errors.add("Batch Number must be alphanumeric only (no special characters)");
-//            if (batchNumber.length() < 3)
-//                errors.add("Batch Number must be at least 3 characters");
-//            if (batchNumber.length() > 20)
-//                errors.add("Batch Number must not exceed 20 characters");
-//            if (pricingDetailsService.isBatchNumberExistsForSeller(batchNumber, userId))
-//                errors.add("Batch Number '" + batchNumber + "' already exists for this seller");
-//        }
+        String batchNumber = getCsvString(r, H_BATCH_NUMBER);
+        validateRequired(batchNumber, "Batch Number", errors);
+        if (batchNumber != null && !batchNumber.isBlank()) {
+            if (!batchNumber.matches("[A-Za-z0-9]+"))
+                errors.add("Batch Number must be alphanumeric only (no special characters)");
+            if (batchNumber.length() < 3)
+                errors.add("Batch Number must be at least 3 characters");
+            if (batchNumber.length() > 20)
+                errors.add("Batch Number must not exceed 20 characters");
+            if (pricingDetailsService.isBatchNumberExistsForSeller(batchNumber, userId, categoryId))
+                errors.add("Batch Number '" + batchNumber + "' already exists for this seller");
+        }
 
         // ── Manufacturing Date ────────────────────────────────────────────
         LocalDate mfgDate = parseCsvDate(getCsvString(r, H_MANUFACTURING_DATE));
@@ -1256,10 +1256,22 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
     private LocalDate parseCsvDate(String raw) {
         if (raw == null || raw.isBlank()) return null;
         raw = raw.trim();
-        try { return LocalDate.parse(raw); } catch (Exception ignored) {}
-        try { return YearMonth.parse(raw, DateTimeFormatter.ofPattern("MMM-yy", Locale.ENGLISH)).atDay(1); } catch (Exception ignored) {}
-        try { return LocalDate.parse(raw, DateTimeFormatter.ofPattern("dd-MM-yyyy")); } catch (Exception ignored) {}
-        try { return LocalDate.parse(raw, DateTimeFormatter.ofPattern("M/d/yyyy")); } catch (Exception ignored) {}
+        try {
+            return LocalDate.parse(raw);
+        } catch (Exception ignored) {
+        }
+        try {
+            return YearMonth.parse(raw, DateTimeFormatter.ofPattern("MMM-yy", Locale.ENGLISH)).atDay(1);
+        } catch (Exception ignored) {
+        }
+        try {
+            return LocalDate.parse(raw, DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+        } catch (Exception ignored) {
+        }
+        try {
+            return LocalDate.parse(raw, DateTimeFormatter.ofPattern("M/d/yyyy"));
+        } catch (Exception ignored) {
+        }
         log.warn("Could not parse date: '{}'", raw);
         return null;
     }

@@ -165,7 +165,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
     public ProductDetailsDto mapRow(Row row, Long categoryId, Long userId) {
         log.info("Supplements/Nutraceuticals Excel import Called");
 
-        validateMandatoryExcel(row, userId);
+        validateMandatoryExcel(row, categoryId, userId);
 
         ProductDetailsDto dto = new ProductDetailsDto();
 
@@ -249,7 +249,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
     public ProductDetailsDto mapCsv(CSVRecord r, Long categoryId, Long userId) {
         log.info("Supplements/Nutraceuticals CSV import Called");
 
-        validateMandatoryCsv(r, userId);
+        validateMandatoryCsv(r, categoryId, userId);
 
         ProductDetailsDto dto = new ProductDetailsDto();
 
@@ -782,7 +782,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
     // ================= EXCEL VALIDATION ======================
     // =========================================================
 
-    private void validateMandatoryExcel(Row row, Long userId) {
+    private void validateMandatoryExcel(Row row, Long categoryId, Long userId) {
         List<String> errors = new ArrayList<>();
 
         // ── Product Name ──────────────────────────────────────────────────
@@ -982,18 +982,18 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
             errors.add("Minimum Order Qty must be ≤ Maximum Order Qty");
 
         // ── Batch Number ──────────────────────────────────────────────────
-//        String batchNumber = getString(row, COL_BATCH_NUMBER);
-//        validateRequired(batchNumber, "Batch Number", errors);
-//        if (!isBlank(batchNumber)) {
-//            if (!batchNumber.matches("[A-Za-z0-9]+"))
-//                errors.add("Batch Number must be alphanumeric only (no special characters)");
-//            if (batchNumber.length() < 3)
-//                errors.add("Batch Number must be at least 3 characters");
-//            if (batchNumber.length() > 20)
-//                errors.add("Batch Number must not exceed 20 characters");
-//            if (pricingDetailsService.isBatchNumberExistsForSeller(batchNumber, userId))
-//                errors.add("Batch Number '" + batchNumber + "' already exists for this seller");
-//        }
+        String batchNumber = getString(row, COL_BATCH_NUMBER);
+        validateRequired(batchNumber, "Batch Number", errors);
+        if (!isBlank(batchNumber)) {
+            if (!batchNumber.matches("[A-Za-z0-9]+"))
+                errors.add("Batch Number must be alphanumeric only (no special characters)");
+            if (batchNumber.length() < 3)
+                errors.add("Batch Number must be at least 3 characters");
+            if (batchNumber.length() > 20)
+                errors.add("Batch Number must not exceed 20 characters");
+            if (pricingDetailsService.isBatchNumberExistsForSeller(batchNumber, userId, categoryId))
+                errors.add("Batch Number '" + batchNumber + "' already exists for this seller");
+        }
 
         // ── Manufacturing Date ────────────────────────────────────────────
         LocalDate mfgDate = getDate(row, COL_MFG_DATE);
@@ -1056,7 +1056,7 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
     // ================= CSV VALIDATION ========================
     // =========================================================
 
-    private void validateMandatoryCsv(CSVRecord r, Long userId) {
+    private void validateMandatoryCsv(CSVRecord r, Long categoryId, Long userId) {
         List<String> errors = new ArrayList<>();
 
         // ── Product Name ──────────────────────────────────────────────────
@@ -1256,18 +1256,18 @@ public class SupplementsImportStrategy implements ProductImportStrategy {
             errors.add("Minimum Order Qty must be ≤ Maximum Order Qty");
 
         // ── Batch Number ──────────────────────────────────────────────────
-//        String batchNumber = getCsvString(r, H_BATCH_NUMBER);
-//        validateRequired(batchNumber, "Batch Number", errors);
-//        if (!isBlank(batchNumber)) {
-//            if (!batchNumber.matches("[A-Za-z0-9]+"))
-//                errors.add("Batch Number must be alphanumeric only (no special characters)");
-//            if (batchNumber.length() < 3)
-//                errors.add("Batch Number must be at least 3 characters");
-//            if (batchNumber.length() > 20)
-//                errors.add("Batch Number must not exceed 20 characters");
-//            if (pricingDetailsService.isBatchNumberExistsForSeller(batchNumber, userId))
-//                errors.add("Batch Number '" + batchNumber + "' already exists for this seller");
-//        }
+        String batchNumber = getCsvString(r, H_BATCH_NUMBER);
+        validateRequired(batchNumber, "Batch Number", errors);
+        if (!isBlank(batchNumber)) {
+            if (!batchNumber.matches("[A-Za-z0-9]+"))
+                errors.add("Batch Number must be alphanumeric only (no special characters)");
+            if (batchNumber.length() < 3)
+                errors.add("Batch Number must be at least 3 characters");
+            if (batchNumber.length() > 20)
+                errors.add("Batch Number must not exceed 20 characters");
+            if (pricingDetailsService.isBatchNumberExistsForSeller(batchNumber, userId, categoryId))
+                errors.add("Batch Number '" + batchNumber + "' already exists for this seller");
+        }
 
         // ── Manufacturing Date ────────────────────────────────────────────
         LocalDate mfgDate = parseCsvDate(getCsvString(r, H_MFG_DATE));
