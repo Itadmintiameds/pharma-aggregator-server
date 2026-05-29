@@ -274,6 +274,28 @@ public class ProductDocumentController {
     }
 
 
+    //Food & Infant Certificate
+    @PostMapping(
+            value = "/food/{productAttributeId}/certificates",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<ApiResponse<CertificateUploadResponse>> uploadFoodAndInfantCertificates(
+            @PathVariable String productAttributeId,
+            @RequestPart(value = "certificateFiles") List<MultipartFile> certificateFiles,
+            @RequestParam(value = "documentIds") List<Long> documentIds,
+            Authentication authentication
+    ) {
+        CertificateUploadResponse response = productDocumentService.uploadFoodandInfantCertificates(
+                productAttributeId, documentIds, certificateFiles, getUsername(authentication)
+        );
+
+        return ResponseEntity.ok(new ApiResponse<>(
+                HttpStatus.OK.toString(),
+                "Food & Infant certificates uploaded successfully",
+                response
+        ));
+    }
+
     // ─────────────────────────────────────────────────────────────
     // HELPER
     // ─────────────────────────────────────────────────────────────

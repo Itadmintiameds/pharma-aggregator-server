@@ -2,16 +2,8 @@ package com.example.pharmaaggregatorserver.service.product.productImpl;
 
 import com.example.pharmaaggregatorserver.dto.product.CertificateDocumentDto;
 import com.example.pharmaaggregatorserver.dto.product.CertificateUploadResponse;
-import com.example.pharmaaggregatorserver.entity.product.ProductAttributeConsumableMedical;
-import com.example.pharmaaggregatorserver.entity.product.ProductAttributeCosmeticandPersonalCare;
-import com.example.pharmaaggregatorserver.entity.product.ProductAttributeNonConsumableMedical;
-import com.example.pharmaaggregatorserver.entity.product.ProductAttributeSupplementsOrNutraceuticals;
-import com.example.pharmaaggregatorserver.entity.product.ProductCertificateDocument;
-import com.example.pharmaaggregatorserver.repository.product.ProductAttributeConsumableMedicalRepository;
-import com.example.pharmaaggregatorserver.repository.product.ProductAttributeCosmeticAndPersonalUseRepository;
-import com.example.pharmaaggregatorserver.repository.product.ProductAttributeNonConsumableMedicalRepository;
-import com.example.pharmaaggregatorserver.repository.product.ProductAttributeSupplementsOrNutraceuticalsRepository;
-import com.example.pharmaaggregatorserver.repository.product.ProductCertificateDocumentRepository;
+import com.example.pharmaaggregatorserver.entity.product.*;
+import com.example.pharmaaggregatorserver.repository.product.*;
 import com.example.pharmaaggregatorserver.service.S3Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +31,7 @@ public class ProductDocumentService {
     private final ProductAttributeConsumableMedicalRepository consumableRepository;
     private final ProductAttributeSupplementsOrNutraceuticalsRepository supplementsOrNutraceuticalsRepository;
     private final ProductAttributeCosmeticAndPersonalUseRepository cosmeticRepository;
+    private final ProductAttributeFoodInfantRepository productAttributeFoodInfantRepository;
 
 
 
@@ -512,6 +505,75 @@ public class ProductDocumentService {
                 .build();
     }
 
+
+//Food & Infant Certificate
+
+    public CertificateUploadResponse uploadFoodandInfantCertificates(
+            String productAttributeId,
+            List<Long> documentIds,
+            List<MultipartFile> certificateFiles,
+            String username) {
+
+        validateParallelLists(certificateFiles, documentIds);
+
+        ProductAttributeFoodInfant attribute = productAttributeFoodInfantRepository
+                .findById(productAttributeId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Food & Infant attribute not found: " + productAttributeId));
+
+        String now = LocalDateTime.now().format(TS_FORMATTER);
+        List<CertificateDocumentDto> uploaded = new ArrayList<>();
+
+        for (int i = 0; i < certificateFiles.size(); i++) {
+
+            MultipartFile file = certificateFiles.get(i);
+            Long docId = documentIds.get(i);
+
+            if (!hasFile(file)) continue;
+
+            ProductCertificateDocument doc = certificateDocumentRepository
+                    .findById(docId)
+                    .orElseThrow(() -> new RuntimeException(
+                            "Certificate document not found: " + docId));
+
+            // Guard: document must belong to this attribute
+            if (doc.getProductAttributeFoodInfant() == null ||
+                    !doc.getProductAttributeFoodInfant().getProductAttributeId().equals(productAttributeId)) {
+                throw new IllegalArgumentException(
+                        "Certificate document id=" + docId
+                                + " does not belong to productAttributeId=" + productAttributeId);
+            }
+
+            deleteIfRealUrl(doc.getCertificateUrl());
+
+            String productId = attribute.getProductDetails().getProductId();
+
+            String key = buildCertKey("food-and-infant", productId, productAttributeId,
+                    doc.getCertification().getCertificationName(), now, file);
+
+            String url = s3Service.uploadFile(key, file);
+            log.info("Food&Infant certificate '{}' uploaded → {}",
+                    doc.getCertification().getCertificationName(), url);
+
+            doc.setCertificateUrl(url);
+            doc.setModifiedBy(username);
+            certificateDocumentRepository.save(doc);
+
+            uploaded.add(CertificateDocumentDto.builder()
+                    .productCertificateDocumentId(docId)
+                    .certificationId(doc.getCertification().getCertificationId())
+                    .certificationName(doc.getCertification().getCertificationName())
+                    .certificateUrl(url)
+                    .build());
+        }
+
+        return CertificateUploadResponse.builder()
+                .productAttributeId(productAttributeId)
+                .attributeType("food-and-infant")
+                .uploadedCertificates(uploaded)
+                .brochureUrl(null)
+                .build();
+    }
 
 
     // ─────────────────────────────────────────────────────────────
