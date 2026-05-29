@@ -518,8 +518,10 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
                                             ? pricing.getSpecialSchemes()
                                             .stream()
                                             .filter(existing ->
-                                                    existing.getSpecialSchemesId()
-                                                            .equals(s.getSpecialSchemesId()))
+                                                    Objects.equals(
+                                                            existing.getSpecialSchemesId(),
+                                                            s.getSpecialSchemesId()
+                                                    ))
                                             .findFirst()
                                             .orElse(new SpecialSchemes())
                                             : new SpecialSchemes();
