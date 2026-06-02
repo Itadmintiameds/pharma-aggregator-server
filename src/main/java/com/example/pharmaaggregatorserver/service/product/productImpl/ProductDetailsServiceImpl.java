@@ -683,9 +683,11 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
                 ProductAttributeNonConsumableMedical existing =
                         existingNonConsumables.iterator().next();
 
-                // ✅ ONLY UPDATE THESE 3 FIELDS
+                // ✅ ONLY UPDATE THESE 5 FIELDS
                 existing.setPurpose(nonConsumableDto.getPurpose());
                 existing.setKeyFeaturesSpecifications(nonConsumableDto.getKeyFeaturesSpecifications());
+                existing.setWarrantyPeriod(nonConsumableDto.getWarrantyPeriod());
+                existing.setServiceAvailability(nonConsumableDto.isServiceAvailability());
 
                 if (nonConsumableDto.getStorageConditionId() != null) {
                     StorageConditionMaster storageCondition = storageConditionMasterRepository
