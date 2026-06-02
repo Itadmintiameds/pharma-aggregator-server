@@ -12,7 +12,8 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 public class LoginResponse {
-    private String token;
+    private String accessToken;    // was: token
+    private String refreshToken;   // new — raw token, sent once
     private String type = "Bearer";
     private Long userId;
     private String username;

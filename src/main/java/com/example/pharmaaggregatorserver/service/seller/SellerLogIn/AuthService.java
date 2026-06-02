@@ -5,17 +5,21 @@ import com.example.pharmaaggregatorserver.dto.seller.SellerLogIn.LoginResponse;
 import com.example.pharmaaggregatorserver.dto.seller.SellerLogIn.OtpSentResponse;
 import com.example.pharmaaggregatorserver.dto.seller.SellerLogIn.OtpVerificationRequest;
 import com.example.pharmaaggregatorserver.entity.auth.LoginOtp;
+import com.example.pharmaaggregatorserver.entity.auth.RefreshToken;
 import com.example.pharmaaggregatorserver.entity.auth.User;
 import com.example.pharmaaggregatorserver.exception.*;
 import com.example.pharmaaggregatorserver.exception.auth.OtpExpiredException;
 import com.example.pharmaaggregatorserver.exception.auth.OtpInvalidException;
 import com.example.pharmaaggregatorserver.exception.auth.OtpLockedException;
+import com.example.pharmaaggregatorserver.exception.auth.RefreshTokenException;
 import com.example.pharmaaggregatorserver.repository.auth.LoginOtpRepository;
 import com.example.pharmaaggregatorserver.repository.auth.UserRepository;
+import com.example.pharmaaggregatorserver.repository.seller.SellerLogIn.refreshTokenRepository;
 import com.example.pharmaaggregatorserver.security.JwtUtils;
 import com.example.pharmaaggregatorserver.security.UserDetailsImpl;
 import com.example.pharmaaggregatorserver.service.EmailService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -34,10 +38,14 @@ import java.util.stream.Collectors;
 public class AuthService {
 
     private final AuthenticationManager authenticationManager;
+    private final refreshTokenRepository refreshTokenRepository;
     private final UserRepository userRepository;
     private final LoginOtpRepository loginOtpRepository;
     private final JwtUtils jwtUtils;
     private final EmailService emailService;
+
+    @Value("${app.jwt.refresh-expiration}")
+    private long refreshTokenExpirationMs;
 
     /** Max wrong password attempts before account is locked */
     private static final int MAX_LOGIN_FAILED_ATTEMPTS = 5;
@@ -155,7 +163,13 @@ public class AuthService {
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         // 8. Generate JWT
-        String jwt = jwtUtils.generateJwtToken(authentication);
+        // String jwt = jwtUtils.generateJwtToken(authentication);
+
+        // Step 8 — Generate access token (same as before)
+        String accessToken = jwtUtils.generateJwtToken(authentication);
+
+        // Step 9 — Generate and persist refresh token
+        String rawRefreshToken = jwtUtils.generateRefreshToken();
 
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
@@ -163,8 +177,18 @@ public class AuthService {
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toSet());
 
+        RefreshToken refreshToken = RefreshToken.builder()
+                .user(user)
+                .tokenHash(jwtUtils.hashToken(rawRefreshToken))
+                .expiresAt(LocalDateTime.now().plusSeconds(
+                        refreshTokenExpirationMs / 1000))
+                .build();
+        refreshTokenRepository.save(refreshToken);
+
+
         return LoginResponse.builder()
-                .token(jwt)
+                .accessToken(accessToken)
+                .refreshToken(rawRefreshToken)   // raw sent to client once; DB holds only hash
                 .userId(userDetails.getId())
                 .username(userDetails.getUsername())
                 .roles(roles)
@@ -218,4 +242,53 @@ public class AuthService {
         int otp = 100000 + random.nextInt(900000); // always 6 digits
         return String.valueOf(otp);
     }
+
+    @Transactional
+    public LoginResponse refreshAccessToken(String rawRefreshToken) {
+         String hash = jwtUtils.hashToken(rawRefreshToken);
+
+         RefreshToken stored = refreshTokenRepository.findByTokenHash(hash)
+                 .orElseThrow(() -> new RefreshTokenException("Invalid refresh token"));
+
+        if (!stored.isValid()) {
+            throw new RefreshTokenException("Refresh token expired or revoked. Please login again.");
+        }
+
+        // Rotate — revoke old, issue new
+        stored.setRevokedAt(LocalDateTime.now());
+        refreshTokenRepository.save(stored);
+
+        User user = stored.getUser();
+        Authentication auth = new UsernamePasswordAuthenticationToken(
+                UserDetailsImpl.build(user), null,
+                UserDetailsImpl.build(user).getAuthorities());
+
+        String newAccessToken  = jwtUtils.generateJwtToken(auth);
+        String newRawRefresh   = jwtUtils.generateRefreshToken();
+
+        RefreshToken newRefreshToken = RefreshToken.builder()
+                .user(user)
+                .tokenHash(jwtUtils.hashToken(newRawRefresh))
+                .expiresAt(LocalDateTime.now().plusSeconds(refreshTokenExpirationMs / 1000))
+                .build();
+        refreshTokenRepository.save(newRefreshToken);
+
+        return LoginResponse.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(newRawRefresh)
+                .userId(user.getUserId())
+                .username(user.getUsername())
+                .build();
+    }
+
+    @Transactional
+    public void logout(String rawRefreshToken) {
+        String hash = jwtUtils.hashToken(rawRefreshToken);
+        refreshTokenRepository.findByTokenHash(hash)
+                .ifPresent(token -> {
+                    token.setRevokedAt(LocalDateTime.now());
+                    refreshTokenRepository.save(token);
+                });
+    }
+
 }

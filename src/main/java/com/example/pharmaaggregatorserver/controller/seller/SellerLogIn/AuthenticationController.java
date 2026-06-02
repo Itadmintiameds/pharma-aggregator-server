@@ -2,12 +2,15 @@ package com.example.pharmaaggregatorserver.controller.seller.SellerLogIn;
 
 import com.example.pharmaaggregatorserver.dto.seller.SellerLogIn.LoginRequest;
 import com.example.pharmaaggregatorserver.dto.seller.SellerLogIn.LoginResponse;
+import com.example.pharmaaggregatorserver.dto.seller.SellerLogIn.LogoutRequest;
 import com.example.pharmaaggregatorserver.dto.seller.SellerLogIn.OtpSentResponse;
 import com.example.pharmaaggregatorserver.dto.seller.SellerLogIn.OtpVerificationRequest;
+import com.example.pharmaaggregatorserver.dto.seller.SellerLogIn.RefreshRequest;
 import com.example.pharmaaggregatorserver.exception.*;
 import com.example.pharmaaggregatorserver.exception.auth.OtpExpiredException;
 import com.example.pharmaaggregatorserver.exception.auth.OtpInvalidException;
 import com.example.pharmaaggregatorserver.exception.auth.OtpLockedException;
+import com.example.pharmaaggregatorserver.exception.auth.RefreshTokenException;
 import com.example.pharmaaggregatorserver.service.seller.SellerLogIn.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -72,15 +75,26 @@ public class AuthenticationController {
         }
     }
 
+    // NEW — POST /authentication/refresh
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(@RequestBody RefreshRequest request) {
+        try {
+            LoginResponse response = authService.refreshAccessToken(request.getRefreshToken());
+            return ResponseEntity.ok(response);
+        } catch (RefreshTokenException e) {
+            return buildErrorResponse(HttpStatus.UNAUTHORIZED, e.getMessage());
+        }
+    }
     // ─────────────────────────────────────────────────────────
     // POST /authentication/logout
     // JWT is stateless — client drops the token.
     // ─────────────────────────────────────────────────────────
+    // FIXED — logout now actually revokes the refresh token
     @PostMapping("/logout")
-    public ResponseEntity<?> logout() {
+    public ResponseEntity<?> logout(@RequestBody LogoutRequest request) {
+        authService.logout(request.getRefreshToken());
         return ResponseEntity.ok(Map.of("message", "Logout successful"));
     }
-
     // ─────────────────────────────────────────────────────────
     // Shared error builder
     // ─────────────────────────────────────────────────────────
