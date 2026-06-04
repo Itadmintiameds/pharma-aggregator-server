@@ -32,4 +32,7 @@ public class Molecule {
     @Column(name = "drug_schedule")
     private String drugSchedule;
 
+    @Column(name = "therapeutic_subcategory_id")
+    private Long therapeuticSubcategoryId;
+
 }

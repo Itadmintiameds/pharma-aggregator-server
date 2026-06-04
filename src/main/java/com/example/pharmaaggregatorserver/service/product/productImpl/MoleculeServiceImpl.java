@@ -1,5 +1,6 @@
 package com.example.pharmaaggregatorserver.service.product.productImpl;
 
+import com.example.pharmaaggregatorserver.dto.product.MoleculeDropdownDto;
 import com.example.pharmaaggregatorserver.dto.product.MoleculeDto;
 import com.example.pharmaaggregatorserver.entity.product.Molecule;
 import com.example.pharmaaggregatorserver.entity.product.ProductAttributeDrug;
@@ -11,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -67,5 +69,13 @@ public class MoleculeServiceImpl implements MoleculeService {
         }
 
         return dto;
+    }
+
+
+    @Override
+    public List<MoleculeDropdownDto> getMoleculesByTherapeuticSubcategoryId(Long therapeuticSubcategoryId) {
+
+        return moleculeRepository
+                .findMoleculeIdAndNameByTherapeuticSubcategoryId(therapeuticSubcategoryId);
     }
 }
