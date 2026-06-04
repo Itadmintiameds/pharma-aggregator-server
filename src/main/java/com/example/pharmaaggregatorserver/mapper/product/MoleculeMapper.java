@@ -16,6 +16,7 @@ public class MoleculeMapper {
         entity.setMechanismOfAction(dto.getMechanismOfAction());
         entity.setPrimaryUse(dto.getPrimaryUse());
         entity.setDrugSchedule(dto.getDrugSchedule());
+        entity.setTherapeuticSubcategoryId(dto.getTherapeuticSubcategoryId());
         return entity;
     }
 
@@ -36,6 +37,7 @@ public class MoleculeMapper {
         dto.setMechanismOfAction(entity.getMechanismOfAction());
         dto.setPrimaryUse(entity.getPrimaryUse());
         dto.setDrugSchedule(entity.getDrugSchedule());
+        dto.setTherapeuticSubcategoryId(entity.getTherapeuticSubcategoryId());
         return dto;
     }
 }

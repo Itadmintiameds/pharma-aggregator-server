@@ -1,5 +1,6 @@
 package com.example.pharmaaggregatorserver.controller.product;
 
+import com.example.pharmaaggregatorserver.dto.product.MoleculeDropdownDto;
 import com.example.pharmaaggregatorserver.dto.product.MoleculeDto;
 import com.example.pharmaaggregatorserver.repository.product.MoleculeRepository;
 import com.example.pharmaaggregatorserver.service.product.MoleculeService;
@@ -36,5 +37,16 @@ public class MoleculeController {
                 moleculeService.getMoleculeById(moleculeId, productAttributeId);
 
         return ResponseEntity.ok(molecule);
+    }
+
+
+    @GetMapping("/getByTherapeuticSubcategoryId/{therapeuticSubcategoryId}")
+    public ResponseEntity<List<MoleculeDropdownDto>> getMoleculesByTherapeuticSubcategoryId(
+            @PathVariable Long therapeuticSubcategoryId) {
+
+        List<MoleculeDropdownDto> molecules =
+                moleculeService.getMoleculesByTherapeuticSubcategoryId(therapeuticSubcategoryId);
+
+        return ResponseEntity.ok(molecules);
     }
 }

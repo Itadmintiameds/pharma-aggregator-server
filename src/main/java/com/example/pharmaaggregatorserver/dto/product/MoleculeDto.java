@@ -11,5 +11,6 @@ public class MoleculeDto {
     private String primaryUse;
     private String drugSchedule;
     private String strength;
+    private Long therapeuticSubcategoryId;
 
 }
