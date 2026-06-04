@@ -14,7 +14,7 @@ app:
   reset-token-expiration-hours: 1
   jwt:
     secret: mySecretKeyForJWTTokenGenerationAndValidation2024!@#$%^&*
-    expiration: 1800000        # 30 minutes (access token)
+    expiration: 86400000        # 30 minutes (access token) // Temporarily set to 24 hours for testing, change back to 30 minutes in production
     refresh-expiration: 604800000  # 7 days (refresh token)
 
 spring:
