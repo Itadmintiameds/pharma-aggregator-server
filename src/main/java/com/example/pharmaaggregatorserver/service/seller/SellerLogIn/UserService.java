@@ -232,6 +232,13 @@ public class UserService {
 
         userRepository.save(user);
 
+        try {
+            sendPasswordChangedEmail(user.getUsername());
+        } catch (Exception ex) {
+            log.error("Failed to send password change notification email to {}",
+                    user.getUsername(), ex);
+        }
+
         log.info("Password reset successfully with token for user: {}", user.getUsername());
     }
 
@@ -260,19 +267,39 @@ public class UserService {
         String subject = "Password Reset OTP";
 
         String body = String.format("""
-            Dear User,
+                Dear User,
+                
+                Your OTP for password reset is:
+                
+                %s
+                
+                This OTP is valid for 10 minutes.
+                
+                If you did not request this, please ignore this email.
+                
+                Regards,
+                Pharma Team
+                """, otp);
 
-            Your OTP for password reset is:
+        emailService.sendMail(email, subject, body);
+    }
 
-            %s
+    private void sendPasswordChangedEmail(String email) {
 
-            This OTP is valid for 10 minutes.
+        String subject = "Password Changed Successfully";
 
-            If you did not request this, please ignore this email.
-
-            Regards,
-            Pharma Team
-            """, otp);
+        String body = """
+                Dear User,
+                
+                Your account password has been changed successfully.
+                
+                If you made this change, no further action is required.
+                
+                If you did NOT change your password, please contact Tiameds support immediately.
+                
+                Regards,
+                Tiameds Support Team
+                """;
 
         emailService.sendMail(email, subject, body);
     }
