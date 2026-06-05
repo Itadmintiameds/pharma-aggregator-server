@@ -41,6 +41,9 @@ public class AdditionalDiscount {
     @Column(name = "effective_end_time")
     private LocalTime effectiveEndTime;
 
+    @Column(name = "display_offer")
+    private Boolean displayOffer;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "pricing_id", nullable = false)
     @JsonIgnore

@@ -17,5 +17,6 @@ public class SpecialSchemesDto {
     private LocalTime effectiveStartTime;
     private LocalDate effectiveEndDate ;
     private LocalTime effectiveEndTime;
+    private Boolean displayOfferScheme;
     private String pricingId;
 }

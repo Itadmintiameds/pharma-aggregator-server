@@ -18,6 +18,7 @@ public class AdditionalDiscountMapper {
         entity.setEffectiveStartTime(dto.getEffectiveStartTime());
         entity.setEffectiveEndDate(dto.getEffectiveEndDate());
         entity.setEffectiveEndTime(dto.getEffectiveEndTime());
+        entity.setDisplayOffer(dto.getDisplayOffer());
         return entity;
     }
 
@@ -32,6 +33,7 @@ public class AdditionalDiscountMapper {
         dto.setEffectiveStartTime(entity.getEffectiveStartTime());
         dto.setEffectiveEndDate(entity.getEffectiveEndDate());
         dto.setEffectiveEndTime(entity.getEffectiveEndTime());
+        dto.setDisplayOffer(entity.getDisplayOffer());
         return dto;
     }
 }

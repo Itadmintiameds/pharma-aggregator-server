@@ -20,6 +20,7 @@ public class SpecialSchemesMapper {
         entity.setEffectiveStartTime(dto.getEffectiveStartTime());
         entity.setEffectiveEndDate(dto.getEffectiveEndDate());
         entity.setEffectiveEndTime(dto.getEffectiveEndTime());
+        entity.setDisplayOfferScheme(dto.getDisplayOfferScheme());
         return entity;
     }
 
@@ -37,6 +38,7 @@ public class SpecialSchemesMapper {
         dto.setEffectiveStartTime(entity.getEffectiveStartTime());
         dto.setEffectiveEndDate(entity.getEffectiveEndDate());
         dto.setEffectiveEndTime(entity.getEffectiveEndTime());
+        dto.setDisplayOfferScheme(entity.getDisplayOfferScheme());
         return dto;
     }
 }

@@ -26,7 +26,7 @@ public class SpecialSchemes {
     @Column(name = "scheme_name")
     private String schemeName;
 
-//    @Column(name = "schemeType")
+//    @Column(name = "scheme_type")
 //    private String schemeType;
 
     @Column(name = "buy_quantity")
@@ -46,6 +46,9 @@ public class SpecialSchemes {
 
     @Column(name = "effective_end_time")
     private LocalTime effectiveEndTime;
+
+    @Column(name = "display_offer_scheme")
+    private Boolean displayOfferScheme;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "pricing_id", nullable = false)

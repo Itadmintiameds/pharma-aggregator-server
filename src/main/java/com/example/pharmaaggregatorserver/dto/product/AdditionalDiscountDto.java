@@ -16,5 +16,6 @@ public class AdditionalDiscountDto {
     private LocalTime effectiveStartTime;
     private LocalDate effectiveEndDate ;
     private LocalTime effectiveEndTime;
+    private Boolean displayOffer;
     private String pricingId;
 }
