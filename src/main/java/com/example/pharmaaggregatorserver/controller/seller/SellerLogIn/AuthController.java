@@ -1,15 +1,20 @@
 package com.example.pharmaaggregatorserver.controller.seller.SellerLogIn;
 
 // AuthController.java
-import com.example.pharmaaggregatorserver.dto.auth.*;
+
+import com.example.pharmaaggregatorserver.dto.auth.VerifyOtpRequest;
 import com.example.pharmaaggregatorserver.dto.seller.SellerLogIn.*;
-import com.example.pharmaaggregatorserver.dto.seller.SellerLogIn.ApiResponse;
 import com.example.pharmaaggregatorserver.service.seller.SellerLogIn.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
@@ -26,14 +31,32 @@ public class AuthController {
     }
 
     // Forgot Password - Request Reset Link
+    // Commenting the Old Logic
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         userService.forgotPassword(request.getEmail());
         return ResponseEntity.ok(new ApiResponse<>(
                 "SUCCESS",
-                "If your email exists in our system, you will receive a password reset link",
+                "OTP has been sent to your registered email",
                 null
         ));
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOtp(
+            @RequestBody VerifyOtpRequest request) {
+
+        String resetToken = userService.verifyPasswordResetOtp(
+                request.getEmail(),
+                request.getOtp());
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        "SUCCESS",
+                        "OTP verified successfully",
+                        Map.of("resetToken", resetToken)
+                )
+        );
     }
 
     // Validate Reset Token

@@ -79,4 +79,10 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private Set<RefreshToken> refreshTokens = new HashSet<>();
+
+    @Column(name = "password_reset_otp")
+    private String passwordResetOtp;
+
+    @Column(name = "password_reset_otp_expires")
+    private LocalDateTime passwordResetOtpExpires;
 }
