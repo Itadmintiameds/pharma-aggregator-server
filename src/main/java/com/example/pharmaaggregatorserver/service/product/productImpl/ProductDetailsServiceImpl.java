@@ -483,24 +483,77 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
                 // 🔥 DO NOT UPDATE — ONLY INSERT
                 existingProduct.getPricingDetails().add(pricing);
 
-                // Additional discounts (same as before)
+                // Additional discounts
                 if (pDto.getAdditionalDiscounts() != null) {
-                    Set<AdditionalDiscount> discounts = pDto.getAdditionalDiscounts().stream()
+
+                    Set<AdditionalDiscount> discounts = pDto.getAdditionalDiscounts()
+                            .stream()
                             .map(d -> {
-                                AdditionalDiscount ad = new AdditionalDiscount();
-                                ad.setMinimumPurchaseQuantity(d.getMinimumPurchaseQuantity());
-                                ad.setAdditionalDiscountPercentage(d.getAdditionalDiscountPercentage());
-                                ad.setEffectiveStartDate(d.getEffectiveStartDate());
-                                ad.setEffectiveStartTime(d.getEffectiveStartTime());
-                                ad.setEffectiveEndDate(d.getEffectiveEndDate());
-                                ad.setEffectiveEndTime(d.getEffectiveEndTime());
+
+                                AdditionalDiscount ad;
+
+                                // ✅ UPDATE existing row
+                                if (d.getAdditionalDiscountId() != null &&
+                                        !d.getAdditionalDiscountId().isBlank()) {
+
+                                    ad = pricing.getAdditionalDiscounts() != null
+                                            ? pricing.getAdditionalDiscounts()
+                                            .stream()
+                                            .filter(existing ->
+                                                    Objects.equals(
+                                                            existing.getAdditionalDiscountId(),
+                                                            d.getAdditionalDiscountId()
+                                                    ))
+                                            .findFirst()
+                                            .orElse(new AdditionalDiscount())
+                                            : new AdditionalDiscount();
+
+                                } else {
+                                    // ✅ CREATE new row
+                                    ad = new AdditionalDiscount();
+                                }
+
+                                ad.setMinimumPurchaseQuantity(
+                                        d.getMinimumPurchaseQuantity());
+                                ad.setAdditionalDiscountPercentage(
+                                        d.getAdditionalDiscountPercentage());
+                                ad.setEffectiveStartDate(
+                                        d.getEffectiveStartDate());
+                                ad.setEffectiveStartTime(
+                                        d.getEffectiveStartTime());
+                                ad.setEffectiveEndDate(
+                                        d.getEffectiveEndDate());
+                                ad.setEffectiveEndTime(
+                                        d.getEffectiveEndTime());
+                                ad.setDisplayOffer(
+                                        d.getDisplayOffer());
+
                                 ad.setPricingDetails(pricing);
+
                                 return ad;
                             })
                             .collect(Collectors.toSet());
 
                     pricing.setAdditionalDiscounts(discounts);
                 }
+
+//                if (pDto.getAdditionalDiscounts() != null) {
+//                    Set<AdditionalDiscount> discounts = pDto.getAdditionalDiscounts().stream()
+//                            .map(d -> {
+//                                AdditionalDiscount ad = new AdditionalDiscount();
+//                                ad.setMinimumPurchaseQuantity(d.getMinimumPurchaseQuantity());
+//                                ad.setAdditionalDiscountPercentage(d.getAdditionalDiscountPercentage());
+//                                ad.setEffectiveStartDate(d.getEffectiveStartDate());
+//                                ad.setEffectiveStartTime(d.getEffectiveStartTime());
+//                                ad.setEffectiveEndDate(d.getEffectiveEndDate());
+//                                ad.setEffectiveEndTime(d.getEffectiveEndTime());
+//                                ad.setPricingDetails(pricing);
+//                                return ad;
+//                            })
+//                            .collect(Collectors.toSet());
+//
+//                    pricing.setAdditionalDiscounts(discounts);
+//                }
 
                 // 🔥 SPECIAL SCHEMES
                 if (pDto.getSpecialSchemes() != null) {
