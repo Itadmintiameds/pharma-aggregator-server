@@ -2,6 +2,7 @@ package com.example.pharmaaggregatorserver.dto.product;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -15,9 +16,9 @@ public class PricingDetailsDto {
     private LocalDateTime expiryDate;
     private Long stockQuantity;
     private LocalDate dateOfStockEntry;
-    private Long sellingPrice;
-    private Long mrp;
-    private Long discountPercentage;
+    private BigDecimal sellingPrice;
+    private BigDecimal mrp;
+    private BigDecimal discountPercentage;
     private Long gstPercentage;
     private Long finalPrice;
     private Long hsnCode;

@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -42,13 +43,13 @@ public class PricingDetails {
     private LocalDate dateOfStockEntry;
 
     @Column(name = "selling_price")
-    private Long sellingPrice;
+    private BigDecimal sellingPrice;
 
     @Column(name = "mrp")
-    private Long mrp;
+    private BigDecimal mrp;
 
     @Column(name = "discount_percentage")
-    private Long discountPercentage;
+    private BigDecimal discountPercentage;
 
     @Column(name = "gst_percentage")
     private Long gstPercentage;

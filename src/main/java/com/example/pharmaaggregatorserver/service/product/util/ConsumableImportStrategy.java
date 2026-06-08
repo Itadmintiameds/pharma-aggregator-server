@@ -12,6 +12,7 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -553,9 +554,9 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
         dto.setExpiryDate(expiryDate);
         dto.setStockQuantity(stockQty);
         dto.setDateOfStockEntry(dateOfEntry);
-        dto.setMrp(mrp);
-        dto.setSellingPrice(sellingPrice);
-        dto.setDiscountPercentage(discountPct);
+        dto.setMrp(BigDecimal.valueOf(mrp));
+        dto.setSellingPrice(BigDecimal.valueOf(sellingPrice));
+        dto.setDiscountPercentage(BigDecimal.valueOf(discountPct));
         dto.setGstPercentage(gstPct);
         dto.setHsnCode(hsnCode);
         dto.setShelfLifeMonths(shelfLifeMonths);

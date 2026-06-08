@@ -14,6 +14,7 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -681,9 +682,9 @@ public class FoodInfantImportStrategy implements ProductImportStrategy {
         pricing.setExpiryDate(expiryDate);
         pricing.setStockQuantity(stockQty);
         pricing.setDateOfStockEntry(dateOfEntry);
-        pricing.setMrp(mrp);
-        pricing.setSellingPrice(sellingPrice);
-        pricing.setDiscountPercentage(discountPct);
+        pricing.setMrp(BigDecimal.valueOf(mrp));
+        pricing.setSellingPrice(BigDecimal.valueOf(sellingPrice));
+        pricing.setDiscountPercentage(BigDecimal.valueOf(discountPct));
         pricing.setGstPercentage(gstPct);
         pricing.setHsnCode(hsnCode);
         pricing.setShelfLifeMonths(shelfLifeMonths);

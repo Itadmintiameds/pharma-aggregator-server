@@ -649,9 +649,9 @@ public class CosmeticsImportStrategy implements ProductImportStrategy {
         pricing.setExpiryDate(expiryDate);
         pricing.setStockQuantity(stockQty);
         pricing.setDateOfStockEntry(dateOfEntry);
-        pricing.setMrp(mrp);
-        pricing.setSellingPrice(sellingPrice);
-        pricing.setDiscountPercentage(discountPct);
+        pricing.setMrp(BigDecimal.valueOf(mrp));
+        pricing.setSellingPrice(BigDecimal.valueOf(sellingPrice));
+        pricing.setDiscountPercentage(BigDecimal.valueOf(discountPct));
         pricing.setGstPercentage(gstPct);
         pricing.setHsnCode(hsnCode);
         pricing.setShelfLifeMonths(shelfLifeMonths);
