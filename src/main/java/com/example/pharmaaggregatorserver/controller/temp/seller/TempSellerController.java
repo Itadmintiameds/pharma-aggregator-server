@@ -213,5 +213,4 @@ public class TempSellerController {
         TempSellerResponseDTO responseDto = tempSellerService.updateTempSeller(tempSellerId, tempSellerRequestDTO);
         return ResponseEntity.ok(responseDto);
     }
-
 }

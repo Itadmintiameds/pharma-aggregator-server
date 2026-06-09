@@ -898,19 +898,18 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
                 existing.setProductClaims(cosmeticDto.getProductClaims());
                 existing.setVariantName(cosmeticDto.getVariantName());
 
-                if (cosmeticDto.getIntendedarea() != null && !cosmeticDto.getIntendedarea().isEmpty()) {
+
+                if (cosmeticDto.getUseAreaId() != null && !cosmeticDto.getUseAreaId().isEmpty()) {
                     List<Long> useAreaIds = cosmeticDto.getUseAreaId();
 
-                    if (useAreaIds != null && !useAreaIds.isEmpty()) {
-                        List<IntendedUseArea> intendedUseAreas = intendedUseAreaRepository
-                                .findAllById(useAreaIds);
+                    List<IntendedUseArea> intendedUseAreas = intendedUseAreaRepository
+                            .findAllById(useAreaIds);
 
-                        if (intendedUseAreas.size() != useAreaIds.size()) {
-                            throw new RuntimeException("Some Intended Areas not found");
-                        }
-
-                        existing.setIntendedUseArea(intendedUseAreas);  // List -> List
+                    if (intendedUseAreas.size() != useAreaIds.size()) {
+                        throw new RuntimeException("Some Intended Areas not found");
                     }
+
+                    existing.setIntendedUseArea(intendedUseAreas);  // List -> List
                 }
 
                 if (cosmeticDto.getStorageConditionId() != null &&

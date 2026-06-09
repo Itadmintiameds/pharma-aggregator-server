@@ -52,6 +52,14 @@ public class TempSellerServiceImpl implements TempSellerService {
     public TempSellerResponseDTO createTempSeller(TempSellerRequestDTO requestDTO) {
         String generatedRequestId = requestIdGeneratorService.generateNextRequestId();
 
+        // ✅ VALIDATION: Phone and Email must be verified
+        if (!requestDTO.getCoordinator().isPhoneVerified()) {
+            throw new RuntimeException("Phone number must be verified before registration");
+        }
+        if (!requestDTO.getCoordinator().isEmailVerified()) {
+            throw new RuntimeException("Email must be verified before registration");
+        }
+
         // Check if phone or email already exists
 //        if (tempSellerRepository.existsByPhone(requestDTO.getPhone())) {
 //            throw new RuntimeException("Phone number already exists");
@@ -80,6 +88,7 @@ public class TempSellerServiceImpl implements TempSellerService {
         seller.setEmail(requestDTO.getEmail());
         seller.setWebsite(requestDTO.getWebsite());
         seller.setStatus("open");
+
         seller.setPhoneVerified(false);
         seller.setEmailVerified(false);
         seller.setGstNumber(requestDTO.getGstNumber());
@@ -95,9 +104,12 @@ public class TempSellerServiceImpl implements TempSellerService {
             seller.setAddress(address);
         }
 
-        // Create coordinator if provided
+        // Create coordinator with verification status
         if (requestDTO.getCoordinator() != null) {
             TempSellerCoordinator coordinator = createCoordinator(requestDTO.getCoordinator(), seller);
+            // ✅ Set coordinator verification from DTO
+            coordinator.setPhoneVerified(requestDTO.getCoordinator().isPhoneVerified());
+            coordinator.setEmailVerified(requestDTO.getCoordinator().isEmailVerified());
             seller.setCoordinator(coordinator);
         }
 
