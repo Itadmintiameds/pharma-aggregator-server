@@ -59,4 +59,9 @@ public class PackagingDetails {
     @JsonIgnore
     private ProductDetails productDetails;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pack_type_unit_id", nullable = true)
+    @JsonIgnore
+    private PackTypeUnitMaster packTypeUnitMaster;
+
 }

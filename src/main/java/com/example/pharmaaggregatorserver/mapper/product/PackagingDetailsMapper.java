@@ -1,14 +1,19 @@
 package com.example.pharmaaggregatorserver.mapper.product;
 
 import com.example.pharmaaggregatorserver.dto.product.PackagingDetailsDto;
-import com.example.pharmaaggregatorserver.entity.product.PackagingDetails;
 import com.example.pharmaaggregatorserver.entity.product.PackType;
+import com.example.pharmaaggregatorserver.entity.product.PackTypeUnitMaster;
+import com.example.pharmaaggregatorserver.entity.product.PackagingDetails;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@AllArgsConstructor
 public class PackagingDetailsMapper {
 
-    public PackagingDetails toEntity(PackagingDetailsDto dto){
+    private final PackTypeUnitMasterMapper packTypeUnitMasterMapper;
+
+    public PackagingDetails toEntity(PackagingDetailsDto dto) {
         if (dto == null) return null;
 
         PackagingDetails entity = new PackagingDetails();
@@ -27,6 +32,12 @@ public class PackagingDetailsMapper {
             PackType packType = new PackType();
             packType.setPackId(dto.getPackId());
             entity.setPackType(packType);
+        }
+
+        if (dto.getPackTypeUnitId() != null) {
+            PackTypeUnitMaster unitMaster = new PackTypeUnitMaster();
+            unitMaster.setPackTypeUnitId(dto.getPackTypeUnitId());
+            entity.setPackTypeUnitMaster(unitMaster);
         }
 
         return entity;
@@ -51,6 +62,14 @@ public class PackagingDetailsMapper {
         dto.setPackId(
                 entity.getPackType() != null ? entity.getPackType().getPackId() : null
         );
+        if (entity.getPackTypeUnitMaster() != null) {
+            dto.setPackTypeUnitId(
+                    entity.getPackTypeUnitMaster().getPackTypeUnitId()
+            );
+
+            dto.setPackTypeUnitMasterDto(
+                    packTypeUnitMasterMapper.toDto(entity.getPackTypeUnitMaster()));
+        }
         return dto;
     }
 
