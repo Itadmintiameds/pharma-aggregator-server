@@ -53,12 +53,12 @@ public class TempSellerServiceImpl implements TempSellerService {
         String generatedRequestId = requestIdGeneratorService.generateNextRequestId();
 
         // ✅ VALIDATION: Phone and Email must be verified
-        if (!requestDTO.getCoordinator().isPhoneVerified()) {
-            throw new RuntimeException("Phone number must be verified before registration");
-        }
-        if (!requestDTO.getCoordinator().isEmailVerified()) {
-            throw new RuntimeException("Email must be verified before registration");
-        }
+//        if (!requestDTO.getCoordinator().isPhoneVerified()) {
+//            throw new RuntimeException("Phone number must be verified before registration");
+//        }
+//        if (!requestDTO.getCoordinator().isEmailVerified()) {
+//            throw new RuntimeException("Email must be verified before registration");
+//        }
 
         // Check if phone or email already exists
 //        if (tempSellerRepository.existsByPhone(requestDTO.getPhone())) {
@@ -105,13 +105,13 @@ public class TempSellerServiceImpl implements TempSellerService {
         }
 
         // Create coordinator with verification status
-        if (requestDTO.getCoordinator() != null) {
-            TempSellerCoordinator coordinator = createCoordinator(requestDTO.getCoordinator(), seller);
-            // ✅ Set coordinator verification from DTO
-            coordinator.setPhoneVerified(requestDTO.getCoordinator().isPhoneVerified());
-            coordinator.setEmailVerified(requestDTO.getCoordinator().isEmailVerified());
-            seller.setCoordinator(coordinator);
-        }
+//        if (requestDTO.getCoordinator() != null) {
+//            TempSellerCoordinator coordinator = createCoordinator(requestDTO.getCoordinator(), seller);
+//            // ✅ Set coordinator verification from DTO
+//            coordinator.setPhoneVerified(requestDTO.getCoordinator().isPhoneVerified());
+//            coordinator.setEmailVerified(requestDTO.getCoordinator().isEmailVerified());
+//            seller.setCoordinator(coordinator);
+//        }
 
         // Create bank details if provided
         if (requestDTO.getBankDetails() != null) {
