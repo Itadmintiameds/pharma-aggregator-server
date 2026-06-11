@@ -113,6 +113,11 @@ public class TempSellerServiceImpl implements TempSellerService {
 //            seller.setCoordinator(coordinator);
 //        }
 
+        if (requestDTO.getCoordinator() != null) {
+            TempSellerCoordinator coordinator = createCoordinator(requestDTO.getCoordinator(), seller);
+            seller.setCoordinator(coordinator);
+        }
+
         // Create bank details if provided
         if (requestDTO.getBankDetails() != null) {
             TempSellerBankDetails bankDetails = createBankDetails(requestDTO.getBankDetails(), seller);
