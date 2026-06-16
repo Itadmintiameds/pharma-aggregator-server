@@ -22,7 +22,7 @@ public class ConsumableProductAttributeDTO {
     // For displaying material type names in response
     private List<MaterialTypeInfo> materialTypes = new ArrayList<>();
 
-    private Double dimensionSize;
+    private String dimensionSize;
     private Long deviceSpecificationUnitId;
     private String deviceSpecificationUnitName;
     private String sterileOrNonSterile;
