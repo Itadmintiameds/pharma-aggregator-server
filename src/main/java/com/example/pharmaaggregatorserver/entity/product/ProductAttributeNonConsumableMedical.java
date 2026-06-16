@@ -55,7 +55,7 @@ public class ProductAttributeNonConsumableMedical {
     private String purpose;     // Intended Use / Purpose*
 
     @Column(name = "dimension_Size")
-    private Double dimensionSize;       // Technical Dimensions / Capacity / Configuration*
+    private String dimensionSize;       // Technical Dimensions / Capacity / Configuration*
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "device_specification_unit_id", nullable = true)

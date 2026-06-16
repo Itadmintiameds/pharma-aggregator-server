@@ -335,7 +335,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         dto.setDeviceClassification(getString(row, COL_DEVICE_CLASSIFICATION));
         dto.setUdiNumber(getString(row, COL_UDI));
         dto.setPurpose(getString(row, COL_PURPOSE));
-        dto.setDimensionSize(getDouble(row, COL_TECHNICAL_DIMENSIONS));
+        dto.setDimensionSize(getString(row, COL_TECHNICAL_DIMENSIONS));
 
         String deviceSpecificationUnit = getString(row, COL_DEVICE_SPEC_UNIT_NAME);
         if (!isBlank(deviceSpecificationUnit)) {
@@ -469,7 +469,7 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
         dto.setDeviceClassification(getCsvString(r, H_DEVICE_CLASSIFICATION));
         dto.setUdiNumber(getCsvString(r, H_UDI));
         dto.setPurpose(getCsvString(r, H_PURPOSE));
-        dto.setDimensionSize(getCsvDouble(r, H_TECHNICAL_DIMENSIONS));
+        dto.setDimensionSize(getCsvString(r, H_TECHNICAL_DIMENSIONS));
 
         String deviceSpecificationUnit = getCsvString(r, H_DEVICE_SPEC_UNIT_NAME);
         if (!isBlank(deviceSpecificationUnit)) {
@@ -743,20 +743,10 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
 
         // ── Technical Dimensions ──────────────────────────────────────────────
         String technicalDimensionsRaw = getString(row, COL_TECHNICAL_DIMENSIONS);
-        Double technicalDimensionsVal = getDouble(row, COL_TECHNICAL_DIMENSIONS);
         validateRequired(technicalDimensionsRaw, "Technical Dimensions", errors);
         if (!isBlank(technicalDimensionsRaw)) {
-            if (technicalDimensionsVal == null)
-                errors.add("Technical Dimensions must be a numeric or decimal value");
-            else if (technicalDimensionsVal <= 0)
-                errors.add("Technical Dimensions must be greater than 0");
-            if (technicalDimensionsRaw.length() > 10)
-                errors.add("Technical Dimensions must not exceed 10 characters");
-            if (technicalDimensionsVal != null) {
-                String[] parts = technicalDimensionsRaw.split("\\.");
-                if (parts.length == 2 && parts[1].length() > 2)
-                    errors.add("Technical Dimensions must not have more than 2 decimal places");
-            }
+            if (technicalDimensionsRaw.length() > 100)
+                errors.add("Technical Dimensions must not exceed 100 characters");
         }
 
         // ── Device Specification Unit Name ───────────────────────────────────
@@ -982,20 +972,10 @@ public class NonConsumableImportStrategy implements ProductImportStrategy {
 
         // ── Technical Dimensions ──────────────────────────────────────────────
         String technicalDimensionsRaw = getCsvString(r, H_TECHNICAL_DIMENSIONS);
-        Double technicalDimensionsVal = getCsvDouble(r, H_TECHNICAL_DIMENSIONS);
         validateRequired(technicalDimensionsRaw, "Technical Dimensions", errors);
         if (!isBlank(technicalDimensionsRaw)) {
-            if (technicalDimensionsVal == null)
-                errors.add("Technical Dimensions must be a numeric or decimal value");
-            else if (technicalDimensionsVal <= 0)
-                errors.add("Technical Dimensions must be greater than 0");
-            if (technicalDimensionsRaw.length() > 10)
-                errors.add("Technical Dimensions must not exceed 10 characters");
-            if (technicalDimensionsVal != null) {
-                String[] parts = technicalDimensionsRaw.split("\\.");
-                if (parts.length == 2 && parts[1].length() > 2)
-                    errors.add("Technical Dimensions must not have more than 2 decimal places");
-            }
+            if (technicalDimensionsRaw.length() > 100)
+                errors.add("Technical Dimensions must not exceed 100 characters");
         }
 
         // ── Device Specification Unit Name ───────────────────────────────────
