@@ -20,6 +20,8 @@ import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
+import static io.micrometer.common.util.StringUtils.isBlank;
+
 @Slf4j
 @Component("CONSUMABLE")
 @RequiredArgsConstructor
@@ -338,7 +340,7 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
         dto.setBrandName(getString(row, COL_BRAND_NAME));
 
         // FIX: was commented out — now consistently set for both Excel and CSV paths
-        dto.setDimensionSize(getDouble(row, COL_DIMENSION_SIZE));
+        dto.setDimensionSize(getString(row, COL_DIMENSION_SIZE));
 
         // Look up DeviceSpecificationUnit by sub-category + unitName
         String devSpecUnitName = getString(row, COL_DEV_SPECIFICATION_UNIT_NAME);
@@ -434,7 +436,7 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
         );
 
         dto.setBrandName(getCsvString(r, H_BRAND_NAME));
-        dto.setDimensionSize(getCsvDouble(r, H_DIMENSION_SIZE));
+        dto.setDimensionSize(getCsvString(r, H_DIMENSION_SIZE));
 
         // Look up DeviceSpecificationUnit by sub-category + unitName
         String devSpecUnitName = getCsvString(r, H_DEV_SPECIFICATION_UNIT_NAME);
@@ -659,13 +661,9 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
         // ── Size / Dimension / Gauge ──────────────────────────────────────
         String dimensionSizeRaw = getString(row, COL_DIMENSION_SIZE);
         validateRequired(dimensionSizeRaw, "Size / Dimension / Gauge", errors);
-        if (dimensionSizeRaw != null && !dimensionSizeRaw.isBlank()) {
-            try {
-                double d = Double.parseDouble(dimensionSizeRaw);
-                if (d <= 0) errors.add("Size / Dimension / Gauge must be a positive number");
-            } catch (NumberFormatException e) {
-                errors.add("Size / Dimension / Gauge must be a numeric value");
-            }
+        if (!isBlank(dimensionSizeRaw)) {
+            if (dimensionSizeRaw.length() > 100)
+                errors.add("Technical Dimensions must not exceed 100 characters");
         }
 
         // ── Device Specification Unit Name ────────────────────────────────
@@ -905,13 +903,9 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
         // ── Size / Dimension / Gauge ──────────────────────────────────────
         String dimensionSizeRaw = getCsvString(r, H_DIMENSION_SIZE);
         validateRequired(dimensionSizeRaw, "Size / Dimension / Gauge", errors);
-        if (dimensionSizeRaw != null && !dimensionSizeRaw.isBlank()) {
-            try {
-                double d = Double.parseDouble(dimensionSizeRaw);
-                if (d <= 0) errors.add("Size / Dimension / Gauge must be a positive number");
-            } catch (NumberFormatException e) {
-                errors.add("Size / Dimension / Gauge must be a numeric value");
-            }
+        if (!isBlank(dimensionSizeRaw)) {
+            if (dimensionSizeRaw.length() > 100)
+                errors.add("Technical Dimensions must not exceed 100 characters");
         }
 
         // ── Device Specification Unit Name ────────────────────────────────

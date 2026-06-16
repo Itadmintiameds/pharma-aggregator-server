@@ -62,7 +62,7 @@ public class ProductAttributeConsumableMedical {
 //    @JsonIgnoreProperties
 //    private DimensionSize dimensionSize;
     @Column(name = "dimension_Size")
-    private Double dimensionSize;
+    private String dimensionSize;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "device_specification_unit_id", nullable = true)
