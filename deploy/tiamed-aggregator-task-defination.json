@@ -72,6 +72,22 @@
         {
           "name": "SERVICE_SID",
           "valueFrom": "arn:aws:secretsmanager:ap-south-1:977098986605:secret:pharma_aggregator_test-IWah61:SERVICE_SID::"
+        },
+        {
+          "name": "SPRING_MAIL_HOST",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:977098986605:secret:pharma_aggregator_test-IWah61:SPRING_MAIL_HOST::"
+        },
+        {
+          "name": "SPRING_MAIL_PORT",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:977098986605:secret:pharma_aggregator_test-IWah61:SPRING_MAIL_PORT::"
+        },
+        {
+          "name": "SPRING_MAIL_USERNAME",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:977098986605:secret:pharma_aggregator_test-IWah61:SPRING_MAIL_USERNAME::"
+        },
+        {
+          "name": "SPRING_MAIL_PASSWORD",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:977098986605:secret:pharma_aggregator_test-IWah61:SPRING_MAIL_PASSWORD::"
         }
       ]
     ,
