@@ -3,8 +3,14 @@ package com.example.pharmaaggregatorserver.repository.product;
 import com.example.pharmaaggregatorserver.entity.product.PricingDetails;
 import com.example.pharmaaggregatorserver.entity.product.ProductDetails;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import java.util.List;
+import java.util.Optional;
+
+import static jakarta.persistence.LockModeType.PESSIMISTIC_WRITE;
 
 public interface PricingDetailsRepository extends JpaRepository<PricingDetails, String>{
 
@@ -29,5 +35,26 @@ public interface PricingDetailsRepository extends JpaRepository<PricingDetails, 
             @Param("userId") Long userId,
             @Param("categoryId") Long categoryId
     );
+
+    // Locked lookup used by StockService to decide "restock existing batch" vs "create new batch"
+    @Lock(PESSIMISTIC_WRITE)
+    Optional<PricingDetails> findByProductDetails_ProductIdAndBatchLotNumber(String productId, String batchLotNumber);
+
+    // Read-only, oldest-manufactured-first list used by the "view available batches" endpoint.
+    // No lock: PESSIMISTIC_WRITE requires an active transaction, and this is called from
+    // non-transactional read methods — locking here would also needlessly block concurrent debits.
+    List<PricingDetails> findByProductDetails_ProductIdAndStockQuantityGreaterThanOrderByManufacturingDateAsc(
+            String productId, Long minQty);
+
+    // Locked variant used only inside StockService.debitStock's @Transactional FIFO allocation,
+    // where holding the row lock across the read+update is required to avoid overselling a batch.
+    @Lock(PESSIMISTIC_WRITE)
+    @Query("""
+        SELECT p FROM PricingDetails p
+        WHERE p.productDetails.productId = :productId AND p.stockQuantity > :minQty
+        ORDER BY p.manufacturingDate ASC
+    """)
+    List<PricingDetails> lockAvailableBatchesForDebit(
+            @Param("productId") String productId, @Param("minQty") Long minQty);
 }
 

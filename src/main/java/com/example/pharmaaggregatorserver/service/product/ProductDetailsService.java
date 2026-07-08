@@ -11,6 +11,7 @@ public interface ProductDetailsService {
 
     List<ProductDetailsDto> getAllProducts(Long userId);
 
+    List<ProductDetailsDto> getAllProductsForAdmin();
     ProductDetailsDto getProductById(String productId, Long userId);
 
     void deleteProductById(String productId, Long userId);

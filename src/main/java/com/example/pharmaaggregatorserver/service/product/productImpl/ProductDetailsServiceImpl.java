@@ -81,6 +81,13 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
         return productMapper.toDto(saved);
     }
 
+    public List<ProductDetailsDto> getAllProductsForAdmin() {
+        return productRepo.findAll()
+                .stream()
+                .map(productMapper::toDto)
+                .toList();
+    }
+
     private void setChildRelationships(ProductDetails product, String sellerName, String sellerId) {
 
         if (product.getPackagingDetails() != null) {

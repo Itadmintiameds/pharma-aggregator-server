@@ -56,6 +56,11 @@ public class ProductDetailsController {
         return ResponseEntity.ok(product);
     }
 
+    @GetMapping("/all")
+    public ResponseEntity<List<ProductDetailsDto>> getAllProducts() {
+        List<ProductDetailsDto> products = productService.getAllProductsForAdmin();
+        return ResponseEntity.ok(products);
+    }
 
     @DeleteMapping("/delete/{productId}")
     public ResponseEntity<ApiResponse<Void>> deleteProduct(
