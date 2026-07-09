@@ -8,6 +8,8 @@ import java.time.LocalDateTime;
 @Data
 public class BatchStockInDto {
 
+    // Optional — which packaging/pack-size variant this batch line applies to.
+    private String packagingId;
     private String batchLotNumber;
     private LocalDateTime manufacturingDate;
     private LocalDateTime expiryDate;

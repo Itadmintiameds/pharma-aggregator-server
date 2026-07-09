@@ -40,11 +40,21 @@ public interface PricingDetailsRepository extends JpaRepository<PricingDetails, 
     @Lock(PESSIMISTIC_WRITE)
     Optional<PricingDetails> findByProductDetails_ProductIdAndBatchLotNumber(String productId, String batchLotNumber);
 
+    // Packaging-scoped variant of the above, used once a batch is linked to a specific
+    // packaging/pack-size variant rather than the product as a whole.
+    @Lock(PESSIMISTIC_WRITE)
+    Optional<PricingDetails> findByProductDetails_ProductIdAndPackagingDetails_PackagingIdAndBatchLotNumber(
+            String productId, String packagingId, String batchLotNumber);
+
     // Read-only, oldest-manufactured-first list used by the "view available batches" endpoint.
     // No lock: PESSIMISTIC_WRITE requires an active transaction, and this is called from
     // non-transactional read methods — locking here would also needlessly block concurrent debits.
     List<PricingDetails> findByProductDetails_ProductIdAndStockQuantityGreaterThanOrderByManufacturingDateAsc(
             String productId, Long minQty);
+
+    // Packaging-scoped variant of the above, for viewing available batches of one specific variant.
+    List<PricingDetails> findByProductDetails_ProductIdAndPackagingDetails_PackagingIdAndStockQuantityGreaterThanOrderByManufacturingDateAsc(
+            String productId, String packagingId, Long minQty);
 
     // Locked variant used only inside StockService.debitStock's @Transactional FIFO allocation,
     // where holding the row lock across the read+update is required to avoid overselling a batch.
@@ -56,5 +66,24 @@ public interface PricingDetailsRepository extends JpaRepository<PricingDetails, 
     """)
     List<PricingDetails> lockAvailableBatchesForDebit(
             @Param("productId") String productId, @Param("minQty") Long minQty);
+
+    // Packaging-scoped FIFO lock, used when a debit request targets one specific variant only.
+    @Lock(PESSIMISTIC_WRITE)
+    @Query("""
+        SELECT p FROM PricingDetails p
+        WHERE p.productDetails.productId = :productId
+          AND p.packagingDetails.packagingId = :packagingId
+          AND p.stockQuantity > :minQty
+        ORDER BY p.manufacturingDate ASC
+    """)
+    List<PricingDetails> lockAvailableBatchesForDebitByPackaging(
+            @Param("productId") String productId, @Param("packagingId") String packagingId, @Param("minQty") Long minQty);
+
+    @Query("""
+        SELECT COALESCE(SUM(p.stockQuantity), 0) FROM PricingDetails p
+        WHERE p.productDetails.productId = :productId AND p.packagingDetails.packagingId = :packagingId
+    """)
+    Long getTotalStockByProductIdAndPackagingId(
+            @Param("productId") String productId, @Param("packagingId") String packagingId);
 }
 

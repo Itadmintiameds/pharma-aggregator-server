@@ -54,8 +54,11 @@ public class StockController {
     }
 
     @GetMapping("/{productId}/batches")
-    public ResponseEntity<List<BatchAvailabilityDto>> getAvailableBatches(@PathVariable String productId) {
-        return ResponseEntity.ok(stockService.getAvailableBatchesFifo(productId));
+    public ResponseEntity<List<BatchAvailabilityDto>> getAvailableBatches(
+            @PathVariable String productId,
+            @RequestParam(required = false) String packagingId
+    ) {
+        return ResponseEntity.ok(stockService.getAvailableBatchesFifo(productId, packagingId));
     }
 
     @GetMapping("/{productId}/debited-total")

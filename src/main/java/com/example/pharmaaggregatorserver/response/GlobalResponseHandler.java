@@ -30,12 +30,15 @@ public class GlobalResponseHandler implements ResponseBodyAdvice<Object> {
         if (body instanceof ApiResponse) {
             return body;
         }
-
+        Long count = (body instanceof java.util.Collection<?> collection)
+                ? (long) collection.size()
+                : 0;
         // Wrap normal response
         return new ApiResponse<>(
                 "SUCCESS",
                 "Request processed successfully",
-                body
+                body,
+                count
         );
     }
 }

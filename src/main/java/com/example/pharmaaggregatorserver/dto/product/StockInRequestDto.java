@@ -9,6 +9,9 @@ import java.time.LocalDateTime;
 public class StockInRequestDto {
 
     private String productId;
+    // Optional — which packaging/pack-size variant this stock-in applies to. Omit to keep
+    // today's product-wide behavior.
+    private String packagingId;
     private String batchLotNumber;
     private LocalDateTime manufacturingDate;
     private LocalDateTime expiryDate;

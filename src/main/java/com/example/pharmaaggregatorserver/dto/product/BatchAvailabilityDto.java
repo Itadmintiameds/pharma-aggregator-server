@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 public class BatchAvailabilityDto {
 
     private String pricingId;
+    private String packagingId;
     private String batchLotNumber;
     private LocalDateTime manufacturingDate;
     private LocalDateTime expiryDate;

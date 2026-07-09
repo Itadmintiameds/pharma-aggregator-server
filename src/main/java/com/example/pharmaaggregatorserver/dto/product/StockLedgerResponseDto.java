@@ -16,6 +16,7 @@ public class StockLedgerResponseDto {
 
     private Long ledgerId;
     private String pricingId;
+    private String packagingId;
     private String batchLotNumber;
     private String productId;
     private StockTransactionType transactionType;

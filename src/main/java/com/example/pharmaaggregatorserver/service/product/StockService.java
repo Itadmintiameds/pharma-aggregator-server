@@ -32,6 +32,12 @@ public interface StockService {
 
     List<BatchAvailabilityDto> getAvailableBatchesFifo(String productId);
 
+    /**
+     * Same as {@link #getAvailableBatchesFifo(String)}, restricted to one packaging/pack-size
+     * variant. Pass null/blank packagingId to fall back to the product-wide view.
+     */
+    List<BatchAvailabilityDto> getAvailableBatchesFifo(String productId, String packagingId);
+
     Long getTotalDebited(String productId);
 
     Long getTotalAdded(String productId);

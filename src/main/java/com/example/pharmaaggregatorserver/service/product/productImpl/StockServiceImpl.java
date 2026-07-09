@@ -6,6 +6,7 @@ import com.example.pharmaaggregatorserver.dto.product.MultiBatchStockInRequestDt
 import com.example.pharmaaggregatorserver.dto.product.StockDebitRequestDto;
 import com.example.pharmaaggregatorserver.dto.product.StockInRequestDto;
 import com.example.pharmaaggregatorserver.dto.product.StockLedgerResponseDto;
+import com.example.pharmaaggregatorserver.entity.product.PackagingDetails;
 import com.example.pharmaaggregatorserver.entity.product.PricingDetails;
 import com.example.pharmaaggregatorserver.entity.product.ProductDetails;
 import com.example.pharmaaggregatorserver.entity.product.StockLedger;
@@ -15,17 +16,18 @@ import com.example.pharmaaggregatorserver.exception.BadRequestException;
 import com.example.pharmaaggregatorserver.exception.InsufficientStockException;
 import com.example.pharmaaggregatorserver.exception.ResourceNotFoundException;
 import com.example.pharmaaggregatorserver.exception.UnauthorizedException;
+import com.example.pharmaaggregatorserver.repository.product.PackagingDetailsRepository;
 import com.example.pharmaaggregatorserver.repository.product.PricingDetailsRepository;
 import com.example.pharmaaggregatorserver.repository.product.ProductDetailsRepository;
 import com.example.pharmaaggregatorserver.repository.product.StockLedgerRepository;
 import com.example.pharmaaggregatorserver.repository.seller.SellerRepository;
+import com.example.pharmaaggregatorserver.service.product.PricingDetailsService;
 import com.example.pharmaaggregatorserver.service.product.StockService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +37,8 @@ import java.util.List;
 public class StockServiceImpl implements StockService {
 
     private final PricingDetailsRepository pricingDetailsRepository;
+    private final PackagingDetailsRepository packagingDetailsRepository;
+    private final PricingDetailsService pricingDetailsService;
     private final StockLedgerRepository stockLedgerRepository;
     private final ProductDetailsRepository productDetailsRepository;
     private final SellerRepository sellerRepository;
@@ -55,6 +59,7 @@ public class StockServiceImpl implements StockService {
 
         return addSingleBatch(
                 product, seller, userId,
+                request.getPackagingId(),
                 request.getBatchLotNumber(),
                 request.getManufacturingDate(),
                 request.getExpiryDate(),
@@ -88,6 +93,7 @@ public class StockServiceImpl implements StockService {
         for (BatchStockInDto batchLine : request.getBatches()) {
             results.add(addSingleBatch(
                     product, seller, userId,
+                    batchLine.getPackagingId(),
                     batchLine.getBatchLotNumber(),
                     batchLine.getManufacturingDate(),
                     batchLine.getExpiryDate(),
@@ -105,6 +111,7 @@ public class StockServiceImpl implements StockService {
             ProductDetails product,
             Seller seller,
             Long userId,
+            String packagingId,
             String batchLotNumber,
             LocalDateTime manufacturingDate,
             LocalDateTime expiryDate,
@@ -114,34 +121,18 @@ public class StockServiceImpl implements StockService {
             String referenceId,
             String referenceType
     ) {
-        PricingDetails batch = pricingDetailsRepository
-                .findByProductDetails_ProductIdAndBatchLotNumber(product.getProductId(), batchLotNumber)
-                .orElse(null);
+        PackagingDetails packaging = resolvePackaging(product, packagingId);
 
-        if (batch != null) {
-            // Existing batch — restock it. Guard against a lot number being reused with a different expiry,
-            // which usually means the seller mistyped it rather than genuinely topping up the same batch.
-            if (!batch.getExpiryDate().equals(expiryDate)) {
-                throw new BadRequestException(
-                        "Batch lot number '" + batchLotNumber
-                                + "' already exists for this product with a different expiry date");
-            }
-            batch.setStockQuantity(batch.getStockQuantity() + quantity);
-            batch.setModifiedDate(LocalDateTime.now());
-        } else {
-            // No matching lot number — brand new batch.
-            batch = new PricingDetails();
-            batch.setPricingId(generatePricingId(seller.getSellerName()));
-            batch.setProductDetails(product);
-            batch.setBatchLotNumber(batchLotNumber);
-            batch.setManufacturingDate(manufacturingDate);
-            batch.setExpiryDate(expiryDate);
-            batch.setStockQuantity(quantity);
-            batch.setMrp(mrp);
-            batch.setSellingPrice(sellingPrice);
-            batch.setDateOfStockEntry(LocalDate.now());
-            batch.setCreatedDate(LocalDateTime.now());
-        }
+        PricingDetails candidate = new PricingDetails();
+        candidate.setBatchLotNumber(batchLotNumber);
+        candidate.setManufacturingDate(manufacturingDate);
+        candidate.setExpiryDate(expiryDate);
+        candidate.setStockQuantity(quantity);
+        candidate.setMrp(mrp);
+        candidate.setSellingPrice(sellingPrice);
+
+        PricingDetails batch = pricingDetailsService.resolveOrCreateBatch(
+                product, packaging, candidate, seller.getSellerName(), seller.getSellerId());
         pricingDetailsRepository.save(batch);
 
         StockLedger ledger = buildLedgerRow(
@@ -164,7 +155,22 @@ public class StockServiceImpl implements StockService {
         ProductDetails product = productDetailsRepository.findById(request.getProductId())
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + request.getProductId()));
 
-        Long totalAvailable = pricingDetailsRepository.getTotalStockByProductId(request.getProductId());
+        String packagingId = request.getPackagingId();
+        boolean scoped = packagingId != null && !packagingId.isBlank();
+
+        if (scoped) {
+            // Validate the variant actually belongs to this product before scoping anything to it.
+            resolvePackaging(product, packagingId);
+        } else if (product.getPackagingDetails() != null && product.getPackagingDetails().size() > 1) {
+            throw new BadRequestException(
+                    "Product " + product.getProductId()
+                            + " has multiple packaging variants — packagingId is required to debit stock");
+        }
+
+        Long totalAvailable = scoped
+                ? pricingDetailsRepository.getTotalStockByProductIdAndPackagingId(request.getProductId(), packagingId)
+                : pricingDetailsRepository.getTotalStockByProductId(request.getProductId());
+
         if (totalAvailable == null || totalAvailable < request.getQuantity()) {
             throw new InsufficientStockException(
                     "Insufficient stock for product " + request.getProductId()
@@ -174,8 +180,9 @@ public class StockServiceImpl implements StockService {
         // Oldest manufacturingDate first = FIFO. Row lock (see repository) stops a concurrent
         // debit/restock from reading a stale stockQuantity on the same batch. Safe to use the
         // locked variant here because this method is @Transactional.
-        List<PricingDetails> batches = pricingDetailsRepository
-                .lockAvailableBatchesForDebit(request.getProductId(), 0L);
+        List<PricingDetails> batches = scoped
+                ? pricingDetailsRepository.lockAvailableBatchesForDebitByPackaging(request.getProductId(), packagingId, 0L)
+                : pricingDetailsRepository.lockAvailableBatchesForDebit(request.getProductId(), 0L);
 
         long remaining = request.getQuantity();
         List<StockLedgerResponseDto> results = new ArrayList<>();
@@ -217,13 +224,20 @@ public class StockServiceImpl implements StockService {
         return pricingDetailsRepository
                 .findByProductDetails_ProductIdAndStockQuantityGreaterThanOrderByManufacturingDateAsc(productId, 0L)
                 .stream()
-                .map(batch -> BatchAvailabilityDto.builder()
-                        .pricingId(batch.getPricingId())
-                        .batchLotNumber(batch.getBatchLotNumber())
-                        .manufacturingDate(batch.getManufacturingDate())
-                        .expiryDate(batch.getExpiryDate())
-                        .stockQuantity(batch.getStockQuantity())
-                        .build())
+                .map(this::toBatchAvailabilityDto)
+                .toList();
+    }
+
+    @Override
+    public List<BatchAvailabilityDto> getAvailableBatchesFifo(String productId, String packagingId) {
+        if (packagingId == null || packagingId.isBlank()) {
+            return getAvailableBatchesFifo(productId);
+        }
+        return pricingDetailsRepository
+                .findByProductDetails_ProductIdAndPackagingDetails_PackagingIdAndStockQuantityGreaterThanOrderByManufacturingDateAsc(
+                        productId, packagingId, 0L)
+                .stream()
+                .map(this::toBatchAvailabilityDto)
                 .toList();
     }
 
@@ -235,6 +249,29 @@ public class StockServiceImpl implements StockService {
     @Override
     public Long getTotalAdded(String productId) {
         return stockLedgerRepository.sumQuantityByProductIdAndType(productId, StockTransactionType.STOCK_IN);
+    }
+
+    // Looks up a packaging/variant and verifies it actually belongs to the given product —
+    // guards against a caller passing a packagingId that exists but is for a different product.
+    private PackagingDetails resolvePackaging(ProductDetails product, String packagingId) {
+        if (packagingId == null || packagingId.isBlank()) {
+            return null;
+        }
+        return packagingDetailsRepository.findById(packagingId)
+                .filter(p -> p.getProductDetails().getProductId().equals(product.getProductId()))
+                .orElseThrow(() -> new BadRequestException(
+                        "Packaging " + packagingId + " not found on product " + product.getProductId()));
+    }
+
+    private BatchAvailabilityDto toBatchAvailabilityDto(PricingDetails batch) {
+        return BatchAvailabilityDto.builder()
+                .pricingId(batch.getPricingId())
+                .packagingId(batch.getPackagingDetails() != null ? batch.getPackagingDetails().getPackagingId() : null)
+                .batchLotNumber(batch.getBatchLotNumber())
+                .manufacturingDate(batch.getManufacturingDate())
+                .expiryDate(batch.getExpiryDate())
+                .stockQuantity(batch.getStockQuantity())
+                .build();
     }
 
     private StockLedger buildLedgerRow(
@@ -266,6 +303,8 @@ public class StockServiceImpl implements StockService {
         return StockLedgerResponseDto.builder()
                 .ledgerId(ledger.getLedgerId())
                 .pricingId(ledger.getPricingDetails().getPricingId())
+                .packagingId(ledger.getPricingDetails().getPackagingDetails() != null
+                        ? ledger.getPricingDetails().getPackagingDetails().getPackagingId() : null)
                 .batchLotNumber(ledger.getPricingDetails().getBatchLotNumber())
                 .productId(ledger.getProductDetails().getProductId())
                 .transactionType(ledger.getTransactionType())
@@ -275,20 +314,5 @@ public class StockServiceImpl implements StockService {
                 .referenceType(ledger.getReferenceType())
                 .createdDate(ledger.getCreatedDate())
                 .build();
-    }
-
-    // Mirrors ProductDetailsServiceImpl.generatePricingId — same "BTCH" batch-id convention,
-    // kept local since this codebase duplicates per-service ID generators rather than sharing one.
-    private synchronized String generatePricingId(String sellerName) {
-        String cleanedSeller = sellerName.replaceAll("[^a-zA-Z]", "").toUpperCase();
-
-        String prefix = cleanedSeller.length() >= 2
-                ? cleanedSeller.substring(0, 2)
-                : String.format("%-2s", cleanedSeller).replace(' ', 'X');
-
-        Integer lastNumber = pricingDetailsRepository.findMaxPricingNumber();
-        int nextNumber = (lastNumber == null) ? 1 : lastNumber + 1;
-
-        return prefix + "BTCH" + String.format("%05d", nextNumber);
     }
 }

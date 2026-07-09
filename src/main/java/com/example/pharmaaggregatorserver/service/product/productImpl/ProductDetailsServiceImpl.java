@@ -12,6 +12,7 @@ import com.example.pharmaaggregatorserver.mapper.product.*;
 import com.example.pharmaaggregatorserver.repository.product.*;
 import com.example.pharmaaggregatorserver.repository.seller.SellerRepository;
 import com.example.pharmaaggregatorserver.service.S3Service;
+import com.example.pharmaaggregatorserver.service.product.PricingDetailsService;
 import com.example.pharmaaggregatorserver.service.product.ProductDetailsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +34,6 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
     private final MoleculeRepository moleculeRepo;
     private final ProductDetailsMapper productMapper;
     private final PackagingDetailsRepository packagingDetailsRepository;
-    private final PricingDetailsRepository pricingDetailsRepository;
     private final PackagingDetailsMapper packagingDetailsMapper;
     private final PricingDetailsMapper pricingDetailsMapper;
     private final ProductAttributeDrugMapper productAttributeDrugMapper;
@@ -48,6 +48,7 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
     private final CertificationRepository certificationRepository;
     private final S3Service s3Service;
     private final ProductImageService productImageService;
+    private final PricingDetailsService pricingDetailsService;
 
 
     @Override
@@ -60,14 +61,29 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
         Category category = categoryRepo.findById(dto.getCategoryId())
                 .orElseThrow(() -> new RuntimeException("Category not found"));
 
+        String productName = dto.getProductName() != null ? dto.getProductName().trim() : null;
+        String manufacturerName = dto.getManufacturerName() != null ? dto.getManufacturerName().trim() : null;
+
+        // Same seller + name + manufacturer + category means this is another variant
+        // (pack size/batch) of a product that already exists, not a brand-new product.
+        Optional<ProductDetails> existingOpt = productRepo
+                .findFirstBySeller_SellerIdAndProductNameIgnoreCaseAndManufacturerNameIgnoreCaseAndCategory_CategoryId(
+                        seller.getSellerId(), productName, manufacturerName, dto.getCategoryId());
+
+        if (existingOpt.isPresent()) {
+            return addVariantToExistingProduct(existingOpt.get(), dto, seller);
+        }
+
         ProductDetails product = productMapper.toEntity(dto);
 
 
         product.setProductImages(null);
 
         product.setProductId(
-                generateProductId(dto.getProductName(), seller.getSellerName())
+                generateProductId(productName, seller.getSellerName())
         );
+        product.setProductName(productName);
+        product.setManufacturerName(manufacturerName);
         product.setCreatedBy(seller.getSellerId());
         product.setCreatedDate(LocalDateTime.now());
         product.setSeller(seller);
@@ -81,6 +97,83 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
         return productMapper.toDto(saved);
     }
 
+    // Adds the incoming packaging/pricing (a new pack-size variant and/or batch) onto a
+    // product that already exists for this seller, instead of creating a duplicate product.
+    // Other product-level fields (description, attributes, etc.) are intentionally left
+    // untouched here — use updateProduct if those need to change.
+    private ProductDetailsDto addVariantToExistingProduct(ProductDetails existingProduct, ProductDetailsDto dto, Seller seller) {
+
+        PackagingDetails singleResolvedPackaging = null;
+
+        if (dto.getPackagingDetails() != null) {
+            if (existingProduct.getPackagingDetails() == null) {
+                existingProduct.setPackagingDetails(new HashSet<>());
+            }
+            for (PackagingDetailsDto pd : dto.getPackagingDetails()) {
+                PackagingDetails candidate = packagingDetailsMapper.toEntity(pd);
+                PackagingDetails resolved = resolveOrCreatePackaging(
+                        existingProduct, candidate, seller.getSellerName(), seller.getSellerId());
+                existingProduct.getPackagingDetails().add(resolved);
+                singleResolvedPackaging = resolved;
+            }
+        }
+
+        if (dto.getPricingDetails() != null) {
+            if (existingProduct.getPricingDetails() == null) {
+                existingProduct.setPricingDetails(new HashSet<>());
+            }
+            for (PricingDetailsDto pDto : dto.getPricingDetails()) {
+                PricingDetails candidate = pricingDetailsMapper.toEntity(pDto);
+                PackagingDetails linkTo = resolvePackagingLink(existingProduct, pDto, singleResolvedPackaging);
+                PricingDetails pricing = pricingDetailsService.resolveOrCreateBatch(
+                        existingProduct, linkTo, candidate, seller.getSellerName(), seller.getSellerId());
+                existingProduct.getPricingDetails().add(pricing);
+            }
+        }
+
+        ProductDetails saved = productRepo.save(existingProduct);
+        return productMapper.toDto(saved);
+    }
+
+    // Dedups a packaging/pack-size variant under a product: same pack type + unit/number-of-packs
+    // + order limits means it's the same variant, reuse it instead of creating a duplicate row.
+    private PackagingDetails resolveOrCreatePackaging(
+            ProductDetails product, PackagingDetails candidate, String sellerName, String sellerId) {
+
+        Long packId = candidate.getPackType() != null ? candidate.getPackType().getPackId() : null;
+
+        Optional<PackagingDetails> existing = packagingDetailsRepository
+                .findFirstByProductDetails_ProductIdAndPackType_PackIdAndUnitPerPackAndNumberOfPacksAndMinimumOrderQuantityAndMaximumOrderQuantity(
+                        product.getProductId(), packId, candidate.getUnitPerPack(), candidate.getNumberOfPacks(),
+                        candidate.getMinimumOrderQuantity(), candidate.getMaximumOrderQuantity());
+
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+
+        candidate.setPackagingId(generatePackagingId(sellerName));
+        candidate.setProductDetails(product);
+        candidate.setCreatedBy(sellerId);
+        candidate.setCreatedDate(LocalDateTime.now());
+        return candidate;
+    }
+
+    // Resolves which packaging variant a pricing/batch entry belongs to: an explicit
+    // packagingId on the DTO wins (validated to actually belong to this product); otherwise,
+    // if this call resolved exactly one packaging entry, pair with it (matches the "1 packaging
+    // + 1 pricing per row" convention every import strategy already follows); otherwise null.
+    private PackagingDetails resolvePackagingLink(
+            ProductDetails product, PricingDetailsDto prDto, PackagingDetails singleResolvedPackaging) {
+
+        if (prDto.getPackagingId() != null && !prDto.getPackagingId().isBlank()) {
+            return packagingDetailsRepository.findById(prDto.getPackagingId())
+                    .filter(p -> p.getProductDetails().getProductId().equals(product.getProductId()))
+                    .orElseThrow(() -> new NotFoundException(
+                            "Packaging " + prDto.getPackagingId() + " not found on this product"));
+        }
+        return singleResolvedPackaging;
+    }
+
     public List<ProductDetailsDto> getAllProductsForAdmin() {
         return productRepo.findAll()
                 .stream()
@@ -90,22 +183,30 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
 
     private void setChildRelationships(ProductDetails product, String sellerName, String sellerId) {
 
+        // Product isn't persisted yet, so these lookups will always find nothing and fall
+        // through to "create new" — routed through the same resolve helpers as the
+        // reuse-existing-product path anyway, so there's exactly one implementation of
+        // "dedupe packaging"/"restock-or-create batch" for both code paths to stay in sync.
+        PackagingDetails singleResolvedPackaging = null;
+
         if (product.getPackagingDetails() != null) {
-            product.getPackagingDetails().forEach(p -> {
-                p.setPackagingId(generatePackagingId(sellerName));
-                p.setProductDetails(product);
-                p.setCreatedBy(sellerId);
-                p.setCreatedDate(LocalDateTime.now());
-            });
+            Set<PackagingDetails> resolvedPackaging = new HashSet<>();
+            for (PackagingDetails p : product.getPackagingDetails()) {
+                PackagingDetails resolved = resolveOrCreatePackaging(product, p, sellerName, sellerId);
+                resolvedPackaging.add(resolved);
+                singleResolvedPackaging = resolved;
+            }
+            product.setPackagingDetails(resolvedPackaging);
         }
 
         if (product.getPricingDetails() != null) {
-            product.getPricingDetails().forEach(p -> {
-                p.setPricingId(generatePricingId(sellerName));
-                p.setProductDetails(product);
-                p.setCreatedBy(sellerId);
-                p.setCreatedDate(LocalDateTime.now());
-            });
+            Set<PricingDetails> resolvedPricing = new HashSet<>();
+            for (PricingDetails p : product.getPricingDetails()) {
+                PricingDetails resolved = pricingDetailsService.resolveOrCreateBatch(
+                        product, singleResolvedPackaging, p, sellerName, sellerId);
+                resolvedPricing.add(resolved);
+            }
+            product.setPricingDetails(resolvedPricing);
         }
 
         if (product.getProductAttributeDrugs() != null) {
@@ -334,27 +435,8 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
     }
 
 
-    // Pricing ID generation
-    private synchronized String generatePricingId(String sellerName) {
-
-        String cleanedSeller = sellerName
-                .replaceAll("[^a-zA-Z]", "")
-                .toUpperCase();
-
-        String prefix;
-        if (cleanedSeller.length() >= 2) {
-            prefix = cleanedSeller.substring(0, 2);
-        } else {
-            prefix = String.format("%-2s", cleanedSeller).replace(' ', 'X');
-        }
-
-        String prefixNew = "BTCH";
-
-        Integer lastNumber = pricingDetailsRepository.findMaxPricingNumber();
-        int nextNumber = (lastNumber == null) ? 1 : lastNumber + 1;
-
-        return prefix + prefixNew + String.format("%05d", nextNumber);
-    }
+    // Pricing/batch IDs are now generated exclusively by PricingDetailsServiceImpl,
+    // since resolveOrCreateBatch() there is the single place batches are actually created.
 
     @Override
     @Transactional(readOnly = true)
@@ -448,8 +530,10 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
         }
 
         // =========================================================
-        // ✅ PACKAGING DETAILS
+        // ✅ PACKAGING DETAILS — dedupe against existing variants instead of always inserting
         // =========================================================
+        PackagingDetails singleResolvedPackaging = null;
+
         if (dto.getPackagingDetails() != null) {
 
             if (existingProduct.getPackagingDetails() == null) {
@@ -458,19 +542,18 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
 
             for (PackagingDetailsDto pd : dto.getPackagingDetails()) {
 
-                PackagingDetails newPackaging = packagingDetailsMapper.toEntity(pd);
+                PackagingDetails candidate = packagingDetailsMapper.toEntity(pd);
+                PackagingDetails resolved = resolveOrCreatePackaging(
+                        existingProduct, candidate, seller.getSellerName(), seller.getSellerId());
 
-                newPackaging.setPackagingId(generatePackagingId(seller.getSellerName()));
-                newPackaging.setProductDetails(existingProduct);
-                newPackaging.setCreatedBy(seller.getSellerId());
-                newPackaging.setCreatedDate(LocalDateTime.now());
-
-                existingProduct.getPackagingDetails().add(newPackaging);
+                existingProduct.getPackagingDetails().add(resolved);
+                singleResolvedPackaging = resolved;
             }
         }
 
         // =========================================================
-        // ✅ PRICING DETAILS (WITH ADDITIONAL DISCOUNTS)
+        // ✅ PRICING DETAILS (WITH ADDITIONAL DISCOUNTS) — restock an existing batch
+        // (same lot number) instead of always inserting a duplicate row.
         // =========================================================
         if (dto.getPricingDetails() != null) {
 
@@ -480,14 +563,14 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
 
             for (PricingDetailsDto pDto : dto.getPricingDetails()) {
 
-                PricingDetails pricing = pricingDetailsMapper.toEntity(pDto);
+                PricingDetails candidate = pricingDetailsMapper.toEntity(pDto);
+                PackagingDetails linkTo = resolvePackagingLink(existingProduct, pDto, singleResolvedPackaging);
 
-                pricing.setPricingId(generatePricingId(seller.getSellerName()));
-                pricing.setCreatedBy(seller.getSellerId());
-                pricing.setCreatedDate(LocalDateTime.now());
-                pricing.setProductDetails(existingProduct);
+                PricingDetails pricing = pricingDetailsService.resolveOrCreateBatch(
+                        existingProduct, linkTo, candidate, seller.getSellerName(), seller.getSellerId());
 
-                // 🔥 DO NOT UPDATE — ONLY INSERT
+                pricing.setModifiedBy(seller.getSellerId());
+
                 existingProduct.getPricingDetails().add(pricing);
 
                 // Additional discounts
