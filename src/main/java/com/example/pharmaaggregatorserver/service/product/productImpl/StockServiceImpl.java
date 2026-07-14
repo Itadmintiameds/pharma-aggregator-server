@@ -3,6 +3,7 @@ package com.example.pharmaaggregatorserver.service.product.productImpl;
 import com.example.pharmaaggregatorserver.dto.product.BatchAvailabilityDto;
 import com.example.pharmaaggregatorserver.dto.product.BatchStockInDto;
 import com.example.pharmaaggregatorserver.dto.product.MultiBatchStockInRequestDto;
+import com.example.pharmaaggregatorserver.dto.product.PackagingDetailsDto;
 import com.example.pharmaaggregatorserver.dto.product.StockDebitRequestDto;
 import com.example.pharmaaggregatorserver.dto.product.StockInRequestDto;
 import com.example.pharmaaggregatorserver.dto.product.StockLedgerResponseDto;
@@ -16,11 +17,13 @@ import com.example.pharmaaggregatorserver.exception.BadRequestException;
 import com.example.pharmaaggregatorserver.exception.InsufficientStockException;
 import com.example.pharmaaggregatorserver.exception.ResourceNotFoundException;
 import com.example.pharmaaggregatorserver.exception.UnauthorizedException;
+import com.example.pharmaaggregatorserver.mapper.product.PackagingDetailsMapper;
 import com.example.pharmaaggregatorserver.repository.product.PackagingDetailsRepository;
 import com.example.pharmaaggregatorserver.repository.product.PricingDetailsRepository;
 import com.example.pharmaaggregatorserver.repository.product.ProductDetailsRepository;
 import com.example.pharmaaggregatorserver.repository.product.StockLedgerRepository;
 import com.example.pharmaaggregatorserver.repository.seller.SellerRepository;
+import com.example.pharmaaggregatorserver.service.product.PackagingDetailsService;
 import com.example.pharmaaggregatorserver.service.product.PricingDetailsService;
 import com.example.pharmaaggregatorserver.service.product.StockService;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +41,9 @@ public class StockServiceImpl implements StockService {
 
     private final PricingDetailsRepository pricingDetailsRepository;
     private final PackagingDetailsRepository packagingDetailsRepository;
+    private final PackagingDetailsMapper packagingDetailsMapper;
     private final PricingDetailsService pricingDetailsService;
+    private final PackagingDetailsService packagingDetailsService;
     private final StockLedgerRepository stockLedgerRepository;
     private final ProductDetailsRepository productDetailsRepository;
     private final SellerRepository sellerRepository;
@@ -60,6 +65,7 @@ public class StockServiceImpl implements StockService {
         return addSingleBatch(
                 product, seller, userId,
                 request.getPackagingId(),
+                request.getPackagingDetails(),
                 request.getBatchLotNumber(),
                 request.getManufacturingDate(),
                 request.getExpiryDate(),
@@ -94,6 +100,7 @@ public class StockServiceImpl implements StockService {
             results.add(addSingleBatch(
                     product, seller, userId,
                     batchLine.getPackagingId(),
+                    batchLine.getPackagingDetails(),
                     batchLine.getBatchLotNumber(),
                     batchLine.getManufacturingDate(),
                     batchLine.getExpiryDate(),
@@ -112,6 +119,7 @@ public class StockServiceImpl implements StockService {
             Seller seller,
             Long userId,
             String packagingId,
+            PackagingDetailsDto packagingDetailsDto,
             String batchLotNumber,
             LocalDateTime manufacturingDate,
             LocalDateTime expiryDate,
@@ -121,7 +129,20 @@ public class StockServiceImpl implements StockService {
             String referenceId,
             String referenceType
     ) {
-        PackagingDetails packaging = resolvePackaging(product, packagingId);
+        PackagingDetails packaging;
+        if (packagingId != null && !packagingId.isBlank()) {
+            // Referencing an existing variant — must already exist on this product.
+            packaging = resolvePackaging(product, packagingId);
+        } else if (packagingDetailsDto != null) {
+            // Submitting new packaging details — reuse a matching variant if one already
+            // exists on this product, otherwise create it now, in the same call.
+            PackagingDetails candidatePackaging = packagingDetailsMapper.toEntity(packagingDetailsDto);
+            packaging = packagingDetailsService.resolveOrCreatePackaging(
+                    product, candidatePackaging, seller.getSellerName(), seller.getSellerId());
+            packagingDetailsRepository.save(packaging);
+        } else {
+            packaging = null;
+        }
 
         PricingDetails candidate = new PricingDetails();
         candidate.setBatchLotNumber(batchLotNumber);

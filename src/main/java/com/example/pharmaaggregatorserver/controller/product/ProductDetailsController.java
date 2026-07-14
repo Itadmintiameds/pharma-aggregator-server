@@ -1,5 +1,6 @@
 package com.example.pharmaaggregatorserver.controller.product;
 
+import com.example.pharmaaggregatorserver.dto.product.PackagingDetailsDto;
 import com.example.pharmaaggregatorserver.dto.product.ProductDetailsDto;
 import com.example.pharmaaggregatorserver.dto.product.TherapeuticSubcategoryDto;
 import com.example.pharmaaggregatorserver.response.ApiResponse;
@@ -101,6 +102,19 @@ public class ProductDetailsController {
                 )
         );
     }
+    @PostMapping("/{productId}/packaging")
+    public ResponseEntity<PackagingDetailsDto> addPackagingVariant(
+            @PathVariable String productId,
+            @RequestBody PackagingDetailsDto dto,
+            Authentication authentication
+    ) {
+        UserDetailsImpl user = (UserDetailsImpl) authentication.getPrincipal();
+        Long userId = user.getId();
+
+        PackagingDetailsDto resolved = productService.addPackagingVariant(productId, dto, userId);
+        return ResponseEntity.ok(resolved);
+    }
+
     @GetMapping("/subcategories/{categoryId}")
     public ResponseEntity<List<TherapeuticSubcategoryDto>>
     getSubcategories(@PathVariable String categoryId) {

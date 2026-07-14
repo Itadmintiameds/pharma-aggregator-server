@@ -10,6 +10,9 @@ public class BatchStockInDto {
 
     // Optional — which packaging/pack-size variant this batch line applies to.
     private String packagingId;
+    // Optional — submit new packaging details to create/reuse a variant in the same call,
+    // instead of referencing an existing packagingId. Ignored if packagingId is set.
+    private PackagingDetailsDto packagingDetails;
     private String batchLotNumber;
     private LocalDateTime manufacturingDate;
     private LocalDateTime expiryDate;

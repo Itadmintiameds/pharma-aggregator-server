@@ -1,5 +1,6 @@
 package com.example.pharmaaggregatorserver.service.product;
 
+import com.example.pharmaaggregatorserver.dto.product.PackagingDetailsDto;
 import com.example.pharmaaggregatorserver.dto.product.ProductDetailsDto;
 import com.example.pharmaaggregatorserver.dto.product.TherapeuticSubcategoryDto;
 
@@ -20,5 +21,12 @@ public interface ProductDetailsService {
 
     List<TherapeuticSubcategoryDto> getSubcategories(String categoryId);
 
+    /**
+     * Standalone step 1 of "create packaging, then add a batch against it": resolves-or-creates
+     * a packaging/pack-size variant on an existing product and returns it (with its packagingId),
+     * without requiring a batch/pricing entry in the same call. Pass the returned packagingId to
+     * a stock-in/debit call afterward.
+     */
+    PackagingDetailsDto addPackagingVariant(String productId, PackagingDetailsDto dto, Long userId);
 
 }

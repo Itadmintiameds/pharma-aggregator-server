@@ -12,6 +12,9 @@ public class StockInRequestDto {
     // Optional — which packaging/pack-size variant this stock-in applies to. Omit to keep
     // today's product-wide behavior.
     private String packagingId;
+    // Optional — submit new packaging details to create/reuse a variant in the same call,
+    // instead of referencing an existing packagingId. Ignored if packagingId is set.
+    private PackagingDetailsDto packagingDetails;
     private String batchLotNumber;
     private LocalDateTime manufacturingDate;
     private LocalDateTime expiryDate;

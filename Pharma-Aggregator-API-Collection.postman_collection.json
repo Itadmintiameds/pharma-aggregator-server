@@ -95,6 +95,12 @@
       "description": "Example product ID (String business key)."
     },
     {
+      "key": "packagingId",
+      "value": "",
+      "type": "string",
+      "description": "Packaging/pack-size variant ID (tm_packaging_details.packaging_id). Auto-populated by 'Add Stock (Create New Packaging Variant)'; also usable with Add Stock/Debit Stock/Get Available Batches to scope to one variant."
+    },
+    {
       "key": "productAttributeId",
       "value": "PA-0001",
       "type": "string",
@@ -3313,7 +3319,7 @@
                 "create"
               ]
             },
-            "description": "Creates a new product with nested packaging, pricing, and category-specific attribute details (drug/consumable/non-consumable medical/supplements/cosmetic/food-infant), scoped to the authenticated seller.",
+            "description": "Creates a new product with nested packaging, pricing, and category-specific attribute details (drug/consumable/non-consumable medical/supplements/cosmetic/food-infant), scoped to the authenticated seller. Before creating, the server checks whether this seller already has a product with the same productName + manufacturerName (case-insensitive, trimmed) + categoryId — if so, it does NOT create a duplicate product; instead the packaging/pricing in this request are added as a new variant/batch onto the existing product (see 'Create Product (Merge as New Variant)' below).",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"productName\": \"Paracetamol 500mg Tablets\",\n  \"warningsPrecautions\": \"Do not exceed the stated dose. Consult a doctor if symptoms persist.\",\n  \"productDescription\": \"Pain relief and fever reduction tablets, pack of 10 strips.\",\n  \"manufacturerName\": \"Sunrise Pharma Distributors\",\n  \"categoryId\": 1,\n  \"packagingDetails\": [\n    {\n      \"packId\": 1,\n      \"unitPerPack\": 10,\n      \"packTypeUnitId\": 1,\n      \"numberOfPacks\": 100,\n      \"packSize\": 10,\n      \"minimumOrderQuantity\": 5,\n      \"maximumOrderQuantity\": 500\n    }\n  ],\n  \"pricingDetails\": [\n    {\n      \"batchLotNumber\": \"BATCH-2026-001\",\n      \"manufacturingDate\": \"2026-01-10T00:00:00\",\n      \"expiryDate\": \"2028-01-10T00:00:00\",\n      \"stockQuantity\": 1000,\n      \"dateOfStockEntry\": \"2026-01-15\",\n      \"sellingPrice\": 25.5,\n      \"mrp\": 30.0,\n      \"discountPercentage\": 15.0,\n      \"gstPercentage\": 12,\n      \"finalPrice\": 29,\n      \"hsnCode\": 30049099,\n      \"shelfLifeMonths\": 24\n    }\n  ],\n  \"productAttributeDrugs\": [\n    {\n      \"therapeuticCategoryId\": \"1\",\n      \"therapeuticSubcategoryId\": \"1\",\n      \"dosageForm\": \"Tablet\",\n      \"molecules\": [],\n      \"storageConditionIds\": [\n        1\n      ]\n    }\n  ],\n  \"productImages\": []\n}",
@@ -3347,6 +3353,74 @@
                   "",
                   "pm.test('Response time is acceptable', function () {",
                   "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                  "});",
+                  "",
+                  "pm.test('productId saved for later requests', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.productId) {",
+                  "        pm.collectionVariables.set('productId', jsonData.productId);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Product (Merge as New Variant)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/products/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                "create"
+              ]
+            },
+            "description": "Run this AFTER 'Create Product' above, unchanged productName/manufacturerName/categoryId but a DIFFERENT packaging (strip of 15 instead of 10). Since seller+name+manufacturer+category match the existing product, no new product is created — this packaging becomes a second variant and this batch becomes a new batch, both attached to the SAME productId as before. Verify with 'Get Product by ID' that only one product exists, now with two packagingDetails entries.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productName\": \"Paracetamol 500mg Tablets\",\n  \"warningsPrecautions\": \"Do not exceed the stated dose. Consult a doctor if symptoms persist.\",\n  \"productDescription\": \"Pain relief and fever reduction tablets, pack of 10 strips.\",\n  \"manufacturerName\": \"Sunrise Pharma Distributors\",\n  \"categoryId\": 1,\n  \"packagingDetails\": [\n    {\n      \"packId\": 1,\n      \"unitPerPack\": 15,\n      \"packTypeUnitId\": 1,\n      \"numberOfPacks\": 100,\n      \"packSize\": 15,\n      \"minimumOrderQuantity\": 5,\n      \"maximumOrderQuantity\": 500\n    }\n  ],\n  \"pricingDetails\": [\n    {\n      \"batchLotNumber\": \"BATCH-2026-002\",\n      \"manufacturingDate\": \"2026-01-12T00:00:00\",\n      \"expiryDate\": \"2028-01-12T00:00:00\",\n      \"stockQuantity\": 500,\n      \"dateOfStockEntry\": \"2026-01-16\",\n      \"sellingPrice\": 36.0,\n      \"mrp\": 42.0,\n      \"discountPercentage\": 15.0,\n      \"gstPercentage\": 12,\n      \"finalPrice\": 41,\n      \"hsnCode\": 30049099,\n      \"shelfLifeMonths\": 24\n    }\n  ],\n  \"productAttributeDrugs\": [\n    {\n      \"therapeuticCategoryId\": \"1\",\n      \"therapeuticSubcategoryId\": \"1\",\n      \"dosageForm\": \"Tablet\",\n      \"molecules\": [],\n      \"storageConditionIds\": [\n        1\n      ]\n    }\n  ],\n  \"productImages\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is successful', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]);",
+                  "});",
+                  "",
+                  "pm.test('Same productId as the first Create Product call (merged, not duplicated)', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.productId).to.eql(pm.collectionVariables.get('productId'));",
                   "});"
                 ]
               }
@@ -3467,7 +3541,7 @@
                 "{{productId}}"
               ]
             },
-            "description": "Updates an existing product's details, scoped to the authenticated seller.",
+            "description": "Updates an existing product's details, scoped to the authenticated seller. Packaging entries are deduped against existing variants on this product (same packId+unitPerPack+numberOfPacks+min/maxOrderQuantity reuses the existing row instead of creating a duplicate). Pricing/batch entries are restocked (stockQuantity added to the existing batch) if batchLotNumber already exists in scope, otherwise a new batch is created and linked to the packaging variant resolved above — no longer always inserts a duplicate batch like before.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"productName\": \"Paracetamol 500mg Tablets\",\n  \"warningsPrecautions\": \"Do not exceed the stated dose. Consult a doctor if symptoms persist.\",\n  \"productDescription\": \"Pain relief and fever reduction tablets, pack of 10 strips.\",\n  \"manufacturerName\": \"Sunrise Pharma Distributors\",\n  \"categoryId\": 1,\n  \"packagingDetails\": [\n    {\n      \"packId\": 1,\n      \"unitPerPack\": 10,\n      \"packTypeUnitId\": 1,\n      \"numberOfPacks\": 100,\n      \"packSize\": 10,\n      \"minimumOrderQuantity\": 5,\n      \"maximumOrderQuantity\": 500\n    }\n  ],\n  \"pricingDetails\": [\n    {\n      \"batchLotNumber\": \"BATCH-2026-001\",\n      \"manufacturingDate\": \"2026-01-10T00:00:00\",\n      \"expiryDate\": \"2028-01-10T00:00:00\",\n      \"stockQuantity\": 1000,\n      \"dateOfStockEntry\": \"2026-01-15\",\n      \"sellingPrice\": 25.5,\n      \"mrp\": 30.0,\n      \"discountPercentage\": 15.0,\n      \"gstPercentage\": 12,\n      \"finalPrice\": 29,\n      \"hsnCode\": 30049099,\n      \"shelfLifeMonths\": 24\n    }\n  ],\n  \"productAttributeDrugs\": [\n    {\n      \"therapeuticCategoryId\": \"1\",\n      \"therapeuticSubcategoryId\": \"1\",\n      \"dosageForm\": \"Tablet\",\n      \"molecules\": [],\n      \"storageConditionIds\": [\n        1\n      ]\n    }\n  ],\n  \"productImages\": []\n}",
@@ -6731,10 +6805,10 @@
                 "add"
               ]
             },
-            "description": "Adds stock for a product. If batchLotNumber already exists for this product, tops up that batch's stockQuantity (rejects with 400 if the supplied expiryDate doesn't match what's on file); otherwise creates a brand-new batch. Writes one STOCK_IN StockLedger row and returns it. Requires the authenticated seller to own the product (401 otherwise).",
+            "description": "Adds stock for a product. If batchLotNumber already exists in scope (product, or product+packagingId if provided), tops up that batch's stockQuantity (rejects with 400 if the supplied expiryDate doesn't match what's on file); otherwise creates a brand-new batch. `packagingId` is optional — omit it for a single-variant product; if the product has more than one packaging variant, omitting it now returns 400 (packagingId required). Writes one STOCK_IN StockLedger row and returns it. Requires the authenticated seller to own the product (401 otherwise).",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"batchLotNumber\": \"BATCH-2026-002\",\n  \"manufacturingDate\": \"2026-01-10T00:00:00\",\n  \"expiryDate\": \"2028-01-10T00:00:00\",\n  \"quantity\": 500,\n  \"mrp\": 30.0,\n  \"sellingPrice\": 25.5,\n  \"referenceId\": \"PO-2026-0417\",\n  \"referenceType\": \"PURCHASE\"\n}",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"packagingId\": null,\n  \"batchLotNumber\": \"BATCH-2026-002\",\n  \"manufacturingDate\": \"2026-01-10T00:00:00\",\n  \"expiryDate\": \"2028-01-10T00:00:00\",\n  \"quantity\": 500,\n  \"mrp\": 30.0,\n  \"sellingPrice\": 25.5,\n  \"referenceId\": \"PO-2026-0417\",\n  \"referenceType\": \"PURCHASE\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -6778,6 +6852,190 @@
           ]
         },
         {
+          "name": "Add Stock (Reference Existing Packaging Variant)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/stock/add",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "stock",
+                "add"
+              ]
+            },
+            "description": "Same as Add Stock, but scoped to one packaging/pack-size variant via packagingId (must already exist on this product, or 400 is returned). Use this once a product has more than one packaging variant, so the FIFO batch/stock tracking stays per-variant instead of ambiguous.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"packagingId\": \"{{packagingId}}\",\n  \"batchLotNumber\": \"BATCH-2026-003\",\n  \"manufacturingDate\": \"2026-02-01T00:00:00\",\n  \"expiryDate\": \"2028-02-01T00:00:00\",\n  \"quantity\": 200,\n  \"mrp\": 45.0,\n  \"sellingPrice\": 39.0,\n  \"referenceId\": \"PO-2026-0418\",\n  \"referenceType\": \"PURCHASE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is successful', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]);",
+                  "});",
+                  "",
+                  "pm.test('Ledger row is linked to the packaging variant', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('packagingId', pm.variables.get('packagingId'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add Stock (Create New Packaging Variant)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/stock/add",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "stock",
+                "add"
+              ]
+            },
+            "description": "Instead of referencing an existing packagingId, submit full packagingDetails inline. The server reuses a matching variant if one already exists on this product (same packId+unitPerPack+numberOfPacks+min/maxOrderQuantity), otherwise creates it in the same call and links the new batch to it. Ignored if packagingId is also set.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"packagingDetails\": {\n    \"packId\": 1,\n    \"unitPerPack\": 15,\n    \"packTypeUnitId\": 1,\n    \"numberOfPacks\": 100,\n    \"packSize\": 15,\n    \"minimumOrderQuantity\": 5,\n    \"maximumOrderQuantity\": 500\n  },\n  \"batchLotNumber\": \"BATCH-2026-004\",\n  \"manufacturingDate\": \"2026-02-05T00:00:00\",\n  \"expiryDate\": \"2028-02-05T00:00:00\",\n  \"quantity\": 300,\n  \"mrp\": 42.0,\n  \"sellingPrice\": 36.0,\n  \"referenceId\": \"PO-2026-0419\",\n  \"referenceType\": \"PURCHASE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is successful', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]);",
+                  "});",
+                  "",
+                  "pm.test('Response includes the resolved/created packagingId', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('packagingId').that.is.not.empty;",
+                  "    pm.collectionVariables.set('packagingId', jsonData.packagingId);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add Multiple Batches (Single Product)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/stock/add-batches",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "stock",
+                "add-batches"
+              ]
+            },
+            "description": "Adds/restocks multiple batch lines for one product in a single call. Each line goes through the same restock-or-create logic as Add Stock, and each line may independently set packagingId (reference existing) or packagingDetails (reuse-or-create), or omit both for an unlinked/single-variant product.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"batches\": [\n    {\n      \"packagingId\": null,\n      \"batchLotNumber\": \"BATCH-2026-005\",\n      \"manufacturingDate\": \"2026-03-01T00:00:00\",\n      \"expiryDate\": \"2028-03-01T00:00:00\",\n      \"quantity\": 100,\n      \"mrp\": 30.0,\n      \"sellingPrice\": 25.5,\n      \"referenceId\": \"PO-2026-0420\",\n      \"referenceType\": \"PURCHASE\"\n    },\n    {\n      \"packagingId\": \"{{packagingId}}\",\n      \"batchLotNumber\": \"BATCH-2026-006\",\n      \"manufacturingDate\": \"2026-03-02T00:00:00\",\n      \"expiryDate\": \"2028-03-02T00:00:00\",\n      \"quantity\": 150,\n      \"mrp\": 42.0,\n      \"sellingPrice\": 36.0,\n      \"referenceId\": \"PO-2026-0420\",\n      \"referenceType\": \"PURCHASE\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is successful', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]);",
+                  "});",
+                  "",
+                  "pm.test('One ledger row returned per batch line', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array').with.length(2);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Debit Stock (FIFO for Order)",
           "request": {
             "method": "POST",
@@ -6797,10 +7055,10 @@
                 "debit"
               ]
             },
-            "description": "Debits stock for a product using FIFO (oldest manufacturingDate batch first), spanning multiple batches if one isn't enough to cover the requested quantity. Returns one StockLedger row per batch touched, all sharing the same referenceId so they can be traced back to one order. Returns 409 Conflict if the requested quantity exceeds total available stock across all batches.",
+            "description": "Debits stock for a product using FIFO (oldest manufacturingDate batch first), spanning multiple batches if one isn't enough to cover the requested quantity. `packagingId` is optional — omit it for a single-variant product to debit across all its batches; if the product has more than one packaging variant, omitting it now returns 400 (packagingId required), and passing it scopes FIFO to just that variant's batches. Returns one StockLedger row per batch touched, all sharing the same referenceId so they can be traced back to one order. Returns 409 Conflict if the requested quantity exceeds total available stock in scope.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 150,\n  \"referenceId\": \"ORD-9001\",\n  \"referenceType\": \"ORDER\"\n}",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"packagingId\": null,\n  \"quantity\": 150,\n  \"referenceId\": \"ORD-9001\",\n  \"referenceType\": \"ORDER\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -6839,6 +7097,69 @@
                   "    jsonData.forEach(function (row) {",
                   "        pm.expect(row.transactionType).to.eql('STOCK_OUT');",
                   "        pm.expect(row.referenceId).to.eql('ORD-9001');",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Debit Stock (Scoped to Packaging Variant)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/stock/debit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "stock",
+                "debit"
+              ]
+            },
+            "description": "Same as Debit Stock, but scoped to one packaging variant — FIFO only consumes batches under that packagingId, and insufficient-stock is checked against that variant's total only, not the whole product.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"packagingId\": \"{{packagingId}}\",\n  \"quantity\": 50,\n  \"referenceId\": \"ORD-9002\",\n  \"referenceType\": \"ORDER\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is successful', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]);",
+                  "});",
+                  "",
+                  "pm.test('All returned ledger rows belong to the requested packaging variant', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    jsonData.forEach(function (row) {",
+                  "        pm.expect(row.packagingId).to.eql(pm.variables.get('packagingId'));",
                   "    });",
                   "});"
                 ]
@@ -6892,7 +7213,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/stock/{{productId}}/batches",
+              "raw": "{{baseUrl}}/stock/{{productId}}/batches?packagingId={{packagingId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -6900,9 +7221,16 @@
                 "stock",
                 "{{productId}}",
                 "batches"
+              ],
+              "query": [
+                {
+                  "key": "packagingId",
+                  "value": "{{packagingId}}",
+                  "description": "Optional — restrict to one packaging variant. Remove this param (or leave it blank) to see all batches for the whole product."
+                }
               ]
             },
-            "description": "Returns all batches with remaining stock for a product, ordered oldest-manufacturingDate-first - the exact order in which a FIFO debit would consume them.",
+            "description": "Returns all batches with remaining stock for a product, ordered oldest-manufacturingDate-first - the exact order in which a FIFO debit would consume them. Each batch now includes its packagingId. Pass ?packagingId=... to restrict to one variant.",
             "auth": {
               "type": "noauth"
             }
@@ -7015,7 +7343,7 @@
           ]
         }
       ],
-      "description": "Batch-wise, FIFO (first-in-first-out) stock ledger for products: add stock to an existing or brand-new batch, debit stock against an order by draining the oldest batches first, and query current / available / lifetime totals. Backed by StockController / StockService / StockLedger, reusing PricingDetails as the batch table."
+      "description": "Batch-wise, FIFO (first-in-first-out) stock ledger for products: add stock to an existing or brand-new batch, debit stock against an order by draining the oldest batches first, and query current / available / lifetime totals. Batches can optionally be linked to a packaging/pack-size variant via packagingId (reference an existing one, or submit packagingDetails to reuse-or-create one inline on Add Stock) — required once a product has more than one packaging variant, optional for single-variant products. Backed by StockController / StockService / StockLedger / PricingDetailsService / PackagingDetailsService, reusing PricingDetails as the batch table and PackagingDetails as the variant table."
     }
   ]
 }
