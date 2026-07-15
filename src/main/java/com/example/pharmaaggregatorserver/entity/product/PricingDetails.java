@@ -80,6 +80,13 @@ public class PricingDetails {
     @JsonIgnore
     private ProductDetails productDetails;
 
+    // Nullable: existing batches predate variant tracking and have no known packaging.
+    // New batches should always set this once a packaging/variant is resolved.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "packaging_id", nullable = true)
+    @JsonIgnore
+    private PackagingDetails packagingDetails;
+
     @OneToMany(mappedBy = "pricingDetails", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private Set<AdditionalDiscount> additionalDiscounts;

@@ -6,6 +6,7 @@ import com.example.pharmaaggregatorserver.dto.product.SpecialSchemesDto;
 import com.example.pharmaaggregatorserver.entity.product.SpecialSchemes;
 import com.example.pharmaaggregatorserver.entity.product.AdditionalDiscount;
 
+import com.example.pharmaaggregatorserver.entity.product.PackagingDetails;
 import com.example.pharmaaggregatorserver.entity.product.PricingDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -42,6 +43,12 @@ public class PricingDetailsMapper {
         entity.setCreatedDate(dto.getCreatedDate());
         entity.setModifiedDate(dto.getModifiedDate());
 
+        if (dto.getPackagingId() != null && !dto.getPackagingId().isBlank()) {
+            PackagingDetails packaging = new PackagingDetails();
+            packaging.setPackagingId(dto.getPackagingId());
+            entity.setPackagingDetails(packaging);
+        }
+
         if (dto.getAdditionalDiscounts() != null) {
             Set<AdditionalDiscount> discounts = dto.getAdditionalDiscounts()
                     .stream()
@@ -72,6 +79,7 @@ public class PricingDetailsMapper {
 
         PricingDetailsDto dto = new PricingDetailsDto();
         dto.setPricingId(entity.getPricingId());
+        dto.setPackagingId(entity.getPackagingDetails() != null ? entity.getPackagingDetails().getPackagingId() : null);
         dto.setBatchLotNumber(entity.getBatchLotNumber());
         dto.setManufacturingDate(entity.getManufacturingDate());
         dto.setExpiryDate(entity.getExpiryDate());

@@ -23,9 +23,9 @@ spring:
     allow-bean-definition-overriding: true
 
   datasource:
-    url: ${POSTGRES_URL}
+    url: jdbc:postgresql://pharma-aggregator-test.cfsi2w0iou42.ap-south-1.rds.amazonaws.com:5432/pharma_aggregator_test
     username: postgres
-    password: ${POSTGRES_PASSWORD}
+    password: pharma_aggregator_test
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
