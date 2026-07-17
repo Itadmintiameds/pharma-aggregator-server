@@ -41,4 +41,7 @@ public interface StockService {
     Long getTotalDebited(String productId);
 
     Long getTotalAdded(String productId);
+
+    void deleteBatch(String productId, String pricingId, Long userId);
+
 }

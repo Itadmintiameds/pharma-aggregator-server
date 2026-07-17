@@ -10,6 +10,7 @@ import com.example.pharmaaggregatorserver.service.product.StockService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -70,4 +71,17 @@ public class StockController {
     public ResponseEntity<Long> getTotalAdded(@PathVariable String productId) {
         return ResponseEntity.ok(stockService.getTotalAdded(productId));
     }
+
+    @DeleteMapping("/{productId}/batches/{pricingId}")
+    public ResponseEntity<Void> deleteBatch(
+            @PathVariable String productId,
+            @PathVariable String pricingId,
+            Authentication authentication
+    ) {
+
+        Long userId = ((UserDetailsImpl) authentication.getPrincipal()).getId();
+        stockService.deleteBatch(productId, pricingId, userId);
+        return ResponseEntity.noContent().build();
+    }
+
 }

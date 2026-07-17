@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -17,6 +18,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@SQLRestriction("is_deleted = false OR is_deleted IS NULL")
 @Table(name = "tm_pricing_details")
 public class PricingDetails {
 
@@ -95,4 +97,6 @@ public class PricingDetails {
     @JsonIgnore
     private Set<SpecialSchemes> specialSchemes;
 
+    @Column(name = "is_deleted")
+    private Boolean isDeleted = false;
 }

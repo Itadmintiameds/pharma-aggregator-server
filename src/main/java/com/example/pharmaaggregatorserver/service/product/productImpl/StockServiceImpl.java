@@ -336,4 +336,46 @@ public class StockServiceImpl implements StockService {
                 .createdDate(ledger.getCreatedDate())
                 .build();
     }
+
+    @Override
+    @Transactional
+    public void deleteBatch(String productId, String pricingId, Long userId) {
+
+        Seller seller = sellerRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Seller not found for this user"));
+
+        ProductDetails product = productDetailsRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + productId));
+
+        if (!product.getSeller().getSellerId().equals(seller.getSellerId())) {
+            throw new UnauthorizedException("This product does not belong to the logged-in seller");
+        }
+
+        PricingDetails batch = pricingDetailsRepository.findById(pricingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Batch not found: " + pricingId));
+
+        if (!batch.getProductDetails().getProductId().equals(product.getProductId())) {
+            throw new BadRequestException(
+                    "Batch " + pricingId + " does not belong to product " + productId);
+        }
+
+        long previousQuantity = batch.getStockQuantity() != null ? batch.getStockQuantity() : 0L;
+
+        if (previousQuantity > 0) {
+            StockLedger ledger = buildLedgerRow(
+                    batch, product, seller, userId,
+                    StockTransactionType.STOCK_OUT,
+                    previousQuantity,
+                    0L,
+                    pricingId,
+                    "BATCH_DELETED"
+            );
+            stockLedgerRepository.save(ledger);
+        }
+
+        batch.setStockQuantity(0L);
+        batch.setIsDeleted(true);
+        batch.setModifiedDate(LocalDateTime.now());
+        pricingDetailsRepository.save(batch);
+    }
 }

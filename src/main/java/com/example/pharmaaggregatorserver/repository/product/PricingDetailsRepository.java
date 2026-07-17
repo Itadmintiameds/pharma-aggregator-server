@@ -85,5 +85,7 @@ public interface PricingDetailsRepository extends JpaRepository<PricingDetails, 
     """)
     Long getTotalStockByProductIdAndPackagingId(
             @Param("productId") String productId, @Param("packagingId") String packagingId);
+
+    long countByPackagingDetails_PackagingId(String packagingId);
 }
 
