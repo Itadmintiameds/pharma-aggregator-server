@@ -30,6 +30,8 @@ public class PricingDetailsDto {
     private String modifiedBy;
     private LocalDateTime createdDate;
     private LocalDateTime modifiedDate;
+    private String deletedBy;
+    private LocalDateTime deletedAt;
     private Set<AdditionalDiscountDto> additionalDiscounts;
     private Set<SpecialSchemesDto> specialSchemes;
 }

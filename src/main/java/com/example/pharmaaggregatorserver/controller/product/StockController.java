@@ -1,6 +1,7 @@
 package com.example.pharmaaggregatorserver.controller.product;
 
 import com.example.pharmaaggregatorserver.dto.product.BatchAvailabilityDto;
+import com.example.pharmaaggregatorserver.dto.product.BatchDeleteResponseDto;
 import com.example.pharmaaggregatorserver.dto.product.MultiBatchStockInRequestDto;
 import com.example.pharmaaggregatorserver.dto.product.StockDebitRequestDto;
 import com.example.pharmaaggregatorserver.dto.product.StockInRequestDto;
@@ -73,15 +74,14 @@ public class StockController {
     }
 
     @DeleteMapping("/{productId}/batches/{pricingId}")
-    public ResponseEntity<Void> deleteBatch(
+    public ResponseEntity<BatchDeleteResponseDto> deleteBatch(
             @PathVariable String productId,
             @PathVariable String pricingId,
             Authentication authentication
     ) {
 
         Long userId = ((UserDetailsImpl) authentication.getPrincipal()).getId();
-        stockService.deleteBatch(productId, pricingId, userId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(stockService.deleteBatch(productId, pricingId, userId));
     }
 
 }

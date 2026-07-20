@@ -1,6 +1,7 @@
 package com.example.pharmaaggregatorserver.service.product;
 
 import com.example.pharmaaggregatorserver.dto.product.BatchAvailabilityDto;
+import com.example.pharmaaggregatorserver.dto.product.BatchDeleteResponseDto;
 import com.example.pharmaaggregatorserver.dto.product.MultiBatchStockInRequestDto;
 import com.example.pharmaaggregatorserver.dto.product.StockDebitRequestDto;
 import com.example.pharmaaggregatorserver.dto.product.StockInRequestDto;
@@ -42,6 +43,6 @@ public interface StockService {
 
     Long getTotalAdded(String productId);
 
-    void deleteBatch(String productId, String pricingId, Long userId);
+    BatchDeleteResponseDto deleteBatch(String productId, String pricingId, Long userId);
 
 }

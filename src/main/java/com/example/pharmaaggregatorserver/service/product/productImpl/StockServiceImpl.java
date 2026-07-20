@@ -1,6 +1,7 @@
 package com.example.pharmaaggregatorserver.service.product.productImpl;
 
 import com.example.pharmaaggregatorserver.dto.product.BatchAvailabilityDto;
+import com.example.pharmaaggregatorserver.dto.product.BatchDeleteResponseDto;
 import com.example.pharmaaggregatorserver.dto.product.BatchStockInDto;
 import com.example.pharmaaggregatorserver.dto.product.MultiBatchStockInRequestDto;
 import com.example.pharmaaggregatorserver.dto.product.PackagingDetailsDto;
@@ -339,7 +340,7 @@ public class StockServiceImpl implements StockService {
 
     @Override
     @Transactional
-    public void deleteBatch(String productId, String pricingId, Long userId) {
+    public BatchDeleteResponseDto deleteBatch(String productId, String pricingId, Long userId) {
 
         Seller seller = sellerRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Seller not found for this user"));
@@ -373,9 +374,22 @@ public class StockServiceImpl implements StockService {
             stockLedgerRepository.save(ledger);
         }
 
-        batch.setStockQuantity(0L);
-        batch.setIsDeleted(true);
-        batch.setModifiedDate(LocalDateTime.now());
+        // Deleted batches are excluded from every normal query by the entity's
+        // @SQLRestriction("deleted_at IS NULL"), so leaving stockQuantity untouched here
+        // doesn't affect totals/availability — it just preserves the count as a record of
+        // how much stock the batch held at the moment it was deleted.
+        LocalDateTime deletedAt = LocalDateTime.now();
+        batch.setDeletedBy(seller.getSellerId());
+        batch.setDeletedAt(deletedAt);
+        batch.setModifiedDate(deletedAt);
         pricingDetailsRepository.save(batch);
+
+        return BatchDeleteResponseDto.builder()
+                .pricingId(batch.getPricingId())
+                .batchLotNumber(batch.getBatchLotNumber())
+                .productId(productId)
+                .deletedBy(seller.getSellerId())
+                .deletedAt(deletedAt)
+                .build();
     }
 }

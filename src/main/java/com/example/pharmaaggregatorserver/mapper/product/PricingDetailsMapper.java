@@ -97,6 +97,8 @@ public class PricingDetailsMapper {
         dto.setModifiedBy(entity.getModifiedBy());
         dto.setCreatedDate(entity.getCreatedDate());
         dto.setModifiedDate(entity.getModifiedDate());
+        dto.setDeletedBy(entity.getDeletedBy());
+        dto.setDeletedAt(entity.getDeletedAt());
 
         if (entity.getAdditionalDiscounts() != null) {
             Set<AdditionalDiscountDto> discounts = entity.getAdditionalDiscounts()

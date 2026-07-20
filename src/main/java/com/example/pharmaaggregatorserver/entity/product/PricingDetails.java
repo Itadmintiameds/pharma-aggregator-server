@@ -18,7 +18,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@SQLRestriction("is_deleted = false OR is_deleted IS NULL")
+@SQLRestriction("deleted_at IS NULL")
 @Table(name = "tm_pricing_details")
 public class PricingDetails {
 
@@ -97,6 +97,11 @@ public class PricingDetails {
     @JsonIgnore
     private Set<SpecialSchemes> specialSchemes;
 
-    @Column(name = "is_deleted")
-    private Boolean isDeleted = false;
+    // Seller ID (matches createdBy/modifiedBy convention) of whoever soft-deleted this batch.
+    @Column(name = "deleted_by")
+    private String deletedBy;
+
+    // Soft-delete marker: null means active, non-null means deleted (and holds when).
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }
