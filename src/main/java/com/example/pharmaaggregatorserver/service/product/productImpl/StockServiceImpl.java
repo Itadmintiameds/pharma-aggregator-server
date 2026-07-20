@@ -1,5 +1,6 @@
 package com.example.pharmaaggregatorserver.service.product.productImpl;
 
+import com.example.pharmaaggregatorserver.dto.product.AdditionalDiscountDto;
 import com.example.pharmaaggregatorserver.dto.product.BatchAvailabilityDto;
 import com.example.pharmaaggregatorserver.dto.product.BatchDeleteResponseDto;
 import com.example.pharmaaggregatorserver.dto.product.BatchStockInDto;
@@ -8,6 +9,7 @@ import com.example.pharmaaggregatorserver.dto.product.PackagingDetailsDto;
 import com.example.pharmaaggregatorserver.dto.product.StockDebitRequestDto;
 import com.example.pharmaaggregatorserver.dto.product.StockInRequestDto;
 import com.example.pharmaaggregatorserver.dto.product.StockLedgerResponseDto;
+import com.example.pharmaaggregatorserver.entity.product.AdditionalDiscount;
 import com.example.pharmaaggregatorserver.entity.product.PackagingDetails;
 import com.example.pharmaaggregatorserver.entity.product.PricingDetails;
 import com.example.pharmaaggregatorserver.entity.product.ProductDetails;
@@ -18,6 +20,7 @@ import com.example.pharmaaggregatorserver.exception.BadRequestException;
 import com.example.pharmaaggregatorserver.exception.InsufficientStockException;
 import com.example.pharmaaggregatorserver.exception.ResourceNotFoundException;
 import com.example.pharmaaggregatorserver.exception.UnauthorizedException;
+import com.example.pharmaaggregatorserver.mapper.product.AdditionalDiscountMapper;
 import com.example.pharmaaggregatorserver.mapper.product.PackagingDetailsMapper;
 import com.example.pharmaaggregatorserver.repository.product.PackagingDetailsRepository;
 import com.example.pharmaaggregatorserver.repository.product.PricingDetailsRepository;
@@ -32,9 +35,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +49,7 @@ public class StockServiceImpl implements StockService {
     private final PricingDetailsRepository pricingDetailsRepository;
     private final PackagingDetailsRepository packagingDetailsRepository;
     private final PackagingDetailsMapper packagingDetailsMapper;
+    private final AdditionalDiscountMapper additionalDiscountMapper;
     private final PricingDetailsService pricingDetailsService;
     private final PackagingDetailsService packagingDetailsService;
     private final StockLedgerRepository stockLedgerRepository;
@@ -73,6 +80,10 @@ public class StockServiceImpl implements StockService {
                 request.getQuantity(),
                 request.getMrp(),
                 request.getSellingPrice(),
+                request.getDiscountPercentage(),
+                request.getSpecialDiscounts(),
+                request.getShelfLifeMonths(),
+                request.getDateOfStockEntry(),
                 request.getReferenceId(),
                 request.getReferenceType()
         );
@@ -108,6 +119,10 @@ public class StockServiceImpl implements StockService {
                     batchLine.getQuantity(),
                     batchLine.getMrp(),
                     batchLine.getSellingPrice(),
+                    batchLine.getDiscountPercentage(),
+                    batchLine.getSpecialDiscounts(),
+                    batchLine.getShelfLifeMonths(),
+                    batchLine.getDateOfStockEntry(),
                     batchLine.getReferenceId(),
                     batchLine.getReferenceType()
             ));
@@ -127,6 +142,10 @@ public class StockServiceImpl implements StockService {
             Long quantity,
             BigDecimal mrp,
             BigDecimal sellingPrice,
+            BigDecimal discountPercentage,
+            List<AdditionalDiscountDto> specialDiscounts,
+            Long shelfLifeMonths,
+            LocalDate dateOfStockEntry,
             String referenceId,
             String referenceType
     ) {
@@ -152,6 +171,26 @@ public class StockServiceImpl implements StockService {
         candidate.setStockQuantity(quantity);
         candidate.setMrp(mrp);
         candidate.setSellingPrice(sellingPrice);
+        candidate.setDiscountPercentage(discountPercentage);
+        candidate.setShelfLifeMonths(shelfLifeMonths);
+        candidate.setDateOfStockEntry(dateOfStockEntry);
+        // Special discounts are stored as AdditionalDiscount records (existing table/relation)
+        // rather than a new PricingDetails column, distinct from the flat discountPercentage
+        // above. Caller-supplied fields (minimumPurchaseQuantity, additionalDiscountPercentage,
+        // displayOffer, ...) pass straight through via the existing mapper, one row per entry;
+        // only additionalDiscountId/pricingId are ignored from the input and set server-side.
+        // Only takes effect when this candidate is actually persisted as a new batch
+        // (resolveOrCreateBatch ignores the candidate entirely when restocking an existing one).
+        if (specialDiscounts != null && !specialDiscounts.isEmpty()) {
+            Set<AdditionalDiscount> specialDiscountEntities = specialDiscounts.stream()
+                    .map(additionalDiscountMapper::toEntity)
+                    .peek(entity -> {
+                        entity.setAdditionalDiscountId(null);
+                        entity.setPricingDetails(candidate);
+                    })
+                    .collect(Collectors.toSet());
+            candidate.setAdditionalDiscounts(specialDiscountEntities);
+        }
 
         PricingDetails batch = pricingDetailsService.resolveOrCreateBatch(
                 product, packaging, candidate, seller.getSellerName(), seller.getSellerId());
@@ -293,6 +332,9 @@ public class StockServiceImpl implements StockService {
                 .manufacturingDate(batch.getManufacturingDate())
                 .expiryDate(batch.getExpiryDate())
                 .stockQuantity(batch.getStockQuantity())
+                .discountPercentage(batch.getDiscountPercentage())
+                .shelfLifeMonths(batch.getShelfLifeMonths())
+                .dateOfStockEntry(batch.getDateOfStockEntry())
                 .build();
     }
 

@@ -75,7 +75,9 @@ public class PricingDetailsServiceImpl implements PricingDetailsService {
         candidate.setPricingId(generatePricingId(sellerName));
         candidate.setProductDetails(product);
         candidate.setPackagingDetails(packaging);
-        candidate.setDateOfStockEntry(LocalDate.now());
+        if (candidate.getDateOfStockEntry() == null) {
+            candidate.setDateOfStockEntry(LocalDate.now());
+        }
         candidate.setCreatedBy(sellerId);
         candidate.setCreatedDate(LocalDateTime.now());
         return candidate;
