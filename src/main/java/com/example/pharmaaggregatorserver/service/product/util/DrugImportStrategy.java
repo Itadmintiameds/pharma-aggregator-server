@@ -158,7 +158,7 @@ public class DrugImportStrategy implements ProductImportStrategy {
 
             AdditionalDiscountDto ad = new AdditionalDiscountDto();
             ad.setMinimumPurchaseQuantity(minQty);
-            ad.setAdditionalDiscountPercentage(discountPct);
+            ad.setAdditionalDiscountPercentage(discountPct == null ? null : java.math.BigDecimal.valueOf(discountPct));
             ad.setEffectiveStartDate(getLocalDate(row, base + 3));
             ad.setEffectiveStartTime(getLocalTime(row, base + 4));
             ad.setEffectiveEndDate(getLocalDate(row, base + 5));
@@ -246,7 +246,7 @@ public class DrugImportStrategy implements ProductImportStrategy {
 
             AdditionalDiscountDto ad = new AdditionalDiscountDto();
             ad.setMinimumPurchaseQuantity(minQty);
-            ad.setAdditionalDiscountPercentage(discountPct);
+            ad.setAdditionalDiscountPercentage(discountPct == null ? null : java.math.BigDecimal.valueOf(discountPct));
             ad.setEffectiveStartDate(slabStartDate);
             ad.setEffectiveStartTime(parseCsvTime(getCsvStringByIndex(r, CSV_SLAB_START_TIME_COLS[slab])));
             ad.setEffectiveEndDate(slabEndDate);
