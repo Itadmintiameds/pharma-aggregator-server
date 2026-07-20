@@ -90,6 +90,8 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
         product.setCreatedDate(LocalDateTime.now());
         product.setSeller(seller);
         product.setCategory(category);
+        product.setGstPercentage(dto.getGstPercentage());
+        product.setHsnCode(dto.getHsnCode());
 
         setChildRelationships(product, seller.getSellerName(), seller.getSellerId());
 
@@ -104,6 +106,13 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
     // Other product-level fields (description, attributes, etc.) are intentionally left
     // untouched here — use updateProduct if those need to change.
     private ProductDetailsDto addVariantToExistingProduct(ProductDetails existingProduct, ProductDetailsDto dto, Seller seller) {
+
+        if (dto.getGstPercentage() != null) {
+            existingProduct.setGstPercentage(dto.getGstPercentage());
+        }
+        if (dto.getHsnCode() != null) {
+            existingProduct.setHsnCode(dto.getHsnCode());
+        }
 
         PackagingDetails singleResolvedPackaging = null;
 
@@ -503,6 +512,8 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
         existingProduct.setProductName(dto.getProductName());
         existingProduct.setWarningsPrecautions(dto.getWarningsPrecautions());
         existingProduct.setProductDescription(dto.getProductDescription());
+        existingProduct.setGstPercentage(dto.getGstPercentage());
+        existingProduct.setHsnCode(dto.getHsnCode());
         existingProduct.setModifiedBy(seller.getSellerId());
         existingProduct.setModifiedDate(LocalDateTime.now());
 

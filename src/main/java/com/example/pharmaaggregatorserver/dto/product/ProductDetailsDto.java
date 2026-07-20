@@ -33,5 +33,7 @@ public class ProductDetailsDto {
     private Set<ProductImageDto> productImages;
     private List<String> retainedImageUrls;
     private Set<ProductAttributeFoodInfantDto> productAttributeFoodInfants;
+    private Long gstPercentage;
+    private Long hsnCode;
 
 }

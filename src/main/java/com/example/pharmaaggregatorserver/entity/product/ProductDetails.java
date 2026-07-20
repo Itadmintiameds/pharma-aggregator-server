@@ -97,4 +97,11 @@ public class ProductDetails {
     @JsonIgnore
     private Set<ProductAttributeCosmeticandPersonalCare> productAttributeCosmeticandPersonalCare;
 
+    @Column(name = "gst_percentage")
+    private Long gstPercentage;
+
+    @Column(name = "hsn_code")
+    private Long hsnCode;
+
+
 }
