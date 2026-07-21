@@ -19,6 +19,15 @@ public class TempSellerBankDetailsDTO {
     @Size(max = 100, message = "IFSC code cannot exceed 100 characters")
     private String ifscCode;
 
+    @NotNull(message = "State is required")
+    private Long stateId;
+
+    @NotNull(message = "District is required")
+    private Long districtId;
+
+    @NotNull(message = "Taluka is required")
+    private Long talukaId;
+
     @NotBlank(message = "Account number is required")
     @Size(max = 100, message = "Account number cannot exceed 100 characters")
     private String accountNumber;

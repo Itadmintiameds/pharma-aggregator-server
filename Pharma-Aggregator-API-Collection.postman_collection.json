@@ -995,6 +995,44 @@
           ]
         },
         {
+          "name": "Get All Document Types",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/document-types",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "document-types"
+              ]
+            },
+            "description": "Returns the list of document type master values used to classify seller documents that aren't tied to a product category (e.g. Brand Owner Agreement, White Labeling Agreement, Distribution Agreement, PCD Agreement, Trademark Certificate, IEC Certificate, import licences).",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is successful', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]);",
+                  "});",
+                  "",
+                  "pm.test('Response time is acceptable', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Get All Product Types",
           "request": {
             "method": "GET",
@@ -1099,7 +1137,7 @@
             "description": "STEP 1 of seller self-registration. Submits seller company, address, coordinator, bank, and license document metadata for review. Returns a tempSellerId used for subsequent document upload and admin review. Public endpoint.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sellerName\": \"Sunrise Pharma Distributors\",\n  \"productTypeId\": [\n    1,\n    2\n  ],\n  \"companyTypeId\": 1,\n  \"sellerTypeId\": 2,\n  \"phone\": \"9876543210\",\n  \"email\": \"contact@sunrisepharma.example.com\",\n  \"termsAccepted\": true,\n  \"companyRegistrationCertificateUrl\": \"https://cdn.example.com/docs/company-reg-cert.pdf\",\n  \"website\": \"https://sunrisepharma.example.com\",\n  \"gstNumber\": \"27AAAPL1234C1ZV\",\n  \"gstFileUrl\": \"https://cdn.example.com/docs/gst-certificate.pdf\",\n  \"isGstVerified\": false,\n  \"address\": {\n    \"stateId\": 1,\n    \"districtId\": 1,\n    \"talukaId\": 1,\n    \"city\": \"Mumbai\",\n    \"street\": \"MG Road\",\n    \"buildingNo\": \"12-A\",\n    \"landmark\": \"Near City Hospital\",\n    \"pinCode\": \"400001\"\n  },\n  \"coordinator\": {\n    \"name\": \"Rahul Sharma\",\n    \"designation\": \"Operations Manager\",\n    \"email\": \"rahul.sharma@sunrisepharma.example.com\",\n    \"mobile\": \"9876500000\",\n    \"emailVerified\": false,\n    \"phoneVerified\": false\n  },\n  \"bankDetails\": {\n    \"bankName\": \"State Bank of India\",\n    \"branch\": \"MG Road Branch\",\n    \"ifscCode\": \"SBIN0001234\",\n    \"accountNumber\": \"123456789012\",\n    \"accountHolderName\": \"Sunrise Pharma Distributors\",\n    \"bankDocumentFileUrl\": \"https://cdn.example.com/docs/cancelled-cheque.pdf\"\n  },\n  \"documents\": [\n    {\n      \"productTypeId\": 1,\n      \"documentNumber\": \"DL-MH-2024-00123\",\n      \"documentFileUrl\": \"https://cdn.example.com/docs/drug-license.pdf\",\n      \"isDocumentVerified\": false,\n      \"licenseIssueDate\": \"2024-01-15\",\n      \"licenseExpiryDate\": \"2027-01-14\",\n      \"licenseIssuingAuthority\": \"FDA Maharashtra\"\n    }\n  ]\n}",
+              "raw": "{\n  \"sellerName\": \"Sunrise Pharma Distributors\",\n  \"productTypeId\": [\n    1,\n    2\n  ],\n  \"companyTypeId\": 1,\n  \"sellerTypeId\": 2,\n  \"phone\": \"9876543210\",\n  \"email\": \"contact@sunrisepharma.example.com\",\n  \"termsAccepted\": true,\n  \"companyRegistrationCertificateUrl\": \"https://cdn.example.com/docs/company-reg-cert.pdf\",\n  \"website\": \"https://sunrisepharma.example.com\",\n  \"parentManufacturerName\": null,\n  \"brandOwnerName\": null,\n  \"gstNumber\": \"27AAAPL1234C1ZV\",\n  \"gstFileUrl\": \"https://cdn.example.com/docs/gst-certificate.pdf\",\n  \"isGstVerified\": false,\n  \"address\": {\n    \"stateId\": 1,\n    \"districtId\": 1,\n    \"talukaId\": 1,\n    \"city\": \"Mumbai\",\n    \"street\": \"MG Road\",\n    \"buildingNo\": \"12-A\",\n    \"landmark\": \"Near City Hospital\",\n    \"pinCode\": \"400001\"\n  },\n  \"coordinator\": {\n    \"name\": \"Rahul Sharma\",\n    \"designation\": \"Operations Manager\",\n    \"email\": \"rahul.sharma@sunrisepharma.example.com\",\n    \"mobile\": \"9876500000\",\n    \"authorizationLetterUrl\": \"PENDING\",\n    \"emailVerified\": false,\n    \"phoneVerified\": false\n  },\n  \"bankDetails\": {\n    \"bankName\": \"State Bank of India\",\n    \"branch\": \"MG Road Branch\",\n    \"ifscCode\": \"SBIN0001234\",\n    \"stateId\": 1,\n    \"districtId\": 1,\n    \"talukaId\": 1,\n    \"accountNumber\": \"123456789012\",\n    \"accountHolderName\": \"Sunrise Pharma Distributors\",\n    \"bankDocumentFileUrl\": \"https://cdn.example.com/docs/cancelled-cheque.pdf\"\n  },\n  \"documents\": [\n    {\n      \"productTypeId\": 1,\n      \"documentTypeId\": 2,\n      \"documentNumber\": \"DL-MH-2024-00123\",\n      \"documentFileUrl\": \"https://cdn.example.com/docs/drug-license.pdf\",\n      \"isDocumentVerified\": false,\n      \"licenseIssueDate\": \"2024-01-15\",\n      \"licenseExpiryDate\": \"2027-01-14\",\n      \"licenseIssuingAuthority\": \"FDA Maharashtra\"\n    },\n    {\n      \"productTypeId\": null,\n      \"documentTypeId\": 13,\n      \"documentNumber\": \"DIST-AGMT-2024-001\",\n      \"documentFileUrl\": \"https://cdn.example.com/docs/distribution-agreement.pdf\",\n      \"isDocumentVerified\": false,\n      \"licenseIssueDate\": \"2024-01-15\",\n      \"licenseExpiryDate\": \"2027-01-14\",\n      \"licenseIssuingAuthority\": null\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1897,7 +1935,7 @@
                 "upload"
               ]
             },
-            "description": "Uploads seller image, GST file, bank file, company registration certificate, authorization letter, and one or more license files for a temp seller. All parts are optional multipart fields; licenseFiles/licenseNames/documentIds are positionally matched lists.",
+            "description": "Uploads seller image, GST file, bank file, company registration certificate, authorization letter, and one or more license/agreement files for a temp seller. All parts are optional multipart fields; licenseFiles/licenseNames/documentIds are positionally matched lists — this same trio is reused for seller-level agreement documents (Brand Owner/White Labeling/Distribution/PCD Agreement etc.), since the backend attaches by documentId regardless of whether the underlying TempSellerDocument row is a product-tied licence or a documentType-tied agreement.",
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -1940,6 +1978,13 @@
                   "key": "documentIds",
                   "type": "text",
                   "value": "1"
+                },
+                {
+                  "key": "licenseFiles",
+                  "type": "file",
+                  "src": "/path/to/distribution-agreement.pdf",
+                  "disabled": true,
+                  "description": "Example second entry showing an agreement document uploaded through the same list — e.g. for a Distributor seller's Distribution Agreement. Enable alongside a matching licenseNames='Distribution Agreement' and documentIds='<the TempSellerDocument row id created with documentTypeId=13>'."
                 }
               ]
             },
@@ -1989,7 +2034,7 @@
             "description": "Updates a temporary seller's registration details before it is approved (full replace of the same payload used at creation).",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sellerName\": \"Sunrise Pharma Distributors\",\n  \"productTypeId\": [\n    1,\n    2\n  ],\n  \"companyTypeId\": 1,\n  \"sellerTypeId\": 2,\n  \"phone\": \"9876543210\",\n  \"email\": \"contact@sunrisepharma.example.com\",\n  \"termsAccepted\": true,\n  \"companyRegistrationCertificateUrl\": \"https://cdn.example.com/docs/company-reg-cert.pdf\",\n  \"website\": \"https://sunrisepharma.example.com\",\n  \"gstNumber\": \"27AAAPL1234C1ZV\",\n  \"gstFileUrl\": \"https://cdn.example.com/docs/gst-certificate.pdf\",\n  \"isGstVerified\": false,\n  \"address\": {\n    \"stateId\": 1,\n    \"districtId\": 1,\n    \"talukaId\": 1,\n    \"city\": \"Mumbai\",\n    \"street\": \"MG Road\",\n    \"buildingNo\": \"12-A\",\n    \"landmark\": \"Near City Hospital\",\n    \"pinCode\": \"400001\"\n  },\n  \"coordinator\": {\n    \"name\": \"Rahul Sharma\",\n    \"designation\": \"Operations Manager\",\n    \"email\": \"rahul.sharma@sunrisepharma.example.com\",\n    \"mobile\": \"9876500000\",\n    \"emailVerified\": false,\n    \"phoneVerified\": false\n  },\n  \"bankDetails\": {\n    \"bankName\": \"State Bank of India\",\n    \"branch\": \"MG Road Branch\",\n    \"ifscCode\": \"SBIN0001234\",\n    \"accountNumber\": \"123456789012\",\n    \"accountHolderName\": \"Sunrise Pharma Distributors\",\n    \"bankDocumentFileUrl\": \"https://cdn.example.com/docs/cancelled-cheque.pdf\"\n  },\n  \"documents\": [\n    {\n      \"productTypeId\": 1,\n      \"documentNumber\": \"DL-MH-2024-00123\",\n      \"documentFileUrl\": \"https://cdn.example.com/docs/drug-license.pdf\",\n      \"isDocumentVerified\": false,\n      \"licenseIssueDate\": \"2024-01-15\",\n      \"licenseExpiryDate\": \"2027-01-14\",\n      \"licenseIssuingAuthority\": \"FDA Maharashtra\"\n    }\n  ]\n}",
+              "raw": "{\n  \"sellerName\": \"Sunrise Pharma Distributors\",\n  \"productTypeId\": [\n    1,\n    2\n  ],\n  \"companyTypeId\": 1,\n  \"sellerTypeId\": 2,\n  \"phone\": \"9876543210\",\n  \"email\": \"contact@sunrisepharma.example.com\",\n  \"termsAccepted\": true,\n  \"companyRegistrationCertificateUrl\": \"https://cdn.example.com/docs/company-reg-cert.pdf\",\n  \"website\": \"https://sunrisepharma.example.com\",\n  \"parentManufacturerName\": null,\n  \"brandOwnerName\": null,\n  \"gstNumber\": \"27AAAPL1234C1ZV\",\n  \"gstFileUrl\": \"https://cdn.example.com/docs/gst-certificate.pdf\",\n  \"isGstVerified\": false,\n  \"address\": {\n    \"stateId\": 1,\n    \"districtId\": 1,\n    \"talukaId\": 1,\n    \"city\": \"Mumbai\",\n    \"street\": \"MG Road\",\n    \"buildingNo\": \"12-A\",\n    \"landmark\": \"Near City Hospital\",\n    \"pinCode\": \"400001\"\n  },\n  \"coordinator\": {\n    \"name\": \"Rahul Sharma\",\n    \"designation\": \"Operations Manager\",\n    \"email\": \"rahul.sharma@sunrisepharma.example.com\",\n    \"mobile\": \"9876500000\",\n    \"authorizationLetterUrl\": \"PENDING\",\n    \"emailVerified\": false,\n    \"phoneVerified\": false\n  },\n  \"bankDetails\": {\n    \"bankName\": \"State Bank of India\",\n    \"branch\": \"MG Road Branch\",\n    \"ifscCode\": \"SBIN0001234\",\n    \"stateId\": 1,\n    \"districtId\": 1,\n    \"talukaId\": 1,\n    \"accountNumber\": \"123456789012\",\n    \"accountHolderName\": \"Sunrise Pharma Distributors\",\n    \"bankDocumentFileUrl\": \"https://cdn.example.com/docs/cancelled-cheque.pdf\"\n  },\n  \"documents\": [\n    {\n      \"productTypeId\": 1,\n      \"documentTypeId\": 2,\n      \"documentNumber\": \"DL-MH-2024-00123\",\n      \"documentFileUrl\": \"https://cdn.example.com/docs/drug-license.pdf\",\n      \"isDocumentVerified\": false,\n      \"licenseIssueDate\": \"2024-01-15\",\n      \"licenseExpiryDate\": \"2027-01-14\",\n      \"licenseIssuingAuthority\": \"FDA Maharashtra\"\n    },\n    {\n      \"productTypeId\": null,\n      \"documentTypeId\": 13,\n      \"documentNumber\": \"DIST-AGMT-2024-001\",\n      \"documentFileUrl\": \"https://cdn.example.com/docs/distribution-agreement.pdf\",\n      \"isDocumentVerified\": false,\n      \"licenseIssueDate\": \"2024-01-15\",\n      \"licenseExpiryDate\": \"2027-01-14\",\n      \"licenseIssuingAuthority\": null\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"

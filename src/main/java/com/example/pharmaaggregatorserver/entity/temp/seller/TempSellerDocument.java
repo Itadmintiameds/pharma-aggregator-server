@@ -1,6 +1,7 @@
 package com.example.pharmaaggregatorserver.entity.temp.seller;
 
 
+import com.example.pharmaaggregatorserver.entity.master.DocumentTypeMaster;
 import com.example.pharmaaggregatorserver.entity.master.ProductTypeMaster;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
@@ -28,9 +29,18 @@ public class TempSellerDocument {
     @JsonIgnore
     private TempSeller seller;
 
+    // product_type_id keeps its original NOT NULL constraint in the DB — every
+    // row (including seller-level agreements) gets a real ProductTypeMaster,
+    // falling back to a reserved placeholder row for agreements/certificates
+    // that aren't tied to a real product category. See
+    // TempSellerServiceImpl.resolvePlaceholderProductType().
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_type_id", nullable = false)
     private ProductTypeMaster productTypes;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "document_type_id")
+    private DocumentTypeMaster documentType;
 
     @Column(name = "document_number", nullable = false, length = 100)
     private String documentNumber;

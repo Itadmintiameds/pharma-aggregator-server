@@ -33,6 +33,12 @@ public class TempSeller {
     @Column(name = "seller_image_url")
     private String sellerImageUrl;
 
+    @Column(name = "parent_manufacturer_name", length = 100)
+    private String parentManufacturerName;
+
+    @Column(name = "brand_owner_name", length = 100)
+    private String brandOwnerName;
+
 //    @Column(name = "terms_accepted", nullable = false)
 //    private boolean termsAccepted;
 

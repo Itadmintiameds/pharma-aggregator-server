@@ -1,5 +1,8 @@
 package com.example.pharmaaggregatorserver.entity.temp.seller;
 
+import com.example.pharmaaggregatorserver.entity.master.DistrictMaster;
+import com.example.pharmaaggregatorserver.entity.master.StateMaster;
+import com.example.pharmaaggregatorserver.entity.master.TalukaMaster;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -33,6 +36,18 @@ public class TempSellerBankDetails {
 
     @Column(name = "ifsc_code", nullable = false, length = 100)
     private String ifscCode;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "state_id")
+    private StateMaster state;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "district_id")
+    private DistrictMaster district;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "taluka_id")
+    private TalukaMaster taluka;
 
     @Column(name = "account_number", nullable = false, length = 100)
     private String accountNumber;

@@ -38,11 +38,13 @@ public class TempSellerServiceImpl implements TempSellerService {
     private final StateMasterRepository stateMasterRepository;
     private final DistrictMasterRepository districtMasterRepository;
     private final TalukaMasterRepository talukaMasterRepository;
+    private final DocumentTypeMasterRepository documentTypeMasterRepository;
     private final RequestIdGeneratorService requestIdGeneratorService;
     private final TempSellerDocumentRepository tempSellerDocumentRepository;
     private final TempSellerBankDetailsRepository tempSellerBankDetailsRepository;
     private final SellerRepository sellerRepository;
     private final S3Service s3Service;
+    private final SellerTypeFieldValidator sellerTypeFieldValidator;
 
     // Email service for sending confirmations
     private final IndependentEmailService independentEmailService;
@@ -77,6 +79,8 @@ public class TempSellerServiceImpl implements TempSellerService {
         SellerTypeMaster sellerType = sellerTypeMasterRepository.findById(requestDTO.getSellerTypeId())
                 .orElseThrow(() -> new RuntimeException("Seller type not found"));
 
+        sellerTypeFieldValidator.validate(requestDTO, sellerType);
+
         // Create main seller entity
         TempSeller seller = new TempSeller();
         seller.setSellerName(requestDTO.getSellerName());
@@ -87,6 +91,8 @@ public class TempSellerServiceImpl implements TempSellerService {
         seller.setPhone(requestDTO.getPhone());
         seller.setEmail(requestDTO.getEmail());
         seller.setWebsite(requestDTO.getWebsite());
+        seller.setParentManufacturerName(requestDTO.getParentManufacturerName());
+        seller.setBrandOwnerName(requestDTO.getBrandOwnerName());
         seller.setStatus("open");
 
         seller.setPhoneVerified(false);
@@ -303,6 +309,7 @@ public class TempSellerServiceImpl implements TempSellerService {
         coordinator.setDesignation(coordinatorDTO.getDesignation());
         coordinator.setEmail(coordinatorDTO.getEmail());
         coordinator.setMobile(coordinatorDTO.getMobile());
+        coordinator.setAuthorizationLetterUrl(coordinatorDTO.getAuthorizationLetterUrl());
         coordinator.setEmailVerified(false);
         coordinator.setPhoneVerified(false);
         coordinator.setCreatedBy("SYSTEM");
@@ -315,11 +322,21 @@ public class TempSellerServiceImpl implements TempSellerService {
      * Create bank details entity from DTO
      */
     private TempSellerBankDetails createBankDetails(TempSellerBankDetailsDTO bankDetailsDTO, TempSeller seller) {
+        StateMaster state = stateMasterRepository.findById(bankDetailsDTO.getStateId())
+                .orElseThrow(() -> new RuntimeException("State not found"));
+        DistrictMaster district = districtMasterRepository.findById(bankDetailsDTO.getDistrictId())
+                .orElseThrow(() -> new RuntimeException("District not found"));
+        TalukaMaster taluka = talukaMasterRepository.findById(bankDetailsDTO.getTalukaId())
+                .orElseThrow(() -> new RuntimeException("Taluka not found"));
+
         TempSellerBankDetails bankDetails = new TempSellerBankDetails();
         bankDetails.setSeller(seller);
         bankDetails.setBankName(bankDetailsDTO.getBankName());
         bankDetails.setBranch(bankDetailsDTO.getBranch());
         bankDetails.setIfscCode(bankDetailsDTO.getIfscCode());
+        bankDetails.setState(state);
+        bankDetails.setDistrict(district);
+        bankDetails.setTaluka(taluka);
         bankDetails.setAccountNumber(bankDetailsDTO.getAccountNumber());
         bankDetails.setAccountHolderName(bankDetailsDTO.getAccountHolderName());
         bankDetails.setBankDocumentFileUrl(bankDetailsDTO.getBankDocumentFileUrl());
@@ -330,15 +347,35 @@ public class TempSellerServiceImpl implements TempSellerService {
     }
 
     /**
-     * Create document entity from DTO
+     * Create document entity from DTO. productTypeId is set for product-tied
+     * licences; left null for seller-level agreements/certificates, which are
+     * identified via documentTypeId instead.
      */
     private TempSellerDocument createDocument(TempSellerDocumentDTO docDTO, TempSeller seller) {
-        ProductTypeMaster productType = productTypeMasterRepository.findById(docDTO.getProductTypeId())
-                .orElseThrow(() -> new RuntimeException("Product type not found for document"));
+        if (docDTO.getProductTypeId() == null && docDTO.getDocumentTypeId() == null) {
+            throw new ApplicationException("Each document must specify either productTypeId (for a product-tied licence) or documentTypeId (for a seller-level agreement/certificate)");
+        }
 
         TempSellerDocument document = new TempSellerDocument();
         document.setSeller(seller);
-        document.setProductTypes(productType);
+
+        if (docDTO.getProductTypeId() != null) {
+            ProductTypeMaster productType = productTypeMasterRepository.findById(docDTO.getProductTypeId())
+                    .orElseThrow(() -> new RuntimeException("Product type not found for document"));
+            document.setProductTypes(productType);
+        } else {
+            // Seller-level document (agreement/certificate) — product_type_id
+            // keeps its NOT NULL constraint, so point it at the reserved
+            // placeholder instead of leaving it null.
+            document.setProductTypes(resolvePlaceholderProductType());
+        }
+
+        if (docDTO.getDocumentTypeId() != null) {
+            DocumentTypeMaster documentType = documentTypeMasterRepository.findById(docDTO.getDocumentTypeId())
+                    .orElseThrow(() -> new RuntimeException("Document type not found for document"));
+            document.setDocumentType(documentType);
+        }
+
         document.setDocumentNumber(docDTO.getDocumentNumber());
         document.setDocumentFileUrl(docDTO.getDocumentFileUrl());
         document.setLicenseIssueDate(docDTO.getLicenseIssueDate());
@@ -369,7 +406,13 @@ public class TempSellerServiceImpl implements TempSellerService {
                     .map(doc -> {
                         TempSellerResponseDTO.DocumentInfo info = new TempSellerResponseDTO.DocumentInfo();
                         info.setDocumentId(doc.getDocumentsId());
-                        info.setLicenseName(doc.getProductTypes().getProductTypeName()); // adjust getter as per your entity
+                        // Product-tied licence rows are named after the product type;
+                        // seller-level agreement rows (no product type) fall back to
+                        // their document type name.
+                        String licenseName = doc.getProductTypes() != null
+                                ? doc.getProductTypes().getProductTypeName()
+                                : (doc.getDocumentType() != null ? doc.getDocumentType().getDocumentTypeName() : null);
+                        info.setLicenseName(licenseName);
                         return info;
                     })
                     .toList();
@@ -524,6 +567,8 @@ public class TempSellerServiceImpl implements TempSellerService {
         SellerTypeMaster sellerType = sellerTypeMasterRepository.findById(requestDTO.getSellerTypeId())
                 .orElseThrow(() -> new RuntimeException("Seller type not found"));
 
+        sellerTypeFieldValidator.validate(requestDTO, sellerType);
+
         // ── Core fields ───────────────────────────────────────────────────────────
         seller.setSellerName(requestDTO.getSellerName());
         seller.setProductTypes(productType);
@@ -532,6 +577,8 @@ public class TempSellerServiceImpl implements TempSellerService {
         seller.setPhone(requestDTO.getPhone());
         seller.setEmail(requestDTO.getEmail());
         seller.setWebsite(requestDTO.getWebsite());
+        seller.setParentManufacturerName(requestDTO.getParentManufacturerName());
+        seller.setBrandOwnerName(requestDTO.getBrandOwnerName());
         seller.setStatus("RESUBMITTED");
         seller.setGstNumber(requestDTO.getGstNumber());
         seller.setUpdatedBy("SYSTEM");
@@ -581,6 +628,9 @@ public class TempSellerServiceImpl implements TempSellerService {
                 coordinator.setEmailVerified(coordinatorDTO.isEmailVerified());
                 coordinator.setMobile(coordinatorDTO.getMobile());
                 coordinator.setPhoneVerified(coordinatorDTO.isPhoneVerified());
+                if (!isBlank(coordinatorDTO.getAuthorizationLetterUrl())) {
+                    coordinator.setAuthorizationLetterUrl(coordinatorDTO.getAuthorizationLetterUrl());
+                }
                 coordinator.setUpdatedBy("SYSTEM");
             }
         }
@@ -598,28 +648,41 @@ public class TempSellerServiceImpl implements TempSellerService {
                 bank.setIfscCode(bankDTO.getIfscCode());
                 bank.setAccountNumber(bankDTO.getAccountNumber());
                 bank.setAccountHolderName(bankDTO.getAccountHolderName());
+
+                if (bank.getState() == null || !Objects.equals(bank.getState().getStateId(), bankDTO.getStateId())) {
+                    bank.setState(stateMasterRepository.findById(bankDTO.getStateId())
+                            .orElseThrow(() -> new RuntimeException("State not found")));
+                }
+                if (bank.getDistrict() == null || !Objects.equals(bank.getDistrict().getDistrictId(), bankDTO.getDistrictId())) {
+                    bank.setDistrict(districtMasterRepository.findById(bankDTO.getDistrictId())
+                            .orElseThrow(() -> new RuntimeException("District not found")));
+                }
+                if (bank.getTaluka() == null || !Objects.equals(bank.getTaluka().getTalukaId(), bankDTO.getTalukaId())) {
+                    bank.setTaluka(talukaMasterRepository.findById(bankDTO.getTalukaId())
+                            .orElseThrow(() -> new RuntimeException("Taluka not found")));
+                }
+
                 bank.setUpdatedBy("SYSTEM");
             }
         }
 
         // ── Documents ─────────────────────────────────────────────────────────────
+        // Keyed by "D:<documentTypeId>" for seller-level agreements/certificates
+        // or "P:<productTypeId>" for product-tied licences. documentTypeId is
+        // checked first since agreement rows now always carry a (placeholder)
+        // productTypeId too — documentTypeId is what actually distinguishes them.
         if (requestDTO.getDocuments() != null) {
 
-            // Build a map of existing documents by productTypeId for quick lookup
-            Map<Long, TempSellerDocument> existingDocMap = seller.getDocuments().stream()
-                    .collect(Collectors.toMap(
-                            doc -> doc.getProductTypes().getProductTypeId(),
-                            doc -> doc
-                    ));
+            Map<String, TempSellerDocument> existingDocMap = seller.getDocuments().stream()
+                    .collect(Collectors.toMap(this::documentKey, doc -> doc));
 
-            // Build a set of incoming productTypeIds
-            Set<Long> incomingProductTypeIds = requestDTO.getDocuments().stream()
-                    .map(TempSellerDocumentDTO::getProductTypeId)
+            Set<String> incomingKeys = requestDTO.getDocuments().stream()
+                    .map(this::documentDtoKey)
                     .collect(Collectors.toSet());
 
-            // 1. DELETE documents whose productTypeId is no longer in the request + delete S3 file
-            existingDocMap.forEach((productTypeId, existingDoc) -> {
-                if (!incomingProductTypeIds.contains(productTypeId)) {
+            // 1. DELETE documents no longer present in the request + delete S3 file
+            existingDocMap.forEach((key, existingDoc) -> {
+                if (!incomingKeys.contains(key)) {
                     deleteS3File(existingDoc.getDocumentFileUrl());
                     seller.getDocuments().remove(existingDoc); // orphanRemoval will delete from DB
                 }
@@ -627,7 +690,7 @@ public class TempSellerServiceImpl implements TempSellerService {
 
             // 2. UPDATE existing or ADD new documents
             for (TempSellerDocumentDTO docDTO : requestDTO.getDocuments()) {
-                TempSellerDocument existingDoc = existingDocMap.get(docDTO.getProductTypeId());
+                TempSellerDocument existingDoc = existingDocMap.get(documentDtoKey(docDTO));
 
                 if (existingDoc != null) {
                     // UPDATE existing document row
@@ -648,6 +711,38 @@ public class TempSellerServiceImpl implements TempSellerService {
     }
 
     // ─── Private Helpers ──────────────────────────────────────────────────────────
+
+    private String documentKey(TempSellerDocument doc) {
+        return doc.getDocumentType() != null
+                ? "D:" + doc.getDocumentType().getDocumentTypeId()
+                : "P:" + doc.getProductTypes().getProductTypeId();
+    }
+
+    private String documentDtoKey(TempSellerDocumentDTO dto) {
+        return dto.getDocumentTypeId() != null
+                ? "D:" + dto.getDocumentTypeId()
+                : "P:" + dto.getProductTypeId();
+    }
+
+    private static final String PLACEHOLDER_PRODUCT_TYPE_NAME = "N/A - Seller Level Document";
+
+    /**
+     * Resolves the reserved, inactive placeholder ProductTypeMaster row used
+     * for seller-level documents (agreements/certificates) that have no real
+     * product category, so product_type_id's NOT NULL constraint never needs
+     * to be relaxed. Seeded once via seed_seller_types_and_document_types.sql;
+     * excluded from GET /product-types by ProductTypeMasterServiceImpl's
+     * isActive filter, so it never appears in the seller-facing category picker.
+     */
+    private ProductTypeMaster resolvePlaceholderProductType() {
+        return productTypeMasterRepository.findByProductTypeNameIgnoreCase(PLACEHOLDER_PRODUCT_TYPE_NAME)
+                .orElseThrow(() -> new ApplicationException(
+                        "Placeholder product type '" + PLACEHOLDER_PRODUCT_TYPE_NAME + "' is not seeded — run seed_seller_types_and_document_types.sql"));
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
 
     private void deleteTempSellerS3Files(TempSeller tempSeller) {
         deleteS3File(tempSeller.getSellerImageUrl());

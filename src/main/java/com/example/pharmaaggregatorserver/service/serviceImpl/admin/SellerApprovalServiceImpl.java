@@ -509,6 +509,8 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
         seller.setEmail(temp.getEmail());
         seller.setEmailVerified(temp.isEmailVerified());
         seller.setWebsite(temp.getWebsite());
+        seller.setParentManufacturerName(temp.getParentManufacturerName());
+        seller.setBrandOwnerName(temp.getBrandOwnerName());
         seller.setTermsAccepted(temp.isTermsAccepted());
         seller.setCompanyRegistrationCertificateUrl(temp.getCompanyRegistrationCertificateUrl());
         seller.setCompanyRegistrationCertificateVerified(temp.isCompanyRegistrationCertificateVerified());
@@ -551,6 +553,8 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
             coordinator.setEmailVerified(temp.getCoordinator().isEmailVerified());
             coordinator.setMobile(temp.getCoordinator().getMobile());
             coordinator.setPhoneVerified(temp.getCoordinator().isPhoneVerified());
+            coordinator.setAuthorizationLetterUrl(temp.getCoordinator().getAuthorizationLetterUrl());
+            coordinator.setAuthorizationLetterVerified(temp.getCoordinator().isAuthorizationLetterVerified());
             coordinator.setCreatedBy("SYSTEM");
             coordinator.setUpdatedBy("SYSTEM");
             savedSeller.setCoordinator(coordinator);
@@ -563,6 +567,9 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
             bankDetails.setBankName(temp.getBankDetails().getBankName());
             bankDetails.setBranch(temp.getBankDetails().getBranch());
             bankDetails.setIfscCode(temp.getBankDetails().getIfscCode());
+            bankDetails.setState(temp.getBankDetails().getState());
+            bankDetails.setDistrict(temp.getBankDetails().getDistrict());
+            bankDetails.setTaluka(temp.getBankDetails().getTaluka());
             bankDetails.setAccountNumber(temp.getBankDetails().getAccountNumber());
             bankDetails.setAccountHolderName(temp.getBankDetails().getAccountHolderName());
             bankDetails.setBankDocumentFileUrl(temp.getBankDetails().getBankDocumentFileUrl()); // temp URL for now
@@ -586,6 +593,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 SellerDocument doc = new SellerDocument();
                 doc.setSeller(savedSeller);
                 doc.setProductTypes(tempDoc.getProductTypes());
+                doc.setDocumentType(tempDoc.getDocumentType());
                 doc.setDocumentNumber(tempDoc.getDocumentNumber());
                 doc.setDocumentFileUrl(tempDoc.getDocumentFileUrl()); // temp URL for now
                 doc.setDocumentVerified(tempDoc.isDocumentVerified());

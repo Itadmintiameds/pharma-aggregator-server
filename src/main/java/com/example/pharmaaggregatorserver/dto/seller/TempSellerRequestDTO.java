@@ -45,6 +45,10 @@ public class TempSellerRequestDTO {
 
     private String website;
 
+    private String parentManufacturerName;
+
+    private String brandOwnerName;
+
     @NotBlank(message = "GST number is required")
     @Size(max = 100, message = "GST number cannot exceed 100 characters")
     private String gstNumber;
