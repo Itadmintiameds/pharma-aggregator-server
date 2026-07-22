@@ -26,8 +26,12 @@ public class GlobalResponseHandler implements ResponseBodyAdvice<Object> {
                                   ServerHttpRequest request,
                                   ServerHttpResponse response) {
 
-        // Avoid wrapping if already wrapped
-        if (body instanceof ApiResponse) {
+        // Avoid wrapping if already wrapped. Two different ApiResponse classes are
+        // in use across the codebase (this one, and dto.seller.SellerLogIn.ApiResponse
+        // used by GlobalExceptionHandler for error bodies) - check both, otherwise
+        // error bodies get silently re-wrapped into a fake "SUCCESS" envelope here.
+        if (body instanceof ApiResponse
+                || body instanceof com.example.pharmaaggregatorserver.dto.seller.SellerLogIn.ApiResponse) {
             return body;
         }
         Long count = (body instanceof java.util.Collection<?> collection)

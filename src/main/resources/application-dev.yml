@@ -6,11 +6,13 @@ server:
     include-binding-errors: always
     include-exception: true
     include-stacktrace: always
+  tomcat:
+    max-part-count: 50
 
 app:
-  login-url: http://localhost:3000/reset-password
-  frontend-url: http://localhost:3000
-  admin-frontend-url: http://localhost:3000
+  login-url: https://pharma-aggregator-test.tiameds.ai/reset-password
+  frontend-url: https://pharma-aggregator-test.tiameds.ai
+  admin-frontend-url: https://tiameds-admin-dashboard.vercel.app
   reset-token-expiration-hours: 1
   jwt:
     secret: mySecretKeyForJWTTokenGenerationAndValidation2024!@#$%^&*
@@ -53,7 +55,7 @@ spring:
   servlet:
     multipart:
       max-file-size: 5MB
-      max-request-size: 5MB
+      max-request-size: 25MB
 
 
 #  # Twilio sms
@@ -104,3 +106,5 @@ aws:
     secret-key: ${AWS_SECRET_KEY}
     region: ${AWS_REGION}
     bucket-name: ${AWS_BUCKET_NAME}
+
+

@@ -406,12 +406,14 @@ public class TempSellerServiceImpl implements TempSellerService {
                     .map(doc -> {
                         TempSellerResponseDTO.DocumentInfo info = new TempSellerResponseDTO.DocumentInfo();
                         info.setDocumentId(doc.getDocumentsId());
-                        // Product-tied licence rows are named after the product type;
-                        // seller-level agreement rows (no product type) fall back to
-                        // their document type name.
-                        String licenseName = doc.getProductTypes() != null
-                                ? doc.getProductTypes().getProductTypeName()
-                                : (doc.getDocumentType() != null ? doc.getDocumentType().getDocumentTypeName() : null);
+                        // Seller-level agreement/compliance rows are named after their
+                        // document type; product-tied licence rows fall back to the
+                        // product type name. Check documentType FIRST — productTypes
+                        // is never null now (agreements point at the placeholder row),
+                        // so it can't be used to distinguish the two cases anymore.
+                        String licenseName = doc.getDocumentType() != null
+                                ? doc.getDocumentType().getDocumentTypeName()
+                                : (doc.getProductTypes() != null ? doc.getProductTypes().getProductTypeName() : null);
                         info.setLicenseName(licenseName);
                         return info;
                     })
