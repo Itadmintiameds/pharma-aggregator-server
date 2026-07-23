@@ -2,11 +2,13 @@ package com.example.pharmaaggregatorserver.service.auth;
 
 import com.example.pharmaaggregatorserver.entity.auth.User;
 import com.example.pharmaaggregatorserver.entity.master.RoleMaster;
+import com.example.pharmaaggregatorserver.exception.ApplicationException;
 import com.example.pharmaaggregatorserver.repository.auth.RoleMasterRepository;
 import com.example.pharmaaggregatorserver.repository.auth.UserRepository;
 import com.example.pharmaaggregatorserver.utils.PasswordGeneratorUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -34,14 +36,16 @@ public class UserCreationService {
 
         // 1. Check if user already exists (safety check)
         if (userRepository.existsByUsername(coordinatorEmail)) {
-            throw new IllegalStateException(
-                    "User already exists for email: " + coordinatorEmail
+            throw new ApplicationException(
+                    HttpStatus.CONFLICT,
+                    "A user account already exists for coordinator email: " + coordinatorEmail
             );
         }
 
         // 2. Fetch SELLER role from DB
         RoleMaster sellerRole = roleMasterRepository.findByRoleName("SELLER")
-                .orElseThrow(() -> new IllegalStateException(
+                .orElseThrow(() -> new ApplicationException(
+                        HttpStatus.INTERNAL_SERVER_ERROR,
                         "SELLER role not found in tbl_role_master. Please seed the roles table."
                 ));
 

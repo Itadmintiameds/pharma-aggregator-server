@@ -1,0 +1,154 @@
+<mxfile host="app.diagrams.net" agent="claude-code" version="24.0.0">
+  <diagram name="Seller Registration - Document Field Flow (Distributor)" id="sellerRegDocFieldFlow">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1450" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ===================== COLUMN HEADERS ===================== -->
+        <mxCell id="h1" value="Frontend Form&#10;Distributor - Statutory Documents (DocumentForm.tsx)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="340" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="h2" value="Submission Payload&#10;built in SellerRegister.tsx" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="420" y="40" width="340" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="h3" value="Stage 1 - Pending Tables&#10;(created on POST /temp-sellers)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="800" y="40" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="h4" value="Stage 3 - Approved Tables&#10;(created on admin ACCEPT)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="40" width="340" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== COLUMN 1: FORM FIELDS ===================== -->
+        <mxCell id="f1" value="Wholesale Drug Licence (20B/21B) *&#10;- Licence Number&#10;- Certificate Upload&#10;- Issue Date&#10;- Expiry Date&#10;- Issuing Authority&#10;- Status (auto-computed)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="120" width="340" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="f2" value="Distribution Agreement&#10;- Agreement Number (optional)&#10;- Document Upload *&#10;- Issue Date (optional)&#10;- Expiry Date (optional)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="290" width="340" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="f3" value="IEC Certificate (optional)&#10;- Number  - Upload  - Issue Date  - Expiry Date" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="420" width="340" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="f4" value="Drug Import Licence (optional)&#10;- Number  - Upload  - Issue Date  - Expiry Date" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="500" width="340" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="f5" value="FSSAI Import Licence (optional)&#10;- Number  - Upload  - Issue Date  - Expiry Date" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="580" width="340" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="f6" value="Cosmetic Import Licence (optional)&#10;- Number  - Upload  - Issue Date  - Expiry Date" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="660" width="340" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="f7" value="Medical Device Import Licence (optional)&#10;- Number  - Upload  - Issue Date  - Expiry Date" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="740" width="340" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="f8" value="Trademark Certificate (optional)&#10;- Number  - Upload  - Issue Date  - Expiry Date" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="820" width="340" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="f9" value="GSTIN Details *&#10;- GST Number&#10;- GST Certificate Upload" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1230" width="340" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== COLUMN 2: PAYLOAD ===================== -->
+        <mxCell id="p1" value="licenseDocuments[]&#10;1 entry per selected product-type licence&#10;- productTypeId&#10;- documentNumber&#10;- documentFileUrl&#10;- licenseIssueDate&#10;- licenseExpiryDate&#10;- licenseIssuingAuthority" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="120" width="340" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p2" value="agreementDocuments[]&#10;1 entry per agreement code, ONLY IF a file was attached&#10;(Distribution Agreement, IEC, 4x Import Licences, Trademark)&#10;- documentTypeId (resolved via documentTypeCode)&#10;- documentNumber&#10;- documentFileUrl&#10;- licenseIssueDate&#10;- licenseExpiryDate&#10;WARNING: licenseIssuingAuthority is NEVER sent here -&#10;the UI has no such field for these document types" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="420" width="340" height="240" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p3" value="gstNumber / gstFile&#10;sent as TOP-LEVEL request fields -&#10;NOT part of the documents[] array" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="1230" width="340" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p_warn" value="WARNING: optional docs are keyed off &#10;'.filter(code =&gt; formData.agreements[code]?.file)' -&#10;if no file is uploaded, ANY number/dates typed&#10;for that document are silently dropped, not submitted." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;dashed=1;align=left;spacingLeft=8;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="420" y="700" width="340" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== COLUMN 3: STAGE 1 TABLES ===================== -->
+        <mxCell id="d1" value="tbl_temp_seller_document&#10;one row per licenseDocuments[] entry&#10;- product_type_id (FK, real category)&#10;- document_type_id = NULL&#10;- document_number, document_file_url&#10;- license_issue_date / license_expiry_date&#10;- license_issuing_authority&#10;- license_status (auto Active/Expired)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="800" y="120" width="380" height="170" as="geometry" />
+        </mxCell>
+
+        <mxCell id="d2" value="tbl_temp_seller_document&#10;one row per agreementDocuments[] entry&#10;- product_type_id (FK -&gt; placeholder row&#10;  'N/A - Seller Level Document')&#10;- document_type_id (FK -&gt; tbl_document_type_master)&#10;- document_number, document_file_url&#10;- license_issue_date / license_expiry_date&#10;- license_issuing_authority = NULL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="800" y="420" width="380" height="190" as="geometry" />
+        </mxCell>
+
+        <mxCell id="d3" value="tbl_temp_seller&#10;(gst_number, gst_document_file_url&#10;stored INLINE on the main row -&#10;no separate temp GST table exists)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="800" y="1230" width="380" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== COLUMN 4: STAGE 3 TABLES ===================== -->
+        <mxCell id="e1" value="tbl_seller_document&#10;mirrored from d1 on admin ACCEPT&#10;(new seller_id, S3 files re-homed)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="120" width="340" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e2" value="tbl_seller_document&#10;mirrored from d2 on admin ACCEPT&#10;(new seller_id, S3 files re-homed)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="420" width="340" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e3" value="tbl_seller_gst&#10;NEW dedicated table, created only on approval&#10;- seller_gst_id (PK)&#10;- gst_number, gst_document_file_url&#10;- seller_id (FK, unique - 1:1)&#10;- is_gst_verified" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="1230" width="340" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== MASTER / REFERENCE TABLES ===================== -->
+        <mxCell id="m_header" value="Master / Reference Tables (looked up while building the rows above)" style="text;html=1;align=center;verticalAlign=middle;fontStyle=1;fontSize=13;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="990" width="1520" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="m1" value="tbl_document_type_master&#10;DISTRIBUTION_AGREEMENT, IEC_CERTIFICATE,&#10;DRUG/FSSAI/COSMETIC/MEDICAL_DEVICE_IMPORT_LICENCE,&#10;TRADEMARK_CERTIFICATE&#10;(resolved by code to fill document_type_id in d2)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1030" width="460" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="m2" value="tbl_product_type_master&#10;Real categories (Drug, Cosmetic, ...) used by d1&#10;+ reserved placeholder row&#10;'N/A - Seller Level Document' (is_active=false)&#10;used by every row in d2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="540" y="1030" width="460" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="m3" value="tbl_seller_type_master&#10;'Distributor' row (seller_type_abbreviation = DIS)&#10;drives which document codes above are required vs&#10;optional, via SellerTypeFieldValidator.classify()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="1030" width="520" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== ARROWS: form -> payload ===================== -->
+        <mxCell id="af1" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=#6c8ebf;" edge="1" parent="1" source="f1" target="p1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="af2" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=#6c8ebf;" edge="1" parent="1" source="f2" target="p2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="af3" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=#6c8ebf;" edge="1" parent="1" source="f3" target="p2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="af4" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=#6c8ebf;" edge="1" parent="1" source="f4" target="p2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="af5" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=#6c8ebf;" edge="1" parent="1" source="f5" target="p2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="af6" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=#6c8ebf;" edge="1" parent="1" source="f6" target="p2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="af7" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=#6c8ebf;" edge="1" parent="1" source="f7" target="p2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="af8" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=#6c8ebf;" edge="1" parent="1" source="f8" target="p2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="af9" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=#6c8ebf;" edge="1" parent="1" source="f9" target="p3"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- ===================== ARROWS: payload -> stage1 tables ===================== -->
+        <mxCell id="ap1" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="p1" target="d1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ap2" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="p2" target="d2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ap3" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="p3" target="d3"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- ===================== ARROWS: stage1 -> stage3 (admin approval) ===================== -->
+        <mxCell id="ad1" value="Admin ACCEPT" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=#82b366;strokeWidth=2;fontSize=10;" edge="1" parent="1" source="d1" target="e1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ad2" value="Admin ACCEPT" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=#82b366;strokeWidth=2;fontSize=10;" edge="1" parent="1" source="d2" target="e2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ad3" value="Admin ACCEPT&#10;(new dedicated table)" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=#82b366;strokeWidth=2;fontSize=10;" edge="1" parent="1" source="d3" target="e3"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- ===================== ARROWS: stage1 tables -> master tables ===================== -->
+        <mxCell id="am1" value="document_type_id" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;dashed=1;strokeColor=#d6b656;fontSize=9;" edge="1" parent="1" source="d2" target="m1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="am2a" value="product_type_id" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;dashed=1;strokeColor=#d6b656;fontSize=9;" edge="1" parent="1" source="d1" target="m2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="am2b" value="product_type_id (placeholder)" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;dashed=1;strokeColor=#d6b656;fontSize=9;" edge="1" parent="1" source="d2" target="m2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="am3" value="seller_type_id" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;dashed=1;strokeColor=#d6b656;fontSize=9;" edge="1" parent="1" source="d3" target="m3"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- ===================== TOTALS / LEGEND ===================== -->
+        <mxCell id="legend" value="LEGEND: Blue = Frontend form fields | Orange = JS payload arrays sent to API | Red = Stage 1 pending DB tables (tbl_temp_seller_*) | Green = Stage 3 permanent DB tables (tbl_seller_*, created on admin ACCEPT) | Yellow = Master/lookup tables" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=2;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1370" width="1520" height="50" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
