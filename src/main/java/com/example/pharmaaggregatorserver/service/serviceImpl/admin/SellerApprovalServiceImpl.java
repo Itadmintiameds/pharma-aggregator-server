@@ -19,7 +19,6 @@ import com.example.pharmaaggregatorserver.service.EmailService;
 import com.example.pharmaaggregatorserver.service.PdfService;
 import com.example.pharmaaggregatorserver.service.S3Service;
 import com.example.pharmaaggregatorserver.service.admin.SellerApprovalService;
-import com.example.pharmaaggregatorserver.service.auth.UserCreationService;
 import com.example.pharmaaggregatorserver.service.temp.seller.TempSellerService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -53,7 +52,6 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
     private final SellerRepository sellerRepo;
     private final EmailService emailService;
     private final PdfService pdfService;
-    private final UserCreationService userCreationService;
     private final SellerTermsRepository sellerTermsRepository;
     private final TempSellerReviewHistoryRepository reviewHistoryRepository;
     private final S3Service s3Service;
@@ -366,15 +364,25 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
      */
     private void handleApproval(TempSeller tempSeller, String comments) {
 
-        // 1️⃣ Create User FIRST
-        String coordinatorEmail = tempSeller.getCoordinator().getEmail();
-        UserCreationService.UserCreationResult result =
-                userCreationService.createSellerUser(coordinatorEmail);
-        String username = coordinatorEmail;
-        String password = result.plainTempPassword();
+        // Registration requires logging in (signup-first) before a TempSeller
+        // can even be created, so every legitimate submission already has a
+        // linked User by the time it reaches approval. Approval never creates
+        // a new account or a temporary password — it just activates the
+        // Seller against the existing login. If user is null here, this is an
+        // orphaned/pre-migration TempSeller row with no login attached to it;
+        // that has to be resolved manually (e.g. delete the stale row) rather
+        // than papering over it with a freshly generated account.
+        User signupUser = tempSeller.getUser();
+        if (signupUser == null) {
+            throw new ApplicationException(
+                    "Cannot approve seller request " + tempSeller.getTempSellerRequestId()
+                            + ": this registration has no linked login account (predates the signup-first flow). "
+                            + "Remove this TempSeller record and have the seller register again."
+            );
+        }
 
-        // 2️⃣ Migrate data from temp → main seller table (pass user)
-        Seller approvedSeller = mapAndPersistSeller(tempSeller, result.user());
+        Seller approvedSeller = mapAndPersistSeller(tempSeller, signupUser);
+
         saveReviewHistory(tempSeller, "APPROVED", comments);
 
         // 3️⃣ Generate Seller Agreement PDF
@@ -420,15 +428,10 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 team.
                 </p>
                 
-                <p><b>Please find the below temporary login credentials:</b><br>
-                    Username: %s<br>
-                    Temporary Password: %s
-                </p>
-                
                 <p>
-                    For security purposes, you will be required to reset your password upon first login.
+                    You can log in using the email and password you created during signup.
                 </p>
-                
+
                 <p>
                     Your acceptance of the TiaMeds Marketplace Seller Policies has been recorded and is attached for your reference.
                 </p>
@@ -462,8 +465,6 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 comments,
                 approvedSeller.getSellerId(),
                 approvedSeller.getSellerName(),
-                username,
-                password,
                 SUPPORT_TIAMEDS_COM,
                 SUPPORT_TIAMEDS_COM
         );

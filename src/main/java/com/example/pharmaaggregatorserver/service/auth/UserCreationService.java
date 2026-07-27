@@ -25,55 +25,50 @@ public class UserCreationService {
     private final PasswordEncoder passwordEncoder;
     private final PasswordGeneratorUtils passwordGeneratorUtils;
 
-    /**
-     * Creates a User for a seller.
-     * Called during TempSeller → Seller approval.
-     *
-     * @param coordinatorEmail used as username
-     * @return plain text temp password (to be emailed — NOT stored anywhere)
-     */
-    public UserCreationResult createSellerUser(String coordinatorEmail) {
+    // =========================================================================
+    // Create a User directly from the standalone signup flow
+    // Called after signup-OTP verification. The password was already chosen
+    // by the user and hashed by the caller — never re-hashed or logged here.
+    // =========================================================================
 
-        // 1. Check if user already exists (safety check)
-        if (userRepository.existsByUsername(coordinatorEmail)) {
+    /**
+     * Creates a User from the standalone signup flow (email + password chosen
+     * by the user, already OTP-verified by the caller).
+     *
+     * @param email          becomes the login username
+     * @param hashedPassword BCrypt hash of the password the user chose at signup
+     * @return the saved User
+     */
+    public User createUserFromSignup(String email, String hashedPassword) {
+
+        if (userRepository.existsByUsername(email)) {
             throw new ApplicationException(
                     HttpStatus.CONFLICT,
-                    "A user account already exists for coordinator email: " + coordinatorEmail
+                    "A user account already exists for email: " + email
             );
         }
 
-        // 2. Fetch SELLER role from DB
         RoleMaster sellerRole = roleMasterRepository.findByRoleName("SELLER")
                 .orElseThrow(() -> new ApplicationException(
                         HttpStatus.INTERNAL_SERVER_ERROR,
                         "SELLER role not found in tbl_role_master. Please seed the roles table."
                 ));
 
-        // 3. Generate temp password (plain text — only used here, never stored)
-        String plainTempPassword = passwordGeneratorUtils.generateTemporaryPassword();
-
-        // 4. Hash the password — this is what gets stored in DB
-        String hashedPassword = passwordEncoder.encode(plainTempPassword);
-
-        // 5. Build the User entity
         User user = new User();
-        user.setUsername(coordinatorEmail);        // coordinator email = login username
-        user.setPasswordHash(hashedPassword);      // BCrypt hash stored in DB
-        user.setPasswordTemporary(true);           // forces password change on first login
+        user.setUsername(email);
+        user.setPasswordHash(hashedPassword);
+        user.setPasswordTemporary(false); // user chose their own password at signup
         user.setActive(true);
         user.setAccountLocked(false);
         user.setFailedLoginAttempts(0);
         user.setRoles(Set.of(sellerRole));
 
-        // 6. Save to tbl_user
         User savedUser = userRepository.save(user);
-        log.info("User created for seller coordinator: {}", coordinatorEmail);
-
-        // 7. Return both saved user and plain password
-        //    Plain password is returned ONLY to be emailed — never logged or stored
-        return new UserCreationResult(savedUser, plainTempPassword);
+        log.info("User created from signup for email: {}", email);
+        return savedUser;
     }
-// =========================================================================
+
+    // =========================================================================
     // Rotate credentials when the coordinator e-mail changes
     // Called during UPDATE-type approval when coordinator email has changed.
     // =========================================================================
@@ -127,10 +122,6 @@ public class UserCreationService {
 
         // 6. Return saved entity + plain password for e-mailing
         return new CredentialRotationResult(savedUser, plainTempPassword);
-    }
-
-    // Simple result holder — keeps method return clean
-    public record UserCreationResult(User user, String plainTempPassword) {
     }
 
     /**

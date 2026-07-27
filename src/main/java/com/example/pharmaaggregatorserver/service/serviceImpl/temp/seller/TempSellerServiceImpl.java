@@ -4,16 +4,19 @@ import com.example.pharmaaggregatorserver.dto.admin.TempSellerAdminResponseDTO;
 import com.example.pharmaaggregatorserver.dto.seller.OnSubmit.EmailRequestDTO;
 import com.example.pharmaaggregatorserver.dto.seller.OnSubmit.EmailResponseDTO;
 import com.example.pharmaaggregatorserver.dto.seller.*;
+import com.example.pharmaaggregatorserver.entity.auth.User;
 import com.example.pharmaaggregatorserver.entity.master.*;
 import com.example.pharmaaggregatorserver.entity.seller.Seller;
 import com.example.pharmaaggregatorserver.entity.temp.seller.*;
 import com.example.pharmaaggregatorserver.exception.ApplicationException;
 import com.example.pharmaaggregatorserver.exception.NotFoundException;
+import com.example.pharmaaggregatorserver.repository.auth.UserRepository;
 import com.example.pharmaaggregatorserver.repository.master.*;
 import com.example.pharmaaggregatorserver.repository.seller.SellerRepository;
 import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerBankDetailsRepository;
 import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerDocumentRepository;
 import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerRepository;
+import com.example.pharmaaggregatorserver.security.UserDetailsImpl;
 import com.example.pharmaaggregatorserver.service.S3Service;
 import com.example.pharmaaggregatorserver.service.temp.seller.OnSubmit.IndependentEmailService;
 import com.example.pharmaaggregatorserver.service.temp.seller.RequestIdGeneratorService;
@@ -21,6 +24,9 @@ import com.example.pharmaaggregatorserver.service.temp.seller.TempSellerService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -45,6 +51,7 @@ public class TempSellerServiceImpl implements TempSellerService {
     private final SellerRepository sellerRepository;
     private final S3Service s3Service;
     private final SellerTypeFieldValidator sellerTypeFieldValidator;
+    private final UserRepository userRepository;
 
     // Email service for sending confirmations
     private final IndependentEmailService independentEmailService;
@@ -52,6 +59,8 @@ public class TempSellerServiceImpl implements TempSellerService {
     @Override
     @Transactional
     public TempSellerResponseDTO createTempSeller(TempSellerRequestDTO requestDTO) {
+        User currentUser = resolveAuthenticatedUser();
+
         String generatedRequestId = requestIdGeneratorService.generateNextRequestId();
 
         // ✅ VALIDATION: Phone and Email must be verified
@@ -83,6 +92,7 @@ public class TempSellerServiceImpl implements TempSellerService {
 
         // Create main seller entity
         TempSeller seller = new TempSeller();
+        seller.setUser(currentUser);
         seller.setSellerName(requestDTO.getSellerName());
         seller.setTempSellerRequestId(generatedRequestId);
         seller.setProductTypes(productType);
@@ -270,6 +280,23 @@ public class TempSellerServiceImpl implements TempSellerService {
             log.error("❌ Error sending confirmation email for TempSeller ID: {} - Error: {}",
                     savedSeller.getTempSellerId(), e.getMessage(), e);
         }
+    }
+
+    /**
+     * Resolves the authenticated User (issued via the signup-first flow) that
+     * is starting this registration. Registration now requires a login —
+     * AuthTokenFilter already populates the SecurityContext for any request
+     * carrying a valid Bearer token, so we just require it be present here.
+     */
+    private User resolveAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || !(authentication.getPrincipal() instanceof UserDetailsImpl userDetails)) {
+            throw new ApplicationException(HttpStatus.UNAUTHORIZED,
+                    "You must sign up and log in before starting seller registration.");
+        }
+        return userRepository.findById(userDetails.getId())
+                .orElseThrow(() -> new ApplicationException(HttpStatus.UNAUTHORIZED, "Invalid session. Please log in again."));
     }
 
     /**

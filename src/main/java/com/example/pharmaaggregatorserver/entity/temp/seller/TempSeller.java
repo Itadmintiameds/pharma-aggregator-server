@@ -1,5 +1,6 @@
 package com.example.pharmaaggregatorserver.entity.temp.seller;
 
+import com.example.pharmaaggregatorserver.entity.auth.User;
 import com.example.pharmaaggregatorserver.entity.master.CompanyTypeMaster;
 import com.example.pharmaaggregatorserver.entity.master.ProductTypeMaster;
 import com.example.pharmaaggregatorserver.entity.master.SellerTypeMaster;
@@ -26,6 +27,13 @@ public class TempSeller {
 
     @Column(name = "seller_request_id", nullable = false, length = 100)
     private String tempSellerRequestId;
+
+    // The account that created this registration via the signup-first flow.
+    // Nullable for backward compatibility with rows created before this field
+    // existed; always set for new registrations (see TempSellerServiceImpl).
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", unique = true)
+    private User user;
 
     @Column(name = "seller_name", nullable = false, length = 100)
     private String sellerName;
