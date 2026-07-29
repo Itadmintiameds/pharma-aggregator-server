@@ -9,6 +9,8 @@ public interface TempSellerRepository extends JpaRepository<TempSeller, Long> {
     boolean existsByEmail(String email);
     boolean existsByGstNumber(String gstnumber);
 
+    Optional<TempSeller> findByUser_UserId(Long userId);
+
     @Query("SELECT MAX(s.tempSellerRequestId) FROM TempSeller s")
     Optional<String> findMaxRequestId();
 }

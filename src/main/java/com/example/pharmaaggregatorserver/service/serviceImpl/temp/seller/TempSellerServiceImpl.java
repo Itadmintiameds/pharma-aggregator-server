@@ -485,6 +485,15 @@ public class TempSellerServiceImpl implements TempSellerService {
                 .orElseThrow(() -> new NotFoundException("TempSeller not found for id: " + id));
     }
 
+    /**
+     * Find the temp seller registration submitted by a given user, if any.
+     * Empty when the user hasn't submitted a registration yet (signup only).
+     */
+    @Override
+    public Optional<TempSeller> findByUserId(Long userId) {
+        return tempSellerRepository.findByUser_UserId(userId);
+    }
+
     @Override
     @Transactional
     public void updateGstVerification(Long tempSellerId, boolean isGstVerified) {

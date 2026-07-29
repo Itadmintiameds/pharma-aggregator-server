@@ -57,6 +57,20 @@ public class TempSellerController {
         ));
     }
 
+    // Find the (pending) TempSeller registration submitted by the logged-in user, if any.
+    // 404 means the user hasn't submitted a registration yet — signup only.
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<?> getTempSellerByUserId(@PathVariable Long userId) {
+        TempSeller seller = tempSellerService.findByUserId(userId)
+                .orElseThrow(() -> new com.example.pharmaaggregatorserver.exception.NotFoundException(
+                        "No temp seller registration found for user id: " + userId));
+        return ResponseEntity.ok(new ApiResponse<>(
+                HttpStatus.OK.toString(),
+                "Temporary Seller fetched successfully",
+                seller
+        ));
+    }
+
     // PATCH /api/admin/temp-sellers/{id}/verify/gst
     // { "isGstVerified": true }
     @PatchMapping("/{id}/verify/gst")
