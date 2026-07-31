@@ -6,6 +6,7 @@ import com.example.pharmaaggregatorserver.entity.product.CosmeticPersonalCareMas
 import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.Certification;
 import com.example.pharmaaggregatorserver.entity.product.MedicalDeviceProductMaster.StorageConditionMaster;
 import com.example.pharmaaggregatorserver.entity.seller.Seller;
+import com.example.pharmaaggregatorserver.enums.ProductStatus;
 import com.example.pharmaaggregatorserver.exception.ApplicationException;
 import com.example.pharmaaggregatorserver.exception.NotFoundException;
 import com.example.pharmaaggregatorserver.mapper.product.*;
@@ -94,6 +95,7 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
         product.setCategory(category);
         product.setGstPercentage(dto.getGstPercentage());
         product.setHsnCode(dto.getHsnCode());
+        product.setStatus(dto.getStatus() != null ? ProductStatus.valueOf(dto.getStatus()) : ProductStatus.PUBLISHED);
 
         setChildRelationships(product, seller.getSellerName(), seller.getSellerId());
 
@@ -518,6 +520,10 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
         existingProduct.setHsnCode(dto.getHsnCode());
         existingProduct.setModifiedBy(seller.getSellerId());
         existingProduct.setModifiedDate(LocalDateTime.now());
+
+        if (dto.getStatus() != null) {
+            existingProduct.setStatus(ProductStatus.valueOf(dto.getStatus()));
+        }
 
         // ✅ CATEGORY
         if (dto.getCategoryId() != null) {

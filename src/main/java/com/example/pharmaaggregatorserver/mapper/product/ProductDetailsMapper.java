@@ -145,6 +145,7 @@ public class ProductDetailsMapper {
         dto.setModifiedDate(entity.getModifiedDate());
         dto.setGstPercentage(entity.getGstPercentage());
         dto.setHsnCode(entity.getHsnCode());
+        dto.setStatus(entity.getStatus() != null ? entity.getStatus().name() : null);
 
         if (entity.getPackagingDetails() != null) {
             dto.setPackagingDetails(

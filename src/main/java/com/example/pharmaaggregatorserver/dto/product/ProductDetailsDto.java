@@ -35,5 +35,6 @@ public class ProductDetailsDto {
     private Set<ProductAttributeFoodInfantDto> productAttributeFoodInfants;
     private Long gstPercentage;
     private Long hsnCode;
+    private String status;
 
 }
