@@ -55,7 +55,7 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
 
     @Override
     @Transactional
-    public ProductDetailsDto createProduct(ProductDetailsDto dto, Long userId) {
+    public ProductDetailsDto createProduct(ProductDetailsDto dto, Long userId, boolean allowMergeIntoExisting) {
 
         Seller seller = sellerRepo.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Seller not found"));
@@ -66,14 +66,16 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
         String productName = dto.getProductName() != null ? dto.getProductName().trim() : null;
         String manufacturerName = dto.getManufacturerName() != null ? dto.getManufacturerName().trim() : null;
 
-        // Same seller + name + manufacturer + category means this is another variant
-        // (pack size/batch) of a product that already exists, not a brand-new product.
-        Optional<ProductDetails> existingOpt = productRepo
-                .findFirstBySeller_SellerIdAndProductNameIgnoreCaseAndManufacturerNameIgnoreCaseAndCategory_CategoryId(
-                        seller.getSellerId(), productName, manufacturerName, dto.getCategoryId());
+        if (allowMergeIntoExisting) {
+            // Same seller + name + manufacturer + category means this is another variant
+            // (pack size/batch) of a product that already exists, not a brand-new product.
+            Optional<ProductDetails> existingOpt = productRepo
+                    .findFirstBySeller_SellerIdAndProductNameIgnoreCaseAndManufacturerNameIgnoreCaseAndCategory_CategoryId(
+                            seller.getSellerId(), productName, manufacturerName, dto.getCategoryId());
 
-        if (existingOpt.isPresent()) {
-            return addVariantToExistingProduct(existingOpt.get(), dto, seller);
+            if (existingOpt.isPresent()) {
+                return addVariantToExistingProduct(existingOpt.get(), dto, seller);
+            }
         }
 
         ProductDetails product = productMapper.toEntity(dto);

@@ -91,7 +91,9 @@ public class UniversalExcelImportService {
                     try {
                         ProductDetailsDto dto = strategy.mapRow(row, categoryId, userId);
                         dto.setCategoryId(categoryId);
-                        productService.createProduct(dto, userId);
+                        // true: multiple sheet rows for the same product name/manufacturer are
+                        // meant to merge into one product as separate pack-size/batch variants.
+                        productService.createProduct(dto, userId, true);
                         success++;
 
                     } catch (Exception ex) {
@@ -143,7 +145,9 @@ public class UniversalExcelImportService {
                 try {
                     ProductDetailsDto dto = strategy.mapCsv(record, categoryId, userId);
                     dto.setCategoryId(categoryId);
-                    productService.createProduct(dto, userId);
+                    // true: multiple CSV rows for the same product name/manufacturer are
+                    // meant to merge into one product as separate pack-size/batch variants.
+                    productService.createProduct(dto, userId, true);
                     success++;
                 } catch (Exception ex) {
                     log.error("CSV row {} failed [{}]: {}", record.getRecordNumber(), productName, ex.getMessage());

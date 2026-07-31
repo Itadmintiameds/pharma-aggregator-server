@@ -8,7 +8,16 @@ import java.util.List;
 
 public interface ProductDetailsService {
 
-    ProductDetailsDto createProduct(ProductDetailsDto dto, Long userId);
+    /**
+     * @param allowMergeIntoExisting when true, a product matching this seller + product name +
+     *                               manufacturer name + category is treated as another pack-size/
+     *                               batch variant and merged into instead of creating a duplicate
+     *                               product row (used by bulk Excel/CSV import, where multiple rows
+     *                               legitimately represent the same product). Manual single-product
+     *                               creation should pass false so every submission becomes its own
+     *                               product, even if the name/manufacturer/category match another.
+     */
+    ProductDetailsDto createProduct(ProductDetailsDto dto, Long userId, boolean allowMergeIntoExisting);
 
     List<ProductDetailsDto> getAllProducts(Long userId);
 

@@ -29,7 +29,9 @@ public class ProductDetailsController {
         UserDetailsImpl user = (UserDetailsImpl) authentication.getPrincipal();
         Long userId = user.getId();
         System.out.println("user Id is: "+userId);
-        ProductDetailsDto response = productService.createProduct(dto, userId);
+        // false: a manually submitted product always becomes its own row, even if its name/
+        // manufacturer/category matches an existing product — no silent merge here.
+        ProductDetailsDto response = productService.createProduct(dto, userId, false);
         return ResponseEntity.ok(response);
     }
 
