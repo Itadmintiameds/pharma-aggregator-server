@@ -23,7 +23,7 @@ public class ProductDetailsController {
 
     @PostMapping("/create")
     public ResponseEntity<ProductDetailsDto> createProduct(
-            @RequestBody ProductDetailsDto dto,
+            @RequestBody @Valid ProductDetailsDto dto,
             Authentication authentication
     ) {
         UserDetailsImpl user = (UserDetailsImpl) authentication.getPrincipal();
