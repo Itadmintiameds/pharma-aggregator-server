@@ -23,5 +23,6 @@ public class BatchAvailabilityDto {
     private Long stockQuantity;
     private BigDecimal discountPercentage;
     private Long shelfLifeMonths;
+    private Long shelfLifeDays;
     private LocalDate dateOfStockEntry;
 }

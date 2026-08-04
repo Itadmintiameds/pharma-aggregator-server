@@ -26,6 +26,7 @@ public class PricingDetailsDto {
     private Long finalPrice;
     private Long hsnCode;
     private Long shelfLifeMonths;
+    private Long shelfLifeDays;
     private String createdBy;
     private String modifiedBy;
     private LocalDateTime createdDate;

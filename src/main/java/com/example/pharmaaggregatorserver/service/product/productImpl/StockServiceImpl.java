@@ -83,6 +83,7 @@ public class StockServiceImpl implements StockService {
                 request.getDiscountPercentage(),
                 request.getSpecialDiscounts(),
                 request.getShelfLifeMonths(),
+                request.getShelfLifeDays(),
                 request.getDateOfStockEntry(),
                 request.getReferenceId(),
                 request.getReferenceType()
@@ -122,6 +123,7 @@ public class StockServiceImpl implements StockService {
                     batchLine.getDiscountPercentage(),
                     batchLine.getSpecialDiscounts(),
                     batchLine.getShelfLifeMonths(),
+                    batchLine.getShelfLifeDays(),
                     batchLine.getDateOfStockEntry(),
                     batchLine.getReferenceId(),
                     batchLine.getReferenceType()
@@ -145,6 +147,7 @@ public class StockServiceImpl implements StockService {
             BigDecimal discountPercentage,
             List<AdditionalDiscountDto> specialDiscounts,
             Long shelfLifeMonths,
+            Long shelfLifeDays,
             LocalDate dateOfStockEntry,
             String referenceId,
             String referenceType
@@ -173,6 +176,7 @@ public class StockServiceImpl implements StockService {
         candidate.setSellingPrice(sellingPrice);
         candidate.setDiscountPercentage(discountPercentage);
         candidate.setShelfLifeMonths(shelfLifeMonths);
+        candidate.setShelfLifeDays(shelfLifeDays);
         candidate.setDateOfStockEntry(dateOfStockEntry);
         // Special discounts are stored as AdditionalDiscount records (existing table/relation)
         // rather than a new PricingDetails column, distinct from the flat discountPercentage
@@ -334,6 +338,7 @@ public class StockServiceImpl implements StockService {
                 .stockQuantity(batch.getStockQuantity())
                 .discountPercentage(batch.getDiscountPercentage())
                 .shelfLifeMonths(batch.getShelfLifeMonths())
+                .shelfLifeDays(batch.getShelfLifeDays())
                 .dateOfStockEntry(batch.getDateOfStockEntry())
                 .build();
     }

@@ -33,8 +33,10 @@ public class StockInRequestDto {
     // additionalDiscountPercentage, and displayOffer per entry (pricingId/additionalDiscountId
     // are ignored — set server-side). Only applies when creating a new batch.
     private List<AdditionalDiscountDto> specialDiscounts;
-    // Optional — shelf life of this batch in months. Only applies when creating a new batch.
+    // Optional — shelf life of this batch in whole months. Only applies when creating a new batch.
     private Long shelfLifeMonths;
+    // Optional — shelf life of this batch in whole days. Only applies when creating a new batch.
+    private Long shelfLifeDays;
     // Optional — defaults to today (server-side) if omitted. Only applies when creating a new batch.
     private LocalDate dateOfStockEntry;
     private String referenceId;

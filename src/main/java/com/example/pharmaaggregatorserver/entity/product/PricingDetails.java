@@ -65,6 +65,9 @@ public class PricingDetails {
     @Column(name = "shelf_life_months")
     private Long shelfLifeMonths;
 
+    @Column(name = "shelf_life_days")
+    private Long shelfLifeDays;
+
     @Column(name = "created_by")
     private String createdBy;
 
