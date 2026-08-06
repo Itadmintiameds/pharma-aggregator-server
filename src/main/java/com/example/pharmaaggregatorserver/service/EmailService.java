@@ -71,18 +71,71 @@ public class EmailService {
 
     public void sendCoordinatorOtp(String to, String otp) {
 
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(to);
-        message.setSubject("Pharma Aggregator - Email Verification OTP");
-        message.setText(
-                "Dear Coordinator,\n\n" +
-                        "Your email verification OTP is: " + otp + "\n\n" +
-                        "This OTP is valid for 5 minutes.\n" +
-                        "Please do not share this code with anyone.\n\n" +
-                        "Regards,\nPharma Aggregator Team"
-        );
+        String subject = "Your TiaMeds Marketplace Verification Code";
+        String body = buildOtpEmailTemplate(otp);
 
-        mailSender.send(message);
+        sendHtmlMail(to, subject, body);
+    }
+
+    /**
+     * Builds a branded, responsive HTML template for OTP verification emails.
+     */
+    private String buildOtpEmailTemplate(String otp) {
+        return """
+                <!DOCTYPE html>
+                <html>
+                <body style="margin:0; padding:0; background-color:#f4f6f8; font-family:Arial, Helvetica, sans-serif;">
+                  <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f8; padding:32px 0;">
+                    <tr>
+                      <td align="center">
+                        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+                          <tr>
+                            <td style="background-color:#9659FD; padding:24px 32px;">
+                              <span style="color:#ffffff; font-size:20px; font-weight:bold; letter-spacing:0.3px;">TiaMeds Marketplace</span>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="padding:32px;">
+                              <p style="margin:0 0 16px; font-size:15px; color:#333333; line-height:1.6;">
+                                Dear Coordinator,
+                              </p>
+                              <p style="margin:0 0 24px; font-size:15px; color:#333333; line-height:1.6;">
+                                Use the verification code below to confirm your email address. This code is valid for
+                                <b>5 minutes</b>.
+                              </p>
+                              <table role="presentation" width="100%%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                  <td align="center" style="padding:16px 0 24px;">
+                                    <span style="display:inline-block; -webkit-user-select:all; user-select:all; background-color:#f2e9ff; color:#9659FD; font-size:32px; font-weight:bold; letter-spacing:8px; padding:14px 28px; border-radius:6px; font-family:'Courier New', monospace;">
+                                      %s
+                                    </span>
+                                  </td>
+                                </tr>
+                              </table>
+                              <p style="margin:0 0 8px; font-size:14px; color:#666666; line-height:1.6;">
+                                For your security, please do not share this code with anyone, including TiaMeds staff.
+                              </p>
+                              <p style="margin:0; font-size:14px; color:#666666; line-height:1.6;">
+                                If you did not request this code, you can safely ignore this email.
+                              </p>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="background-color:#f4f6f8; padding:20px 32px; border-top:1px solid #e5e8eb;">
+                              <p style="margin:0; font-size:12px; color:#999999; line-height:1.6;">
+                                Warm Regards,<br>
+                                TiaMeds Marketplace<br>
+                                Seller Onboarding &amp; Compliance Team
+                              </p>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </body>
+                </html>
+                """.formatted(otp);
     }
 
 }
