@@ -35,7 +35,7 @@ public class TempSeller {
     @JoinColumn(name = "user_id", unique = true)
     private User user;
 
-    @Column(name = "seller_name", nullable = false, length = 100)
+    @Column(name = "seller_name", length = 100)
     private String sellerName;
 
     @Column(name = "seller_image_url")
@@ -65,11 +65,14 @@ public class TempSeller {
     @OneToMany(mappedBy = "seller", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TempSellerDocument> documents = new ArrayList<>();
 
-    @Column(name = "gst_number", nullable = false, length = 100)
+    @Column(name = "gst_number", length = 100)
     private String gstNumber;
 
-    @Column(name = "gst_document_file_url", nullable = false)
+    @Column(name = "gst_document_file_url")
     private String gstFileUrl;
+
+    @Column(name = "gst_document_file_name")
+    private String gstFileName;
 
     @Column(name = "is_gst_verified", columnDefinition = "boolean default false", nullable = false)
     private boolean isGstVerified = false;
@@ -93,22 +96,22 @@ public class TempSeller {
     private List<TempSellerReviewHistory> reviewHistories = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "company_type_id", nullable = false)
+    @JoinColumn(name = "company_type_id")
     private CompanyTypeMaster companyType;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "seller_type_id", nullable = false)
+    @JoinColumn(name = "seller_type_id")
     private SellerTypeMaster sellerType;
 
     //    TODO: confirmation required, unique phone is required or not
-    @Column(name = "phone",  nullable = false, length = 100)
+    @Column(name = "phone", length = 100)
     private String phone;
 
     @Column(name = "is_phone_verified", nullable = false)
     private boolean isPhoneVerified;
 
     //    TODO: confirmation required, unique email is required or not
-    @Column(name = "email", nullable = false, length = 100)
+    @Column(name = "email", length = 100)
     private String email;
 
     @Column(name = "is_email_verified", nullable = false)
@@ -120,11 +123,14 @@ public class TempSeller {
     @Column(name = "status", nullable = false, length = 100)
     private String status; // open, In Progress, Closed
 
-    @Column(name = "terms_accepted", nullable = false, columnDefinition = "boolean default false")
+    @Column(name = "terms_accepted", columnDefinition = "boolean default false")
     private boolean termsAccepted = false;
 
-    @Column(name = "company_registration_certificate_url", nullable = false, columnDefinition = "VARCHAR(255) DEFAULT 'PENDING'")
+    @Column(name = "company_registration_certificate_url", columnDefinition = "VARCHAR(255) DEFAULT 'PENDING'")
     private String companyRegistrationCertificateUrl;
+
+    @Column(name = "company_registration_certificate_file_name")
+    private String companyRegistrationCertificateFileName;
 
     @Column(name = "is_company_registration_certificate_verified", columnDefinition = "boolean default false", nullable = false)
     private boolean isCompanyRegistrationCertificateVerified = false;

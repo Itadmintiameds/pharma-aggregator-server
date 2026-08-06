@@ -8,6 +8,7 @@ import com.example.pharmaaggregatorserver.entity.temp.seller.SellerTerms;
 import com.example.pharmaaggregatorserver.entity.temp.seller.TempSeller;
 import com.example.pharmaaggregatorserver.entity.temp.seller.TempSellerDocument;
 import com.example.pharmaaggregatorserver.entity.temp.seller.TempSellerReviewHistory;
+import com.example.pharmaaggregatorserver.entity.temp.seller.TempSellerStatus;
 import com.example.pharmaaggregatorserver.exception.ApplicationException;
 import com.example.pharmaaggregatorserver.exception.NotFoundException;
 import com.example.pharmaaggregatorserver.repository.master.ProductTypeMasterRepository;
@@ -95,10 +96,10 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
     private void handleCorrection(TempSeller seller, String comments) {
 
         // Update seller status
-        seller.setStatus("CORRECTION_REQUIRED");
+        seller.setStatus(TempSellerStatus.CORRECTION_REQUIRED);
         tempSellerRepo.save(seller);
 
-        saveReviewHistory(seller, "CORRECTION_REQUIRED", comments);
+        saveReviewHistory(seller, TempSellerStatus.CORRECTION_REQUIRED, comments);
 
         // Correction URL
         String correctionUrl = ADMIN_FRONTEND_URL + "/SellerCorrection/[requestId]?sellerId=" + seller.getTempSellerId();
@@ -178,9 +179,9 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
      */
     private void handleRejection(TempSeller seller, String comments) {
 
-        seller.setStatus("REJECTED");
+        seller.setStatus(TempSellerStatus.REJECTED);
         tempSellerRepo.save(seller);
-        saveReviewHistory(seller, "REJECTED", comments);
+        saveReviewHistory(seller, TempSellerStatus.REJECTED, comments);
 
         String body = """
                 <html>
@@ -383,7 +384,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
 
         Seller approvedSeller = mapAndPersistSeller(tempSeller, signupUser);
 
-        saveReviewHistory(tempSeller, "APPROVED", comments);
+        saveReviewHistory(tempSeller, TempSellerStatus.APPROVED, comments);
 
         // 3️⃣ Generate Seller Agreement PDF
         SellerTerms terms = sellerTermsRepository.findByTermText("Seller-Terms")
@@ -479,7 +480,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
         );
 
         // 6️⃣ Mark TempSeller as APPROVED
-        tempSeller.setStatus("APPROVED");
+        tempSeller.setStatus(TempSellerStatus.APPROVED);
         tempSellerRepo.save(tempSeller);
     }
 

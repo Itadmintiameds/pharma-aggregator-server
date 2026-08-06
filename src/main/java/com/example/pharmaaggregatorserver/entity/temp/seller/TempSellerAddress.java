@@ -29,30 +29,30 @@ public class TempSellerAddress {
     private TempSeller seller;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "state_id", nullable = false)
+    @JoinColumn(name = "state_id")
     private StateMaster state;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "district_id", nullable = false)
+    @JoinColumn(name = "district_id")
     private DistrictMaster district;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "taluka_id", nullable = false)
+    @JoinColumn(name = "taluka_id")
     private TalukaMaster taluka;
 
-    @Column(name = "city", nullable = false)
+    @Column(name = "city")
     private String city;
 
-    @Column(name = "street", nullable = false)
+    @Column(name = "street")
     private String street;
 
-    @Column(name = "building_no", nullable = false)
+    @Column(name = "building_no")
     private String buildingNo;
 
     @Column(name = "landmark")
     private String landmark;
 
-    @Column(name = "pinCode", nullable = false)
+    @Column(name = "pinCode")
     private String pinCode;
 
     //    TODO: does createdBy, updatedBy, createdAt, updatedAt required in all tables?

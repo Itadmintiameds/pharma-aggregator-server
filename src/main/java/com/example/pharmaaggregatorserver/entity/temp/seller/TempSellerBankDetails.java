@@ -28,13 +28,13 @@ public class TempSellerBankDetails {
     @JsonIgnore
     private TempSeller seller;
 
-    @Column(name = "bank_name", nullable = false, length = 100)
+    @Column(name = "bank_name", length = 100)
     private String bankName;
 
-    @Column(name = "branch", nullable = false, length = 100)
+    @Column(name = "branch", length = 100)
     private String branch;
 
-    @Column(name = "ifsc_code", nullable = false, length = 100)
+    @Column(name = "ifsc_code", length = 100)
     private String ifscCode;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -49,14 +49,17 @@ public class TempSellerBankDetails {
     @JoinColumn(name = "taluka_id")
     private TalukaMaster taluka;
 
-    @Column(name = "account_number", nullable = false, length = 100)
+    @Column(name = "account_number", length = 100)
     private String accountNumber;
 
-    @Column(name = "account_holder_name", nullable = false, length = 100)
+    @Column(name = "account_holder_name", length = 100)
     private String accountHolderName;
 
-    @Column(name = "bank_document_file_url", nullable = false)
+    @Column(name = "bank_document_file_url")
     private String bankDocumentFileUrl;
+
+    @Column(name = "bank_document_file_name")
+    private String bankDocumentFileName;
 
     @Column(name = "is_bank_document_verified", columnDefinition = "boolean default false")
     private boolean isBankDocumentVerified = false;

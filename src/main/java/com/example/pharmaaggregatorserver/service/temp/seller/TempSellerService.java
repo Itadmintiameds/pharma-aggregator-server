@@ -1,6 +1,7 @@
 package com.example.pharmaaggregatorserver.service.temp.seller;
 
 import com.example.pharmaaggregatorserver.dto.admin.TempSellerAdminResponseDTO;
+import com.example.pharmaaggregatorserver.dto.seller.TempSellerDraftRequestDTO;
 import com.example.pharmaaggregatorserver.dto.seller.TempSellerRequestDTO;
 import com.example.pharmaaggregatorserver.dto.seller.TempSellerResponseDTO;
 import com.example.pharmaaggregatorserver.entity.temp.seller.TempSeller;
@@ -33,4 +34,16 @@ public interface TempSellerService {
     void deleteBothSellerAndTempSeller(Long tempSellerId);
 
     TempSellerResponseDTO updateTempSeller(Long tempSellerId, TempSellerRequestDTO requestDTO);
+
+    /**
+     * Create (tempSellerId == null) or update (tempSellerId != null) a
+     * DRAFT registration from a partial, fully-optional request body.
+     */
+    TempSellerResponseDTO saveDraft(Long tempSellerId, TempSellerDraftRequestDTO dto);
+
+    /**
+     * Promotes a DRAFT registration to a fully-submitted one, running the
+     * same full validation createTempSeller uses, then flips status to OPEN.
+     */
+    TempSellerResponseDTO finalizeDraft(Long tempSellerId, TempSellerRequestDTO requestDTO);
 }

@@ -48,6 +48,9 @@ public class TempSellerDocument {
     @Column(name = "document_file_url", nullable = false)
     private String documentFileUrl;
 
+    @Column(name = "document_file_name")
+    private String documentFileName;
+
     @Column(name = "is_document_verified", columnDefinition = "boolean default false")
     private boolean isDocumentVerified = false;
 

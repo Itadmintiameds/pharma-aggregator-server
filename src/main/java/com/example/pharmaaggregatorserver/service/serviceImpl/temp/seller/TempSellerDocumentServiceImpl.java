@@ -55,8 +55,11 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
 
         String sellerImageUrl = null;
         String gstUrl = null;
+        String gstFileName = null;
         String bankUrl = null;
+        String bankFileName = null;
         String companyRegistrationCertificateUrl = null;
+        String companyRegistrationCertificateFileName = null;
         List<TempSellerDocumentUploadResponse.LicenseUploadResult> licenseResults = new ArrayList<>();
 
         // ── 0. Seller Image / Logo ─────────────────────────────────────────────
@@ -76,8 +79,10 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
 
             String key = buildGstKey(reqId, now, request.getGstFile());
             gstUrl = s3Service.uploadFile(key, request.getGstFile());
+            gstFileName = request.getGstFile().getOriginalFilename();
 
             seller.setGstFileUrl(gstUrl);
+            seller.setGstFileName(gstFileName);
             seller.setGstVerified(false);
             log.info("GST file uploaded → {}", gstUrl);
         }
@@ -95,8 +100,10 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
 
             String key = buildBankKey(reqId, now, request.getBankFile());
             bankUrl = s3Service.uploadFile(key, request.getBankFile());
+            bankFileName = request.getBankFile().getOriginalFilename();
 
             seller.getBankDetails().setBankDocumentFileUrl(bankUrl);
+            seller.getBankDetails().setBankDocumentFileName(bankFileName);
             seller.getBankDetails().setBankDocumentVerified(false);
             log.info("Bank document uploaded → {}", bankUrl);
         }
@@ -109,14 +116,17 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
 
             String key = buildCompanyRegistrationCertificateKey(reqId, now, request.getCompanyRegistrationCertificate());
             companyRegistrationCertificateUrl = s3Service.uploadFile(key, request.getCompanyRegistrationCertificate());
+            companyRegistrationCertificateFileName = request.getCompanyRegistrationCertificate().getOriginalFilename();
 
             seller.setCompanyRegistrationCertificateUrl(companyRegistrationCertificateUrl);
+            seller.setCompanyRegistrationCertificateFileName(companyRegistrationCertificateFileName);
             seller.setCompanyRegistrationCertificateVerified(false);
             log.info("Company Registration Certificate file uploaded → {}", companyRegistrationCertificateUrl);
         }
 
         // ── 3b. Authorization Letter ───────────────────────────────────────────────
         String authorizationLetterUrl = null;
+        String authorizationLetterFileName = null;
 
         if (hasFile(request.getAuthorizationLetter())) {
             TempSellerCoordinator coordinator = tempSellerCoordinatorRepository
@@ -128,8 +138,10 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
 
             String key = buildAuthorizationLetterKey(reqId, now, request.getAuthorizationLetter());
             authorizationLetterUrl = s3Service.uploadFile(key, request.getAuthorizationLetter());
+            authorizationLetterFileName = request.getAuthorizationLetter().getOriginalFilename();
 
             coordinator.setAuthorizationLetterUrl(authorizationLetterUrl);
+            coordinator.setAuthorizationLetterFileName(authorizationLetterFileName);
             coordinator.setAuthorizationLetterVerified(false);
             tempSellerCoordinatorRepository.save(coordinator);
 
@@ -167,8 +179,10 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
 
                 String key = buildLicenseKey(reqId, name, now, file);
                 String docUrl = s3Service.uploadFile(key, file);
+                String docFileName = file.getOriginalFilename();
 
                 doc.setDocumentFileUrl(docUrl);
+                doc.setDocumentFileName(docFileName);
                 doc.setDocumentVerified(false);
                 tempSellerDocumentRepository.save(doc);
 
@@ -176,6 +190,7 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
                         .documentId(docId)
                         .licenseName(name)
                         .documentFileUrl(docUrl)
+                        .documentFileName(docFileName)
                         .build());
 
                 log.info("License '{}' uploaded → {}", name, docUrl);
@@ -190,11 +205,93 @@ public class TempSellerDocumentServiceImpl implements TempSellerDocumentService 
                 .tempSellerRequestId(reqId)
                 .sellerImageUrl(sellerImageUrl)
                 .gstFileUrl(gstUrl)
+                .gstFileName(gstFileName)
                 .bankDocumentFileUrl(bankUrl)
+                .bankDocumentFileName(bankFileName)
                 .companyRegistrationCertificateUrl(companyRegistrationCertificateUrl)
+                .companyRegistrationCertificateFileName(companyRegistrationCertificateFileName)
                 .authorizationLetterUrl(authorizationLetterUrl)
+                .authorizationLetterFileName(authorizationLetterFileName)
                 .licenseResults(licenseResults)
                 .build();
+    }
+
+    // ── Single-file delete API ──────────────────────────────────────────────────
+
+    @Override
+    @Transactional
+    public void deleteCompanyRegistrationCertificate(Long tempSellerId) {
+        TempSeller seller = tempSellerRepository.findById(tempSellerId)
+                .orElseThrow(() -> new NotFoundException("TempSeller not found for id: " + tempSellerId));
+
+        deleteIfRealUrl(seller.getCompanyRegistrationCertificateUrl());
+        seller.setCompanyRegistrationCertificateUrl(PENDING);
+        seller.setCompanyRegistrationCertificateFileName(null);
+        seller.setCompanyRegistrationCertificateVerified(false);
+        tempSellerRepository.save(seller);
+    }
+
+    @Override
+    @Transactional
+    public void deleteGstFile(Long tempSellerId) {
+        TempSeller seller = tempSellerRepository.findById(tempSellerId)
+                .orElseThrow(() -> new NotFoundException("TempSeller not found for id: " + tempSellerId));
+
+        deleteIfRealUrl(seller.getGstFileUrl());
+        seller.setGstFileUrl(null);
+        seller.setGstFileName(null);
+        seller.setGstVerified(false);
+        tempSellerRepository.save(seller);
+    }
+
+    @Override
+    @Transactional
+    public void deleteAuthorizationLetter(Long tempSellerId) {
+        TempSellerCoordinator coordinator = tempSellerCoordinatorRepository
+                .findBySeller_TempSellerId(tempSellerId)
+                .orElseThrow(() -> new NotFoundException("Coordinator not found for sellerId: " + tempSellerId));
+
+        deleteIfRealUrl(coordinator.getAuthorizationLetterUrl());
+        coordinator.setAuthorizationLetterUrl(PENDING);
+        coordinator.setAuthorizationLetterFileName(null);
+        coordinator.setAuthorizationLetterVerified(false);
+        tempSellerCoordinatorRepository.save(coordinator);
+    }
+
+    @Override
+    @Transactional
+    public void deleteBankDocument(Long tempSellerId) {
+        TempSeller seller = tempSellerRepository.findById(tempSellerId)
+                .orElseThrow(() -> new NotFoundException("TempSeller not found for id: " + tempSellerId));
+
+        if (seller.getBankDetails() == null) {
+            throw new NotFoundException("BankDetails record not found for sellerId: " + tempSellerId);
+        }
+
+        deleteIfRealUrl(seller.getBankDetails().getBankDocumentFileUrl());
+        seller.getBankDetails().setBankDocumentFileUrl(null);
+        seller.getBankDetails().setBankDocumentFileName(null);
+        seller.getBankDetails().setBankDocumentVerified(false);
+        tempSellerRepository.save(seller);
+    }
+
+    @Override
+    @Transactional
+    public void deleteDocumentFile(Long tempSellerId, Long documentId) {
+        TempSellerDocument doc = tempSellerDocumentRepository.findById(documentId)
+                .orElseThrow(() -> new NotFoundException("TempSellerDocument not found for id: " + documentId));
+
+        // Guard: document must belong to this seller
+        if (!doc.getSeller().getTempSellerId().equals(tempSellerId)) {
+            throw new IllegalArgumentException(
+                    "Document id=" + documentId + " does not belong to sellerId=" + tempSellerId);
+        }
+
+        deleteIfRealUrl(doc.getDocumentFileUrl());
+        doc.setDocumentFileUrl(PENDING);
+        doc.setDocumentFileName(null);
+        doc.setDocumentVerified(false);
+        tempSellerDocumentRepository.save(doc);
     }
 
     // ── S3 key builders ────────────────────────────────────────────────────────
