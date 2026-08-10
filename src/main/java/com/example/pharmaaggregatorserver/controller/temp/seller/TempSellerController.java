@@ -135,15 +135,17 @@ public class TempSellerController {
 
     //Seller registration
     @GetMapping("/coordinator/check-email")
-    public ResponseEntity<Boolean> checkEmailExists(@RequestParam String email) {
-        boolean exists = coordinatorService.checkEmailExists(email);
+    public ResponseEntity<Boolean> checkEmailExists(@RequestParam String email,
+                                                     @RequestParam(required = false) Long tempSellerId) {
+        boolean exists = coordinatorService.checkEmailExists(email, tempSellerId);
         return ResponseEntity.ok(exists);
     }
 
     //Seller registration
     @GetMapping("/coordinator/check-phone")
-    public ResponseEntity<Boolean> checkPhoneExists(@RequestParam String mobile) {
-        boolean exists = coordinatorService.checkPhoneExists(mobile);
+    public ResponseEntity<Boolean> checkPhoneExists(@RequestParam String mobile,
+                                                     @RequestParam(required = false) Long tempSellerId) {
+        boolean exists = coordinatorService.checkPhoneExists(mobile, tempSellerId);
         return ResponseEntity.ok(exists);
     }
 
