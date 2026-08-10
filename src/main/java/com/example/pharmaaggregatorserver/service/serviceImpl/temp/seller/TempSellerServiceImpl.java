@@ -858,11 +858,13 @@ public class TempSellerServiceImpl implements TempSellerService {
         //    when no file has been uploaded yet) as soon as a document number
         //    and a type are present, so the row's documentId exists in time
         //    for the separate per-document file-upload endpoint to target it.
+        //    On a repeat saveDraft call for the same license/agreement, update
+        //    the existing row's fields instead of skipping it, so edits made
+        //    after the first save (e.g. dates filled in later) aren't lost.
         //    Entries with neither a number nor a type are still skipped. ──────
         if (dto.getDocuments() != null && !dto.getDocuments().isEmpty()) {
-            Set<String> existingKeys = seller.getDocuments().stream()
-                    .map(this::documentKey)
-                    .collect(Collectors.toSet());
+            Map<String, TempSellerDocument> existingDocMap = seller.getDocuments().stream()
+                    .collect(Collectors.toMap(this::documentKey, doc -> doc));
 
             for (TempSellerDocumentDTO docDTO : dto.getDocuments()) {
                 if (isBlank(docDTO.getDocumentNumber())
@@ -870,8 +872,17 @@ public class TempSellerServiceImpl implements TempSellerService {
                     log.warn("saveDraft: skipping incomplete document entry (missing documentNumber/type)");
                     continue;
                 }
-                if (existingKeys.contains(documentDtoKey(docDTO))) {
-                    continue; // already attached from a previous saveDraft call
+                TempSellerDocument existingDoc = existingDocMap.get(documentDtoKey(docDTO));
+                if (existingDoc != null) {
+                    existingDoc.setDocumentNumber(docDTO.getDocumentNumber());
+                    existingDoc.setLicenseIssueDate(docDTO.getLicenseIssueDate());
+                    existingDoc.setLicenseExpiryDate(docDTO.getLicenseExpiryDate());
+                    existingDoc.setLicenseIssuingAuthority(docDTO.getLicenseIssuingAuthority());
+                    if (!isBlank(docDTO.getDocumentFileUrl())) {
+                        existingDoc.setDocumentFileUrl(docDTO.getDocumentFileUrl());
+                    }
+                    existingDoc.setUpdatedBy("SYSTEM");
+                    continue;
                 }
                 try {
                     if (isBlank(docDTO.getDocumentFileUrl())) {
