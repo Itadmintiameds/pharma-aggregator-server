@@ -1,6 +1,7 @@
 package com.example.pharmaaggregatorserver.service.serviceImpl.admin;
 
 import com.example.pharmaaggregatorserver.dto.seller.SellerApprovalRequestDTO;
+import com.example.pharmaaggregatorserver.dto.seller.SellerApprovalResultDTO;
 import com.example.pharmaaggregatorserver.entity.auth.User;
 import com.example.pharmaaggregatorserver.entity.master.ProductTypeMaster;
 import com.example.pharmaaggregatorserver.entity.seller.*;
@@ -70,10 +71,12 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
      */
     @Override
     @Transactional
-    public void processReview(SellerApprovalRequestDTO request) {
+    public SellerApprovalResultDTO processReview(SellerApprovalRequestDTO request) {
 
         TempSeller tempSeller = tempSellerRepo.findById(request.getId())
                 .orElseThrow(() -> new NotFoundException("Seller not found"));
+
+        Seller approvedSeller = null;
 
         switch (request.getStatus().toUpperCase()) {
 
@@ -83,10 +86,21 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
 
 //            case "ACCEPT" -> handleApprovalForTempSeller(tempSeller, request.getComments());
 
-            case "ACCEPT" -> handleApproval(tempSeller, request.getComments());
+            case "ACCEPT" -> approvedSeller = handleApproval(tempSeller, request.getComments());
 
             default -> throw new ApplicationException("Invalid Status");
         }
+
+        // Always return the real sellerId (String) generated on approval alongside
+        // the tempSellerId (Long) used for this request — the two are unrelated
+        // values, so callers must not assume they can keep using tempSellerId to
+        // look up the seller after ACCEPT.
+        return SellerApprovalResultDTO.builder()
+                .tempSellerId(tempSeller.getTempSellerId())
+                .userId(tempSeller.getUser() != null ? tempSeller.getUser().getUserId() : null)
+                .sellerId(approvedSeller != null ? approvedSeller.getSellerId() : null)
+                .status(tempSeller.getStatus())
+                .build();
     }
 
     /**
@@ -363,7 +377,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
      * 4. Sends approval email with credentials and seller ID
      * 5. Marks TempSeller status as APPROVED
      */
-    private void handleApproval(TempSeller tempSeller, String comments) {
+    private Seller handleApproval(TempSeller tempSeller, String comments) {
 
         // Registration requires logging in (signup-first) before a TempSeller
         // can even be created, so every legitimate submission already has a
@@ -386,6 +400,27 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
 
         saveReviewHistory(tempSeller, TempSellerStatus.APPROVED, comments);
 
+        // Mark TempSeller as APPROVED now, before the agreement PDF fetch and
+        // email send below — those two calls reach out over HTTP/SMTP and are
+        // not required for the approval itself to be valid. Doing this first
+        // means a slow PDF host or SMTP outage can never leave the seller
+        // half-approved (Seller row created but status/history not updated).
+        tempSeller.setStatus(TempSellerStatus.APPROVED);
+        tempSellerRepo.save(tempSeller);
+
+        sendApprovalAgreementEmail(tempSeller, approvedSeller, comments);
+
+        return approvedSeller;
+    }
+
+    /**
+     * Fetches the seller agreement PDF and emails it to the newly approved
+     * seller. Best-effort: the seller has already been approved and persisted
+     * by the time this runs, so a failure here (bad PDF URL, SMTP outage) is
+     * logged and swallowed rather than allowed to undo the approval.
+     */
+    private void sendApprovalAgreementEmail(TempSeller tempSeller, Seller approvedSeller, String comments) {
+        try {
         // 3️⃣ Generate Seller Agreement PDF
         SellerTerms terms = sellerTermsRepository.findByTermText("Seller-Terms")
                 .orElseThrow(() -> new ApplicationException("No seller terms PDF URL configured"));
@@ -478,10 +513,11 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 pdfBytes,                         // byte[]
                 "TiaMeds_Seller_Agreement.pdf"
         );
-
-        // 6️⃣ Mark TempSeller as APPROVED
-        tempSeller.setStatus(TempSellerStatus.APPROVED);
-        tempSellerRepo.save(tempSeller);
+        } catch (Exception e) {
+            log.error("⚠️ Seller {} (request {}) was approved successfully, but sending the " +
+                            "agreement PDF/email failed: {}",
+                    approvedSeller.getSellerId(), tempSeller.getTempSellerRequestId(), e.getMessage(), e);
+        }
     }
 
     /**
@@ -504,6 +540,8 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
 
         Seller seller = new Seller();
         seller.setSellerId(sellerId);
+        seller.setTempSellerId(temp.getTempSellerId());
+        seller.setApprovedAt(LocalDateTime.now());
         seller.setUser(user);
         seller.setSellerName(temp.getSellerName());
         seller.setPhone(temp.getPhone());
