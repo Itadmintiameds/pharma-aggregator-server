@@ -169,6 +169,7 @@ public class ProductDetailsServiceImpl implements ProductDetailsService {
     public List<ProductDetailsDto> getAllProductsForAdmin() {
         return productRepo.findAll()
                 .stream()
+                .filter(product -> product.getStatus() == ProductStatus.PUBLISHED)
                 .map(productMapper::toDto)
                 .toList();
     }
