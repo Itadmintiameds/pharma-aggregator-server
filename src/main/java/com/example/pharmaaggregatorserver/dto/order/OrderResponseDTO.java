@@ -38,4 +38,8 @@ public class OrderResponseDTO {
     private String cancelReason;
     private List<SellerOrderResponseDTO> sellerOrders;
     private LocalDateTime createdAt;
+    // Non-empty only on the response to POST /orders when the order placed
+    // as a partial success — lines dropped for insufficient stock while the
+    // rest of the cart still got placed. Empty for every other order read.
+    private List<RejectedLineDTO> rejectedLines;
 }

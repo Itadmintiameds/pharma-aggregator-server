@@ -1,6 +1,7 @@
 package com.example.pharmaaggregatorserver.controller.order;
 
 import com.example.pharmaaggregatorserver.dto.order.CancelOrderRequestDTO;
+import com.example.pharmaaggregatorserver.dto.order.DeliverSellerOrderRequestDTO;
 import com.example.pharmaaggregatorserver.dto.order.SellerOrderActionRequestDTO;
 import com.example.pharmaaggregatorserver.dto.order.SellerOrderResponseDTO;
 import com.example.pharmaaggregatorserver.dto.order.ShipSellerOrderRequestDTO;
@@ -72,9 +73,17 @@ public class SellerOrderController {
 
     @PatchMapping("/{sellerOrderId}/deliver")
     public ResponseEntity<ApiResponse<SellerOrderResponseDTO>> deliver(
-            @PathVariable String sellerOrderId, @Valid @RequestBody SellerOrderActionRequestDTO request) {
-        SellerOrderResponseDTO response = fulfillmentService.markDelivered(sellerOrderId, request.getSellerId());
+            @PathVariable String sellerOrderId, @Valid @RequestBody DeliverSellerOrderRequestDTO request) {
+        SellerOrderResponseDTO response = fulfillmentService.markDelivered(
+                sellerOrderId, request.getSellerId(), request.getOtp());
         return ResponseEntity.ok(new ApiResponse<>(HttpStatus.OK.toString(), "Seller order delivered", response));
+    }
+
+    @PatchMapping("/{sellerOrderId}/resend-delivery-otp")
+    public ResponseEntity<ApiResponse<Void>> resendDeliveryOtp(
+            @PathVariable String sellerOrderId, @Valid @RequestBody SellerOrderActionRequestDTO request) {
+        fulfillmentService.resendDeliveryOtp(sellerOrderId, request.getSellerId());
+        return ResponseEntity.ok(new ApiResponse<>(HttpStatus.OK.toString(), "Delivery OTP resent", null));
     }
 
     @PatchMapping("/{sellerOrderId}/cancel")

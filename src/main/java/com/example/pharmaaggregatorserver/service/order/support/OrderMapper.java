@@ -3,7 +3,9 @@ package com.example.pharmaaggregatorserver.service.order.support;
 import com.example.pharmaaggregatorserver.dto.order.OrderItemResponseDTO;
 import com.example.pharmaaggregatorserver.dto.order.OrderResponseDTO;
 import com.example.pharmaaggregatorserver.dto.order.OrderStatusHistoryResponseDTO;
+import com.example.pharmaaggregatorserver.dto.order.RejectedLineDTO;
 import com.example.pharmaaggregatorserver.dto.order.SellerOrderResponseDTO;
+import java.util.Collections;
 import com.example.pharmaaggregatorserver.entity.order.Order;
 import com.example.pharmaaggregatorserver.entity.order.OrderItem;
 import com.example.pharmaaggregatorserver.entity.order.OrderStatusHistory;
@@ -83,6 +85,10 @@ public class OrderMapper {
     }
 
     public OrderResponseDTO toOrderDto(Order order) {
+        return toOrderDto(order, Collections.emptyList());
+    }
+
+    public OrderResponseDTO toOrderDto(Order order, List<RejectedLineDTO> rejectedLines) {
         Payment payment = order.getPayment();
         List<SellerOrderResponseDTO> sellerOrders = order.getSellerOrders() == null ? List.of()
                 : order.getSellerOrders().stream().map(this::toSellerOrderDto).toList();
@@ -112,6 +118,7 @@ public class OrderMapper {
                 .cancelReason(order.getCancelReason())
                 .sellerOrders(sellerOrders)
                 .createdAt(order.getCreatedAt())
+                .rejectedLines(rejectedLines == null ? List.of() : rejectedLines)
                 .build();
     }
 }

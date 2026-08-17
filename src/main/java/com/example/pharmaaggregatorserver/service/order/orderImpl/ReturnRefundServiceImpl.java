@@ -158,24 +158,28 @@ public class ReturnRefundServiceImpl implements ReturnRefundService {
         // still sellable" business rule would gate this call.
         OrderItem orderItem = refund.getOrderItem();
         if (orderItem != null) {
-            StockInRequestDto restock = new StockInRequestDto();
-            restock.setProductId(orderItem.getProductDetails().getProductId());
-            restock.setPackagingId(orderItem.getPackagingIdSnapshot());
-            restock.setBatchLotNumber(orderItem.getBatchLotNumberSnapshot());
-            restock.setQuantity(orderItem.getQuantity().longValue());
-            restock.setReferenceId(orderItem.getSellerOrder().getSellerOrderId());
-            restock.setReferenceType("RETURN");
-            // Same fix as OrderCancellationServiceImpl.restockItem — resolveOrCreateBatch
-            // requires expiryDate to match the existing batch exactly, so it must be
-            // sourced from the real batch this item was debited from, not left null.
-            if (orderItem.getPricingDetails() != null) {
-                restock.setManufacturingDate(orderItem.getPricingDetails().getManufacturingDate());
-                restock.setExpiryDate(orderItem.getPricingDetails().getExpiryDate());
-            }
-
             Long sellerUserId = orderItem.getSellerOrder().getSeller().getUser() != null
                     ? orderItem.getSellerOrder().getSeller().getUser().getUserId() : null;
-            stockService.addStock(restock, sellerUserId);
+
+            if (orderItem.getPricingDetails() != null) {
+                // Same fix as OrderCancellationServiceImpl.restockItem — restock the exact
+                // batch by pricingId, no batchLotNumber/expiry matching required.
+                stockService.restockExactBatch(
+                        orderItem.getPricingDetails().getPricingId(),
+                        orderItem.getQuantity().longValue(),
+                        sellerUserId,
+                        orderItem.getSellerOrder().getSellerOrderId(),
+                        "RETURN");
+            } else {
+                StockInRequestDto restock = new StockInRequestDto();
+                restock.setProductId(orderItem.getProductDetails().getProductId());
+                restock.setPackagingId(orderItem.getPackagingIdSnapshot());
+                restock.setBatchLotNumber(orderItem.getBatchLotNumberSnapshot());
+                restock.setQuantity(orderItem.getQuantity().longValue());
+                restock.setReferenceId(orderItem.getSellerOrder().getSellerOrderId());
+                restock.setReferenceType("RETURN");
+                stockService.addStock(restock, sellerUserId);
+            }
 
             SellerOrder sellerOrder = orderItem.getSellerOrder();
             transitionSellerOrder(sellerOrder, SellerOrderStatus.RETURNED, "SYSTEM", null,

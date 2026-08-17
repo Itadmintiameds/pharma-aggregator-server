@@ -16,6 +16,8 @@ public interface OrderRepository extends JpaRepository<Order, String> {
 
     List<Order> findByStatus(String status);
 
+    Optional<Order> findByIdempotencyKey(String idempotencyKey);
+
     /**
      * Extracts the 5-digit numeric suffix from order IDs sharing the given
      * date prefix (e.g. "ORD-20260814-") and returns the maximum found.

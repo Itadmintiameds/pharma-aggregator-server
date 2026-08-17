@@ -40,6 +40,12 @@ public interface PricingDetailsRepository extends JpaRepository<PricingDetails, 
     @Lock(PESSIMISTIC_WRITE)
     Optional<PricingDetails> findByProductDetails_ProductIdAndBatchLotNumber(String productId, String batchLotNumber);
 
+    // Locked lookup by exact batch ID, used by StockService#restockExactBatch (order
+    // cancel/return) to increment the precise batch an OrderItem's pricingDetails FK
+    // points at, without re-matching by batchLotNumber/expiryDate.
+    @Lock(PESSIMISTIC_WRITE)
+    Optional<PricingDetails> findByPricingId(String pricingId);
+
     // Packaging-scoped variant of the above, used once a batch is linked to a specific
     // packaging/pack-size variant rather than the product as a whole.
     @Lock(PESSIMISTIC_WRITE)

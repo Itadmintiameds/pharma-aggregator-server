@@ -67,6 +67,13 @@ public class Order {
     @Column(name = "status", nullable = false, length = 30)
     private String status;
 
+    // Client-supplied dedup key for one checkout attempt (see
+    // PlaceOrderRequestDTO#idempotencyKey). Nullable + unique: multiple orders
+    // placed without a key are all NULL, which most DBs (incl. Postgres) allow
+    // any number of under a unique index — only actual key collisions are rejected.
+    @Column(name = "idempotency_key", unique = true, length = 100)
+    private String idempotencyKey;
+
     @Column(name = "item_count")
     private Integer itemCount;
 

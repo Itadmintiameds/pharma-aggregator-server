@@ -19,6 +19,7 @@ import com.example.pharmaaggregatorserver.repository.order.RefundRepository;
 import com.example.pharmaaggregatorserver.repository.order.SellerOrderRepository;
 import com.example.pharmaaggregatorserver.service.order.OrderCancellationService;
 import com.example.pharmaaggregatorserver.service.order.support.OrderMapper;
+import com.example.pharmaaggregatorserver.service.order.support.OrderNotificationService;
 import com.example.pharmaaggregatorserver.service.order.support.OrderStatusRollup;
 import com.example.pharmaaggregatorserver.service.product.StockService;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +42,7 @@ public class OrderCancellationServiceImpl implements OrderCancellationService {
     private final RefundRepository refundRepository;
     private final StockService stockService;
     private final OrderMapper orderMapper;
+    private final OrderNotificationService orderNotificationService;
 
     @Override
     @Transactional
@@ -165,9 +167,29 @@ public class OrderCancellationServiceImpl implements OrderCancellationService {
         }
 
         sellerOrderRepository.save(sellerOrder);
+
+        orderNotificationService.notifySellerOrderStatusChanged(sellerOrder, SellerOrderStatus.CANCELLED);
     }
 
     private void restockItem(OrderItem item, String referenceType, SellerOrder sellerOrder) {
+        Long sellerUserId = sellerOrder.getSeller().getUser() != null
+                ? sellerOrder.getSeller().getUser().getUserId() : null;
+
+        if (item.getPricingDetails() != null) {
+            // Restock the exact batch this item's pricingDetails FK points at — no
+            // batchLotNumber/expiry matching, so it can never miss and silently create
+            // a new phantom batch (the previous behavior via StockService#addStock).
+            stockService.restockExactBatch(
+                    item.getPricingDetails().getPricingId(),
+                    item.getQuantity().longValue(),
+                    sellerUserId,
+                    sellerOrder.getSellerOrderId(),
+                    referenceType);
+            return;
+        }
+
+        // Fallback for the (currently theoretical) case of an OrderItem with no
+        // pricingDetails FK — matches by batchLotNumber/product as before.
         StockInRequestDto restock = new StockInRequestDto();
         restock.setProductId(item.getProductDetails().getProductId());
         restock.setPackagingId(item.getPackagingIdSnapshot());
@@ -175,17 +197,6 @@ public class OrderCancellationServiceImpl implements OrderCancellationService {
         restock.setQuantity(item.getQuantity().longValue());
         restock.setReferenceId(sellerOrder.getSellerOrderId());
         restock.setReferenceType(referenceType);
-        // resolveOrCreateBatch matches an existing batch by (productId, batchLotNumber)
-        // and then requires expiryDate to be equal — leaving it null here always fails
-        // that check against the real batch's expiry date, so the restock must carry
-        // the exact same manufacturing/expiry dates as the batch actually debited.
-        if (item.getPricingDetails() != null) {
-            restock.setManufacturingDate(item.getPricingDetails().getManufacturingDate());
-            restock.setExpiryDate(item.getPricingDetails().getExpiryDate());
-        }
-
-        Long sellerUserId = sellerOrder.getSeller().getUser() != null
-                ? sellerOrder.getSeller().getUser().getUserId() : null;
         stockService.addStock(restock, sellerUserId);
     }
 

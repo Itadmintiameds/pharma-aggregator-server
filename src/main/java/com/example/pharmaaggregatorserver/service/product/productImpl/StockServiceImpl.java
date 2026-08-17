@@ -280,6 +280,41 @@ public class StockServiceImpl implements StockService {
     }
 
     @Override
+    @Transactional
+    public StockLedgerResponseDto restockExactBatch(String pricingId, Long quantity, Long userId,
+                                                      String referenceId, String referenceType) {
+        PricingDetails batch = pricingDetailsRepository.findByPricingId(pricingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Batch not found: " + pricingId));
+
+        long newQuantity = (batch.getStockQuantity() != null ? batch.getStockQuantity() : 0L) + quantity;
+        batch.setStockQuantity(newQuantity);
+        batch.setModifiedDate(LocalDateTime.now());
+        pricingDetailsRepository.save(batch);
+
+        ProductDetails product = batch.getProductDetails();
+        StockLedger ledger = buildLedgerRow(
+                batch, product, product.getSeller(), userId,
+                StockTransactionType.STOCK_IN,
+                quantity,
+                newQuantity,
+                referenceId,
+                referenceType
+        );
+        stockLedgerRepository.save(ledger);
+
+        return toDto(ledger);
+    }
+
+    @Override
+    public boolean hasSufficientStock(String productId, String packagingId, long quantity) {
+        boolean scoped = packagingId != null && !packagingId.isBlank();
+        Long available = scoped
+                ? pricingDetailsRepository.getTotalStockByProductIdAndPackagingId(productId, packagingId)
+                : pricingDetailsRepository.getTotalStockByProductId(productId);
+        return available != null && available >= quantity;
+    }
+
+    @Override
     public Long getTotalStock(String productId) {
         return pricingDetailsRepository.getTotalStockByProductId(productId);
     }

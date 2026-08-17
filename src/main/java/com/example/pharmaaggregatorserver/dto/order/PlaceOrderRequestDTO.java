@@ -43,6 +43,13 @@ public class PlaceOrderRequestDTO {
     // webhook path); case-insensitive.
     private String paymentMethod;
 
+    // Optional. A client-generated key (e.g. a UUID minted once per checkout
+    // attempt and reused across retries of that same attempt). When present,
+    // a repeat placeOrder call with the same key returns the original order
+    // instead of creating a duplicate — guards against double-click/network-retry
+    // double submits. Callers that omit it get no such protection.
+    private String idempotencyKey;
+
     @NotEmpty(message = "At least one cart line is required")
     @Valid
     private List<OrderLineRequestDTO> lines;

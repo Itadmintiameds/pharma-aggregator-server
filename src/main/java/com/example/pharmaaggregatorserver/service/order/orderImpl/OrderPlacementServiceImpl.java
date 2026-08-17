@@ -3,6 +3,8 @@ package com.example.pharmaaggregatorserver.service.order.orderImpl;
 import com.example.pharmaaggregatorserver.dto.order.OrderLineRequestDTO;
 import com.example.pharmaaggregatorserver.dto.order.OrderResponseDTO;
 import com.example.pharmaaggregatorserver.dto.order.PlaceOrderRequestDTO;
+import com.example.pharmaaggregatorserver.dto.order.RejectedLineDTO;
+import com.example.pharmaaggregatorserver.exception.InsufficientStockException;
 import com.example.pharmaaggregatorserver.dto.product.StockDebitRequestDto;
 import com.example.pharmaaggregatorserver.dto.product.StockLedgerResponseDto;
 import com.example.pharmaaggregatorserver.entity.buyer.Buyer;
@@ -28,10 +30,13 @@ import com.example.pharmaaggregatorserver.repository.order.PaymentRepository;
 import com.example.pharmaaggregatorserver.repository.product.PricingDetailsRepository;
 import com.example.pharmaaggregatorserver.service.order.OrderPlacementService;
 import com.example.pharmaaggregatorserver.service.order.support.OrderMapper;
+import com.example.pharmaaggregatorserver.service.order.support.OrderNotificationService;
 import com.example.pharmaaggregatorserver.service.product.StockService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -43,6 +48,7 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OrderPlacementServiceImpl implements OrderPlacementService {
 
     private static final DateTimeFormatter DATE_PREFIX_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
@@ -54,6 +60,7 @@ public class OrderPlacementServiceImpl implements OrderPlacementService {
     private final PaymentRepository paymentRepository;
     private final StockService stockService;
     private final OrderMapper orderMapper;
+    private final OrderNotificationService orderNotificationService;
 
     /**
      * Holds a resolved cart line while orders are being grouped by seller,
@@ -77,7 +84,23 @@ public class OrderPlacementServiceImpl implements OrderPlacementService {
         // No payment gateway is integrated in this build — every order is COD,
         // settled immediately at placement. Any paymentMethod field on the
         // request is ignored.
+        //
+        // Idempotency: generateOrderId() acquires the pg_advisory_xact_lock(98765)
+        // lock for the rest of this transaction, so a concurrent placeOrder call
+        // carrying the same idempotencyKey blocks here until this one commits or
+        // rolls back — the recheck right after is therefore race-safe, not just
+        // an optimistic best-effort check.
         String orderId = generateOrderId();
+
+        if (StringUtils.hasText(request.getIdempotencyKey())) {
+            var existingOrder = orderRepository.findByIdempotencyKey(request.getIdempotencyKey());
+            if (existingOrder.isPresent()) {
+                // rejectedLines from the original attempt aren't persisted, so a replay
+                // returns the order as it stands now with an empty rejectedLines list —
+                // acceptable since the caller already saw the original rejections once.
+                return orderMapper.toOrderDto(existingOrder.get());
+            }
+        }
 
         // Resolve delivery address snapshot: an explicit deliveryAddressId lookup
         // takes precedence over raw address fields directly in the body (see
@@ -140,18 +163,37 @@ public class OrderPlacementServiceImpl implements OrderPlacementService {
             resolvedLines.add(new ResolvedLine(product, seller, packagingId, line.getQuantity()));
         }
 
-        // 2) Debit stock per line via the existing FIFO-locked StockService — let
-        // InsufficientStockException propagate to fail the WHOLE placement (this
-        // method's @Transactional rolls back any earlier debits already applied).
-        // Grouped by sellerId as we go; a single cart line can turn into more than
-        // one OrderItem if FIFO had to span multiple batches.
+        // 2) Debit stock per line via the existing FIFO-locked StockService. A line
+        // that can't be fulfilled is dropped and reported back via rejectedLines
+        // rather than failing the whole placement — a buyer's cart spanning
+        // multiple sellers should still get the fulfillable sellers' portions
+        // placed even if one seller/line can't be.
+        //
+        // IMPORTANT: debitStock() is itself @Transactional. If it throws and that
+        // exception is simply caught here, Spring still marks THIS method's ambient
+        // transaction rollback-only the moment the exception crosses debitStock's
+        // own proxy boundary — the catch below would appear to skip just that line,
+        // but the whole placement would still fail with UnexpectedRollbackException
+        // at commit time. So availability is checked up front via the non-throwing,
+        // non-locking hasSufficientStock() and debitStock() is only called for lines
+        // expected to succeed — the try/catch remains only as a backstop for the
+        // rare race between this check and the real (locked) debit, which is a
+        // genuine failure this design accepts rather than papers over.
         Map<String, List<OrderItem>> itemsBySeller = new LinkedHashMap<>();
         Map<String, Seller> sellerById = new LinkedHashMap<>();
+        List<RejectedLineDTO> rejectedLines = new ArrayList<>();
         BigDecimal orderSubtotal = BigDecimal.ZERO;
         BigDecimal orderTax = BigDecimal.ZERO;
         int totalItemCount = 0;
 
         for (ResolvedLine resolved : resolvedLines) {
+            if (!stockService.hasSufficientStock(
+                    resolved.product().getProductId(), resolved.packagingId(), resolved.quantity())) {
+                rejectedLines.add(new RejectedLineDTO(resolved.product().getProductId(),
+                        "Insufficient stock for product " + resolved.product().getProductId()));
+                continue;
+            }
+
             StockDebitRequestDto debitRequest = new StockDebitRequestDto();
             debitRequest.setProductId(resolved.product().getProductId());
             debitRequest.setPackagingId(resolved.packagingId());
@@ -162,7 +204,17 @@ public class OrderPlacementServiceImpl implements OrderPlacementService {
             // No Buyer/Seller security principal exists yet to supply a numeric
             // userId here (see PlaceOrderRequestDTO's comment) — passed null;
             // StockLedger.performedBy has no not-null constraint.
-            List<StockLedgerResponseDto> debitResults = stockService.debitStock(debitRequest, null);
+            List<StockLedgerResponseDto> debitResults;
+            try {
+                debitResults = stockService.debitStock(debitRequest, null);
+            } catch (InsufficientStockException e) {
+                // Should be rare — only reachable via the race window described
+                // above. The ambient transaction is already rollback-only by this
+                // point (see the comment above), so this order will still fail as
+                // a whole despite the catch; this at minimum gives a clear reason.
+                rejectedLines.add(new RejectedLineDTO(resolved.product().getProductId(), e.getMessage()));
+                continue;
+            }
 
             String sellerId = resolved.seller().getSellerId();
             sellerById.putIfAbsent(sellerId, resolved.seller());
@@ -208,6 +260,14 @@ public class OrderPlacementServiceImpl implements OrderPlacementService {
                 orderTax = orderTax.add(taxAmount);
                 totalItemCount++;
             }
+        }
+
+        if (itemsBySeller.isEmpty()) {
+            // Every line failed — nothing fulfillable, so there is no partial order
+            // to place at all. Reject outright with the collected reasons.
+            String reasons = rejectedLines.stream().map(RejectedLineDTO::getReason)
+                    .reduce((a, b) -> a + "; " + b).orElse("no lines could be fulfilled");
+            throw new BadRequestException("Order could not be placed: " + reasons);
         }
 
         // 3) Build one SellerOrder per seller group, with sequential-within-order
@@ -272,6 +332,7 @@ public class OrderPlacementServiceImpl implements OrderPlacementService {
         order.setDeliveryState(deliveryState);
         order.setDeliveryPinCode(deliveryPinCode);
         order.setStatus(OrderStatus.PLACED);
+        order.setIdempotencyKey(StringUtils.hasText(request.getIdempotencyKey()) ? request.getIdempotencyKey() : null);
         order.setItemCount(totalItemCount);
         order.setSellerOrderCount(sellerOrders.size());
         order.setSubtotal(orderSubtotal);
@@ -305,7 +366,15 @@ public class OrderPlacementServiceImpl implements OrderPlacementService {
         order.setPayment(payment);
         order = orderRepository.save(order);
 
-        return orderMapper.toOrderDto(order);
+        // Invoice generation happens on DELIVERY, not here (see
+        // SellerOrderFulfillmentServiceImpl.markDelivered) — a tax invoice
+        // represents goods actually supplied, and on a COD order that's only
+        // true once delivery is confirmed; generating and emailing one at
+        // placement would be premature for an order that could still be
+        // cancelled before it ships.
+        orderNotificationService.notifyOrderPlaced(order);
+
+        return orderMapper.toOrderDto(order, rejectedLines);
     }
 
     private String joinAddressLine(BuyerDeliveryAddress address) {

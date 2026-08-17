@@ -12,12 +12,16 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class EmailService {
 
     private final JavaMailSender mailSender;
+
+    public record EmailAttachment(String filename, byte[] bytes, String contentType) {
+    }
 
     // 🔹 Simple text mail
     public void sendMail(String to, String subject, String body) {
@@ -51,6 +55,34 @@ public class EmailService {
             mailSender.send(message);
         } catch (MessagingException e) {
             throw new ApplicationException("Failed to send approval email: " + e.getMessage());
+        }
+    }
+
+    // Same as sendHtmlMailWithAttachment but supports zero-or-more attachments
+    // in one email (e.g. one invoice PDF per seller on a multi-seller order),
+    // instead of exactly one.
+    public void sendHtmlMailWithAttachments(
+            String to, String subject, String htmlBody, List<EmailAttachment> attachments) {
+
+        MimeMessage message = mailSender.createMimeMessage();
+        try {
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(htmlBody, true);
+
+            if (attachments != null) {
+                for (EmailAttachment attachment : attachments) {
+                    helper.addAttachment(
+                            attachment.filename(),
+                            new ByteArrayResource(attachment.bytes()),
+                            attachment.contentType());
+                }
+            }
+
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            throw new ApplicationException("Failed to send email with attachments: " + e.getMessage());
         }
     }
 
