@@ -52,6 +52,7 @@ public class SignupService {
 
         SignupOtp signupOtp = SignupOtp.builder()
                 .email(email)
+                .fullName(request.getFullName())
                 .otp(otp)
                 .passwordHash(hashedPassword)
                 .expiryTime(LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES))
@@ -90,7 +91,7 @@ public class SignupService {
         signupOtp.setVerified(true);
         signupOtpRepository.save(signupOtp);
 
-        userCreationService.createUserFromSignup(email, signupOtp.getPasswordHash());
+        userCreationService.createUserFromSignup(email, signupOtp.getPasswordHash(), signupOtp.getFullName());
 
         return OtpSentResponse.builder()
                 .message("Account created successfully. Please log in.")

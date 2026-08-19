@@ -12,6 +12,10 @@ public interface TempBuyerRepository extends JpaRepository<TempBuyer, Long> {
 
     boolean existsByPanNumber(String panNumber);
 
+    boolean existsByGstNumberAndTempBuyerIdNot(String gstNumber, Long tempBuyerId);
+
+    boolean existsByPanNumberAndTempBuyerIdNot(String panNumber, Long tempBuyerId);
+
     Optional<TempBuyer> findByUser_BuyerUserId(Long buyerUserId);
 
     @Query("SELECT MAX(b.tempBuyerRequestId) FROM TempBuyer b")

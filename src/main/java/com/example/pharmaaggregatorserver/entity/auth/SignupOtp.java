@@ -20,6 +20,9 @@ public class SignupOtp {
 
     private String email;
 
+    @Column(name = "full_name")
+    private String fullName;
+
     private String otp;
 
     // BCrypt hash of the password chosen at signup — the User row is only

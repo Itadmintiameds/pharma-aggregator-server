@@ -146,6 +146,11 @@ public class ProductDetailsMapper {
         dto.setGstPercentage(entity.getGstPercentage());
         dto.setHsnCode(entity.getHsnCode());
         dto.setStatus(entity.getStatus() != null ? entity.getStatus().name() : null);
+        if (entity.getSeller() != null) {
+            dto.setSellerId(entity.getSeller().getSellerId());
+            dto.setSellerName(entity.getSeller().getSellerName());
+            dto.setSellerEmail(entity.getSeller().getEmail());
+        }
 
         if (entity.getPackagingDetails() != null) {
             dto.setPackagingDetails(

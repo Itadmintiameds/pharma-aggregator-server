@@ -6,6 +6,7 @@ import com.example.pharmaaggregatorserver.dto.buyer.BuyerLogoutRequest;
 import com.example.pharmaaggregatorserver.dto.buyer.BuyerOtpSentResponse;
 import com.example.pharmaaggregatorserver.dto.buyer.BuyerOtpVerificationRequest;
 import com.example.pharmaaggregatorserver.dto.buyer.BuyerRefreshRequest;
+import com.example.pharmaaggregatorserver.dto.buyer.BuyerResetPasswordRequest;
 import com.example.pharmaaggregatorserver.exception.*;
 import com.example.pharmaaggregatorserver.exception.auth.OtpExpiredException;
 import com.example.pharmaaggregatorserver.exception.auth.OtpInvalidException;
@@ -83,6 +84,25 @@ public class BuyerAuthenticationController {
             return ResponseEntity.ok(response);
         } catch (RefreshTokenException e) {
             return buildErrorResponse(HttpStatus.UNAUTHORIZED, e.getMessage());
+        }
+    }
+
+    // POST /buyer/authentication/reset-password — first-time password reset
+    // for a buyer account still holding a temporary password (see
+    // BuyerAuthService.resetPassword). Only usable while passwordTemporary
+    // is true; anything else is rejected as a BAD_REQUEST ApplicationException.
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody BuyerResetPasswordRequest request) {
+        try {
+            buyerAuthService.resetPassword(request.getEmail(), request.getNewPassword());
+            return ResponseEntity.ok(new com.example.pharmaaggregatorserver.response.ApiResponse<>(
+                    "SUCCESS", "Password changed successfully", null));
+        } catch (InvalidCredentialsException e) {
+            return buildErrorResponse(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (AccountLockedException | AccountInactiveException e) {
+            return buildErrorResponse(HttpStatus.FORBIDDEN, e.getMessage());
+        } catch (ApplicationException e) {
+            return buildErrorResponse(e.getStatus(), e.getMessage());
         }
     }
 

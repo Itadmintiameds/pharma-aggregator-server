@@ -28,6 +28,10 @@ public class User {
     @Column(name = "username", unique = true, nullable = false, length = 100)
     private String username;
 
+    // full name captured at standalone signup; null for users created before this field existed
+    @Column(name = "full_name", length = 150)
+    private String fullName;
+
     // BCrypt hashed — NEVER store plain text
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;

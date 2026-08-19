@@ -20,6 +20,10 @@ public class BuyerUser {
     @Column(name = "buyer_user_id")
     private Long buyerUserId;
 
+    // full name captured at standalone signup; null for users created before this field existed
+    @Column(name = "full_name", length = 150)
+    private String fullName;
+
     @Column(name = "email", unique = true, nullable = false, length = 100)
     private String email;
 
@@ -29,6 +33,11 @@ public class BuyerUser {
     // BCrypt hashed — NEVER store plain text
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
+
+    // true = buyer must set a new password on next login (set for accounts
+    // auto-provisioned from a guest quote-request submission).
+    @Column(name = "is_password_temporary", nullable = false)
+    private boolean isPasswordTemporary = false;
 
     @Column(name = "is_email_verified", nullable = false)
     private boolean isEmailVerified = false;

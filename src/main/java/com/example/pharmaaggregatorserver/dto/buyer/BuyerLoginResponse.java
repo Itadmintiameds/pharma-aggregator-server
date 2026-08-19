@@ -18,5 +18,6 @@ public class BuyerLoginResponse {
     private Long buyerUserId;
     private String username;
     private Set<String> roles;
+    private boolean passwordTemporary;
     private String message;
 }

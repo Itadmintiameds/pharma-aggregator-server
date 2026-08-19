@@ -11,7 +11,9 @@ import com.example.pharmaaggregatorserver.dto.temp.buyer.TempBuyerDraftRequestDT
 import com.example.pharmaaggregatorserver.dto.temp.buyer.TempBuyerRequestDTO;
 import com.example.pharmaaggregatorserver.entity.temp.buyer.TempBuyer;
 import com.example.pharmaaggregatorserver.exception.NotFoundException;
+import com.example.pharmaaggregatorserver.exception.UnauthorizedException;
 import com.example.pharmaaggregatorserver.response.ApiResponse;
+import com.example.pharmaaggregatorserver.security.UserDetailsImpl;
 import com.example.pharmaaggregatorserver.service.temp.buyer.TempBuyerContactService;
 import com.example.pharmaaggregatorserver.service.temp.buyer.TempBuyerDocumentService;
 import com.example.pharmaaggregatorserver.service.temp.buyer.TempBuyerService;
@@ -20,6 +22,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -40,8 +44,11 @@ public class TempBuyerController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    // Lists every pending registration across all buyers — admin-review data,
+    // so only an authenticated ROLE_ADMIN caller may fetch it.
     @GetMapping
-    public ResponseEntity<?> getAllTempBuyers() {
+    public ResponseEntity<?> getAllTempBuyers(Authentication authentication) {
+        requireAdmin(authentication);
         List<TempBuyerAdminResponseDTO> all = tempBuyerService.getAllTempBuyers();
         return ResponseEntity.ok(new ApiResponse<>(
                 HttpStatus.OK.toString(),
@@ -95,15 +102,50 @@ public class TempBuyerController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteById(@PathVariable Long id) {
+    public ResponseEntity<?> deleteById(@PathVariable Long id, Authentication authentication) {
+        requireOwnerOrAdmin(id, authentication);
         tempBuyerService.deleteTempBuyer(id);
         return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Delete temp buyer successfully", null));
     }
 
     @DeleteMapping("/both/{id}")
-    public ResponseEntity<?> deleteBoth(@PathVariable Long id) {
+    public ResponseEntity<?> deleteBoth(@PathVariable Long id, Authentication authentication) {
+        requireOwnerOrAdmin(id, authentication);
         tempBuyerService.deleteBothBuyerAndTempBuyer(id);
         return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Delete temp buyer successfully", null));
+    }
+
+    // ---------------- Access control helpers ----------------
+
+    private void requireAdmin(Authentication authentication) {
+        if (!isAdmin(authentication)) {
+            throw new UnauthorizedException("Unauthorized access");
+        }
+    }
+
+    // Only the buyer who owns this draft/registration, or an admin, may act on
+    // it. A draft with no linked BuyerUser (shouldn't normally happen — every
+    // create/draft request carries a buyerUserId) can only be removed by an
+    // admin, since there is no owner to authenticate as.
+    private void requireOwnerOrAdmin(Long tempBuyerId, Authentication authentication) {
+        if (isAdmin(authentication)) {
+            return;
+        }
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetailsImpl user)) {
+            throw new UnauthorizedException("Unauthorized access");
+        }
+        TempBuyer tempBuyer = tempBuyerService.findById(tempBuyerId);
+        if (tempBuyer.getUser() == null || !tempBuyer.getUser().getBuyerUserId().equals(user.getId())) {
+            throw new UnauthorizedException("Unauthorized access");
+        }
+    }
+
+    private boolean isAdmin(Authentication authentication) {
+        return authentication != null
+                && authentication.getPrincipal() instanceof UserDetailsImpl user
+                && user.getAuthorities().stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .anyMatch(role -> role.equals("ROLE_ADMIN"));
     }
 
     @GetMapping("/contact/check-email")
@@ -119,13 +161,15 @@ public class TempBuyerController {
     }
 
     @GetMapping("/contact/check-gstnumber")
-    public ResponseEntity<Boolean> checkGstNumberExists(@RequestParam String gstnumber) {
-        return ResponseEntity.ok(contactService.checkGstNumberExists(gstnumber));
+    public ResponseEntity<Boolean> checkGstNumberExists(@RequestParam String gstnumber,
+                                                         @RequestParam(required = false) Long tempBuyerId) {
+        return ResponseEntity.ok(contactService.checkGstNumberExists(gstnumber, tempBuyerId));
     }
 
     @GetMapping("/contact/check-pannumber")
-    public ResponseEntity<Boolean> checkPanNumberExists(@RequestParam String pannumber) {
-        return ResponseEntity.ok(contactService.checkPanNumberExists(pannumber));
+    public ResponseEntity<Boolean> checkPanNumberExists(@RequestParam String pannumber,
+                                                         @RequestParam(required = false) Long tempBuyerId) {
+        return ResponseEntity.ok(contactService.checkPanNumberExists(pannumber, tempBuyerId));
     }
 
     @GetMapping("/contact/check-document")

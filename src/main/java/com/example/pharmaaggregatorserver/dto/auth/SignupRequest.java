@@ -8,6 +8,9 @@ import lombok.Data;
 @Data
 public class SignupRequest {
 
+    @NotBlank(message = "Full name is required")
+    private String fullName;
+
     @NotBlank(message = "Email is required")
     @Email(message = "Please enter a valid email address")
     private String email;

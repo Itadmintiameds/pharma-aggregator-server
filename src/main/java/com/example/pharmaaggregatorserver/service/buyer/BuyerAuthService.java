@@ -155,7 +155,7 @@ public class BuyerAuthService {
                 .id(buyerUser.getBuyerUserId())
                 .username(buyerUser.getEmail())
                 .password(buyerUser.getPasswordHash())
-                .isPasswordTemporary(false)
+                .isPasswordTemporary(buyerUser.isPasswordTemporary())
                 .isActive(buyerUser.isActive())
                 .isAccountLocked(buyerUser.isAccountLocked())
                 .authorities(authorities)
@@ -184,8 +184,41 @@ public class BuyerAuthService {
                 .buyerUserId(userDetails.getId())
                 .username(userDetails.getUsername())
                 .roles(roles)
+                .passwordTemporary(buyerUser.isPasswordTemporary())
                 .message("Login successful")
                 .build();
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // First-time password reset (buyer account auto-provisioned with a
+    // temporary password via a guest quote-request submission). Mirrors
+    // seller's UserService.resetPassword — only usable while
+    // isPasswordTemporary is still true.
+    // ─────────────────────────────────────────────────────────
+
+    @Transactional
+    public void resetPassword(String email, String newPassword) {
+        BuyerUser buyerUser = buyerUserRepository.findByEmail(email)
+                .orElseThrow(() -> new InvalidCredentialsException("Buyer account not found"));
+
+        if (!buyerUser.isPasswordTemporary()) {
+            throw new ApplicationException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "You have already set your password. Please use the regular login."
+            );
+        }
+
+        if (buyerUser.isAccountLocked()) {
+            throw new AccountLockedException("Your account has been locked. Please contact support.");
+        }
+        if (!buyerUser.isActive()) {
+            throw new AccountInactiveException("Your account is inactive. Please contact support.");
+        }
+
+        buyerUser.setPasswordHash(passwordEncoder.encode(newPassword));
+        buyerUser.setPasswordTemporary(false);
+        buyerUser.setFailedLoginAttempts(0);
+        buyerUserRepository.save(buyerUser);
     }
 
     // ─────────────────────────────────────────────────────────

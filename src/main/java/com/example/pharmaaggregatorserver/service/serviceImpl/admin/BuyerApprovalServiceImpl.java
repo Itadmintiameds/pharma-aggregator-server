@@ -54,6 +54,10 @@ public class BuyerApprovalServiceImpl implements BuyerApprovalService {
         TempBuyer tempBuyer = tempBuyerRepo.findById(request.getId())
                 .orElseThrow(() -> new NotFoundException("Buyer not found"));
 
+        if (request.getStatus() == null || request.getStatus().isBlank()) {
+            throw new ApplicationException("Status is required");
+        }
+
         Buyer approvedBuyer = null;
 
         switch (request.getStatus().toUpperCase()) {
@@ -388,9 +392,20 @@ public class BuyerApprovalServiceImpl implements BuyerApprovalService {
      * [2 chars from organization name][buyer type abbreviation][4-digit global sequence]
      */
     private String generateBuyerId(TempBuyer tempBuyer) {
+        if (tempBuyer.getOrganizationName() == null || tempBuyer.getOrganizationName().isBlank()) {
+            throw new ApplicationException("Cannot approve: organization name is missing");
+        }
+        if (tempBuyer.getBuyerType() == null || tempBuyer.getBuyerType().getBuyerTypeAbbreviation() == null
+                || tempBuyer.getBuyerType().getBuyerTypeAbbreviation().isBlank()) {
+            throw new ApplicationException("Cannot approve: buyer type is missing");
+        }
+
         String namePart = tempBuyer.getOrganizationName()
                 .replaceAll("[^A-Za-z0-9]", "")
                 .toUpperCase();
+        if (namePart.isEmpty()) {
+            throw new ApplicationException("Cannot approve: organization name has no alphanumeric characters");
+        }
         namePart = namePart.length() >= 2 ? namePart.substring(0, 2) : namePart;
 
         String typePart = tempBuyer.getBuyerType()

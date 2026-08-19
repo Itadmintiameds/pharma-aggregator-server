@@ -46,5 +46,8 @@ public class ProductDetailsDto {
     private Long gstPercentage;
     private Long hsnCode;
     private String status;
+    private String sellerId;
+    private String sellerName;
+    private String sellerEmail;
 
 }

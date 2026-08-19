@@ -52,6 +52,7 @@ public class BuyerSignupService {
 
         BuyerSignupOtp signupOtp = BuyerSignupOtp.builder()
                 .email(email)
+                .fullName(request.getFullName())
                 .phone(request.getPhone())
                 .otp(otp)
                 .passwordHash(hashedPassword)
@@ -100,6 +101,7 @@ public class BuyerSignupService {
 
         BuyerUser buyerUser = new BuyerUser();
         buyerUser.setEmail(email);
+        buyerUser.setFullName(signupOtp.getFullName());
         buyerUser.setPhone(signupOtp.getPhone());
         buyerUser.setPasswordHash(signupOtp.getPasswordHash());
         buyerUser.setEmailVerified(true);

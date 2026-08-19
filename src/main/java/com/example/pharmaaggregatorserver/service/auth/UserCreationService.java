@@ -37,9 +37,10 @@ public class UserCreationService {
      *
      * @param email          becomes the login username
      * @param hashedPassword BCrypt hash of the password the user chose at signup
+     * @param fullName       the name the user entered at signup
      * @return the saved User
      */
-    public User createUserFromSignup(String email, String hashedPassword) {
+    public User createUserFromSignup(String email, String hashedPassword, String fullName) {
 
         if (userRepository.existsByUsername(email)) {
             throw new ApplicationException(
@@ -56,6 +57,7 @@ public class UserCreationService {
 
         User user = new User();
         user.setUsername(email);
+        user.setFullName(fullName);
         user.setPasswordHash(hashedPassword);
         user.setPasswordTemporary(false); // user chose their own password at signup
         user.setActive(true);

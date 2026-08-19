@@ -35,12 +35,19 @@ public class TempBuyerContactService {
                 : contactRepository.existsByMobile(mobile);
     }
 
-    public boolean checkGstNumberExists(String gstNumber) {
-        return tempBuyerRepository.existsByGstNumber(gstNumber);
+    // excludeTempBuyerId lets a buyer re-visit the Org Details step of their
+    // own in-progress draft/correction without the GST/PAN they already saved
+    // there being reported back to them as a duplicate.
+    public boolean checkGstNumberExists(String gstNumber, Long excludeTempBuyerId) {
+        return excludeTempBuyerId != null
+                ? tempBuyerRepository.existsByGstNumberAndTempBuyerIdNot(gstNumber, excludeTempBuyerId)
+                : tempBuyerRepository.existsByGstNumber(gstNumber);
     }
 
-    public boolean checkPanNumberExists(String panNumber) {
-        return tempBuyerRepository.existsByPanNumber(panNumber);
+    public boolean checkPanNumberExists(String panNumber, Long excludeTempBuyerId) {
+        return excludeTempBuyerId != null
+                ? tempBuyerRepository.existsByPanNumberAndTempBuyerIdNot(panNumber, excludeTempBuyerId)
+                : tempBuyerRepository.existsByPanNumber(panNumber);
     }
 
     public boolean checkDocumentExists(String documentNumber) {

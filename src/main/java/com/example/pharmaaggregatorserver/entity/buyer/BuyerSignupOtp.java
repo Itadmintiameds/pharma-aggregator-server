@@ -20,6 +20,9 @@ public class BuyerSignupOtp {
 
     private String email;
 
+    @Column(name = "full_name")
+    private String fullName;
+
     private String phone;
 
     private String otp;

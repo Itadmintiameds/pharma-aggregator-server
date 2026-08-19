@@ -258,6 +258,7 @@ public class TempBuyerServiceImpl implements TempBuyerService {
     }
 
     @Override
+    @Transactional
     public void deleteTempBuyer(Long tempBuyerId) {
         TempBuyer tempBuyer = findById(tempBuyerId);
         deleteTempBuyerS3Files(tempBuyer);
@@ -265,6 +266,7 @@ public class TempBuyerServiceImpl implements TempBuyerService {
     }
 
     @Override
+    @Transactional
     public void deleteBothBuyerAndTempBuyer(Long tempBuyerId) {
         TempBuyer tempBuyer = findById(tempBuyerId);
 
