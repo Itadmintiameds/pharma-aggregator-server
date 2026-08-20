@@ -4,6 +4,7 @@ import com.example.pharmaaggregatorserver.dto.buyer.BuyerLoginRequest;
 import com.example.pharmaaggregatorserver.dto.buyer.BuyerLoginResponse;
 import com.example.pharmaaggregatorserver.dto.buyer.BuyerOtpSentResponse;
 import com.example.pharmaaggregatorserver.dto.buyer.BuyerOtpVerificationRequest;
+import com.example.pharmaaggregatorserver.dto.buyer.BuyerUserSummaryDTO;
 import com.example.pharmaaggregatorserver.entity.buyer.BuyerLoginOtp;
 import com.example.pharmaaggregatorserver.entity.buyer.BuyerRefreshToken;
 import com.example.pharmaaggregatorserver.entity.buyer.BuyerUser;
@@ -183,6 +184,7 @@ public class BuyerAuthService {
                 .refreshToken(rawRefreshToken)
                 .buyerUserId(userDetails.getId())
                 .username(userDetails.getUsername())
+                .phone(buyerUser.getPhone())
                 .roles(roles)
                 .passwordTemporary(buyerUser.isPasswordTemporary())
                 .message("Login successful")
@@ -219,6 +221,24 @@ public class BuyerAuthService {
         buyerUser.setPasswordTemporary(false);
         buyerUser.setFailedLoginAttempts(0);
         buyerUserRepository.save(buyerUser);
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // "Who am I" — lets the frontend refresh email/phone on demand (e.g. the
+    // buyer registration wizard's "same as my login email/mobile" checkboxes)
+    // instead of only trusting whatever BuyerLoginResponse was cached at the
+    // last login/OTP-verify.
+    // ─────────────────────────────────────────────────────────
+
+    public BuyerUserSummaryDTO getCurrentUserSummary(Long buyerUserId) {
+        BuyerUser buyerUser = buyerUserRepository.findById(buyerUserId)
+                .orElseThrow(() -> new InvalidCredentialsException("Buyer account not found"));
+
+        return BuyerUserSummaryDTO.builder()
+                .buyerUserId(buyerUser.getBuyerUserId())
+                .email(buyerUser.getEmail())
+                .phone(buyerUser.getPhone())
+                .build();
     }
 
     // ─────────────────────────────────────────────────────────

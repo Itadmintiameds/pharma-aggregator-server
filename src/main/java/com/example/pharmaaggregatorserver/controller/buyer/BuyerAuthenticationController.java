@@ -7,16 +7,19 @@ import com.example.pharmaaggregatorserver.dto.buyer.BuyerOtpSentResponse;
 import com.example.pharmaaggregatorserver.dto.buyer.BuyerOtpVerificationRequest;
 import com.example.pharmaaggregatorserver.dto.buyer.BuyerRefreshRequest;
 import com.example.pharmaaggregatorserver.dto.buyer.BuyerResetPasswordRequest;
+import com.example.pharmaaggregatorserver.dto.buyer.BuyerUserSummaryDTO;
 import com.example.pharmaaggregatorserver.exception.*;
 import com.example.pharmaaggregatorserver.exception.auth.OtpExpiredException;
 import com.example.pharmaaggregatorserver.exception.auth.OtpInvalidException;
 import com.example.pharmaaggregatorserver.exception.auth.OtpLockedException;
 import com.example.pharmaaggregatorserver.exception.auth.RefreshTokenException;
+import com.example.pharmaaggregatorserver.security.UserDetailsImpl;
 import com.example.pharmaaggregatorserver.service.buyer.BuyerAuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -104,6 +107,18 @@ public class BuyerAuthenticationController {
         } catch (ApplicationException e) {
             return buildErrorResponse(e.getStatus(), e.getMessage());
         }
+    }
+
+    // GET /buyer/authentication/me — refreshes the logged-in buyer's own
+    // email/phone from the DB, for callers that shouldn't rely solely on
+    // whatever was cached in localStorage at the last login/OTP-verify.
+    @GetMapping("/me")
+    public ResponseEntity<?> me(Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetailsImpl user)) {
+            return buildErrorResponse(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        }
+        BuyerUserSummaryDTO response = buyerAuthService.getCurrentUserSummary(user.getId());
+        return ResponseEntity.ok(response);
     }
 
     // POST /buyer/authentication/logout

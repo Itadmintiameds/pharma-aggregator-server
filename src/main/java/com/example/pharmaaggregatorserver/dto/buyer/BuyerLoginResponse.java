@@ -17,6 +17,7 @@ public class BuyerLoginResponse {
     private String type = "Bearer";
     private Long buyerUserId;
     private String username;
+    private String phone;
     private Set<String> roles;
     private boolean passwordTemporary;
     private String message;
