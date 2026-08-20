@@ -24,6 +24,9 @@ public class OrderResponseDTO {
     private String deliveryState;
     private String deliveryPinCode;
     private String status;
+    // Set when this order was placed from an already-ACCEPTED quote request
+    // (see OrderPlacementServiceImpl) — null for an ordinary cart checkout.
+    private Long quoteRequestId;
     private Integer itemCount;
     private Integer sellerOrderCount;
     private BigDecimal subtotal;

@@ -5,5 +5,9 @@ public enum QuoteRequestStatus {
     QUOTED,
     ACCEPTED,
     REJECTED,
-    EXPIRED
+    EXPIRED,
+    // Set once an ACCEPTED quote has been converted into an Order (see
+    // OrderPlacementServiceImpl) — terminal, prevents the same accepted quote
+    // from being placed as an order more than once.
+    ORDER_PLACED
 }

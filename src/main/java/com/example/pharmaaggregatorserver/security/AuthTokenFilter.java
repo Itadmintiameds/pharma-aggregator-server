@@ -31,7 +31,13 @@ public class AuthTokenFilter extends OncePerRequestFilter {
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
                 String username = jwtUtils.getUserNameFromJwtToken(jwt);
 
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                // /buyer/** requests were necessarily authenticated by a buyer
+                // JWT, so resolve the buyer account first — otherwise an email
+                // registered as both a seller/admin and a buyer would resolve
+                // to the seller identity (no ROLE_BUYER) and every buyer
+                // endpoint would wrongly 401. See UserDetailsServiceImpl.
+                boolean preferBuyer = request.getRequestURI().contains("/buyer/");
+                UserDetails userDetails = userDetailsService.loadUserByUsername(username, preferBuyer);
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

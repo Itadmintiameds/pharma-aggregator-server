@@ -15,6 +15,11 @@ import java.util.List;
 public class SellerOrderResponseDTO {
     private String sellerOrderId;
     private String orderId;
+    // Set when the parent order was placed from an already-ACCEPTED quote
+    // request (see OrderPlacementServiceImpl) — null for an ordinary cart
+    // checkout. Lets the seller tell a negotiated-price order apart from a
+    // regular one at a glance.
+    private Long quoteRequestId;
     private String sellerId;
     private String status;
     private BigDecimal subtotal;

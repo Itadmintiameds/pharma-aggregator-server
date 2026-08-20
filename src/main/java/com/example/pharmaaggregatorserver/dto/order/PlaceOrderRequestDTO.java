@@ -2,7 +2,6 @@ package com.example.pharmaaggregatorserver.dto.order;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -27,6 +26,13 @@ public class PlaceOrderRequestDTO {
     @NotBlank(message = "buyerId is required")
     private String buyerId;
 
+    // Optional: when present, this order is being placed from an already-
+    // ACCEPTED quote (see OrderPlacementServiceImpl). The line is derived
+    // entirely server-side from the QuoteRequest row (product, quantity,
+    // negotiated quotedPrice) — `lines` below is ignored in that case, since
+    // the client must never be trusted to supply the negotiated price.
+    private Long quoteRequestId;
+
     // Optional: if present, resolves against tbl_buyer_delivery_address and
     // overrides the raw fields below.
     private Long deliveryAddressId;
@@ -50,7 +56,9 @@ public class PlaceOrderRequestDTO {
     // double submits. Callers that omit it get no such protection.
     private String idempotencyKey;
 
-    @NotEmpty(message = "At least one cart line is required")
+    // Required unless quoteRequestId is set (validated in
+    // OrderPlacementServiceImpl, not here, since "required" depends on that
+    // other field).
     @Valid
     private List<OrderLineRequestDTO> lines;
 }

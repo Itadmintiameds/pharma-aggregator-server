@@ -101,6 +101,12 @@ public class QuoteRequest {
     @Column(name = "seller_notes", columnDefinition = "TEXT")
     private String sellerNotes;
 
+    // Set once this ACCEPTED quote has been converted into an Order (see
+    // OrderPlacementServiceImpl) — not a FK on purpose, since Order lives in
+    // a different aggregate and this is purely a traceability pointer.
+    @Column(name = "order_id")
+    private String orderId;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

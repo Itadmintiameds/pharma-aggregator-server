@@ -74,6 +74,13 @@ public class Order {
     @Column(name = "idempotency_key", unique = true, length = 100)
     private String idempotencyKey;
 
+    // Set when this order was placed from an already-ACCEPTED quote (see
+    // OrderPlacementServiceImpl) — not a FK on purpose, mirrors
+    // QuoteRequest#orderId's own reverse pointer, kept as a plain id so
+    // Order's own aggregate has no dependency on the quote module.
+    @Column(name = "quote_request_id")
+    private Long quoteRequestId;
+
     @Column(name = "item_count")
     private Integer itemCount;
 

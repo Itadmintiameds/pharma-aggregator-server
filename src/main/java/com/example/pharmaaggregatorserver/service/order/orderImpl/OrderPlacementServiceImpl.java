@@ -20,7 +20,9 @@ import com.example.pharmaaggregatorserver.entity.order.SellerOrderStatus;
 import com.example.pharmaaggregatorserver.entity.product.PackagingDetails;
 import com.example.pharmaaggregatorserver.entity.product.PricingDetails;
 import com.example.pharmaaggregatorserver.entity.product.ProductDetails;
+import com.example.pharmaaggregatorserver.entity.quote.QuoteRequest;
 import com.example.pharmaaggregatorserver.entity.seller.Seller;
+import com.example.pharmaaggregatorserver.enums.QuoteRequestStatus;
 import com.example.pharmaaggregatorserver.exception.BadRequestException;
 import com.example.pharmaaggregatorserver.exception.ResourceNotFoundException;
 import com.example.pharmaaggregatorserver.repository.buyer.BuyerDeliveryAddressRepository;
@@ -28,6 +30,7 @@ import com.example.pharmaaggregatorserver.repository.buyer.BuyerRepository;
 import com.example.pharmaaggregatorserver.repository.order.OrderRepository;
 import com.example.pharmaaggregatorserver.repository.order.PaymentRepository;
 import com.example.pharmaaggregatorserver.repository.product.PricingDetailsRepository;
+import com.example.pharmaaggregatorserver.repository.quote.QuoteRequestRepository;
 import com.example.pharmaaggregatorserver.service.order.OrderPlacementService;
 import com.example.pharmaaggregatorserver.service.order.support.OrderMapper;
 import com.example.pharmaaggregatorserver.service.order.support.OrderNotificationService;
@@ -58,6 +61,7 @@ public class OrderPlacementServiceImpl implements OrderPlacementService {
     private final PricingDetailsRepository pricingDetailsRepository;
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
+    private final QuoteRequestRepository quoteRequestRepository;
     private final StockService stockService;
     private final OrderMapper orderMapper;
     private final OrderNotificationService orderNotificationService;
@@ -66,9 +70,12 @@ public class OrderPlacementServiceImpl implements OrderPlacementService {
      * Holds a resolved cart line while orders are being grouped by seller,
      * before the actual stock debit (and therefore the actual OrderItem set,
      * which may span more batches than lines if FIFO spans multiple
-     * batches) is known.
+     * batches) is known. unitPriceOverride is set only for a line derived
+     * from an accepted QuoteRequest — the negotiated quotedPrice must be
+     * charged instead of the batch's current live sellingPrice.
      */
-    private record ResolvedLine(ProductDetails product, Seller seller, String packagingId, Integer quantity) {
+    private record ResolvedLine(
+            ProductDetails product, Seller seller, String packagingId, Integer quantity, BigDecimal unitPriceOverride) {
     }
 
     @Override
@@ -77,7 +84,25 @@ public class OrderPlacementServiceImpl implements OrderPlacementService {
         Buyer buyer = buyerRepository.findById(request.getBuyerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Buyer not found: " + request.getBuyerId()));
 
-        if (request.getLines() == null || request.getLines().isEmpty()) {
+        // Resolve the quote being converted, if any. Ownership is enforced via
+        // the buyerUserId join (never trust a client-supplied buyerUserId) —
+        // this buyer's own BuyerUser is the only account allowed to convert it.
+        QuoteRequest quoteRequest = null;
+        if (request.getQuoteRequestId() != null) {
+            Long buyerUserId = buyer.getUser().getBuyerUserId();
+            quoteRequest = quoteRequestRepository
+                    .findByQuoteRequestIdAndBuyerUser_BuyerUserId(request.getQuoteRequestId(), buyerUserId)
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Quote request not found: " + request.getQuoteRequestId()));
+
+            if (quoteRequest.getStatus() == QuoteRequestStatus.ORDER_PLACED) {
+                throw new BadRequestException(
+                        "This quote has already been placed as order " + quoteRequest.getOrderId());
+            }
+            if (quoteRequest.getStatus() != QuoteRequestStatus.ACCEPTED) {
+                throw new BadRequestException("Only an accepted quote can be placed as an order");
+            }
+        } else if (request.getLines() == null || request.getLines().isEmpty()) {
             throw new BadRequestException("At least one cart line is required");
         }
 
@@ -130,37 +155,52 @@ public class OrderPlacementServiceImpl implements OrderPlacementService {
         }
 
         // 1) Resolve every line's product/seller/packaging server-side — sellerId
-        // is never trusted from the client.
+        // is never trusted from the client. A quote-originated order derives its
+        // single line entirely from the stored QuoteRequest (product, quantity,
+        // negotiated price) — the client's `lines` is ignored in that case, since
+        // the negotiated price must never come from the request body.
         List<ResolvedLine> resolvedLines = new ArrayList<>();
-        for (OrderLineRequestDTO line : request.getLines()) {
-            PricingDetails pricing = pricingDetailsRepository.findById(line.getPricingId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Batch/pricing not found: " + line.getPricingId()));
-
-            ProductDetails product = pricing.getProductDetails();
-            if (product == null || !product.getProductId().equals(line.getProductId())) {
-                throw new BadRequestException(
-                        "pricingId " + line.getPricingId() + " does not belong to productId " + line.getProductId());
-            }
-
-            PackagingDetails packaging = pricing.getPackagingDetails();
-            if (packaging != null) {
-                if (packaging.getMinimumOrderQuantity() != null
-                        && line.getQuantity() < packaging.getMinimumOrderQuantity()) {
-                    throw new BadRequestException(
-                            "Quantity for product " + product.getProductId()
-                                    + " is below the minimum order quantity of " + packaging.getMinimumOrderQuantity());
-                }
-                if (packaging.getMaximumOrderQuantity() != null
-                        && line.getQuantity() > packaging.getMaximumOrderQuantity()) {
-                    throw new BadRequestException(
-                            "Quantity for product " + product.getProductId()
-                                    + " exceeds the maximum order quantity of " + packaging.getMaximumOrderQuantity());
-                }
-            }
-
+        if (quoteRequest != null) {
+            ProductDetails product = quoteRequest.getProduct();
             Seller seller = product.getSeller();
-            String packagingId = packaging != null ? packaging.getPackagingId() : null;
-            resolvedLines.add(new ResolvedLine(product, seller, packagingId, line.getQuantity()));
+            // No specific packaging/pricingId was negotiated on the quote — debit
+            // FIFO across whatever batches exist for this product. This only fails
+            // (with a clear error) if the product has more than one packaging
+            // variant, in which case a variant must be picked; not resolvable from
+            // a quote today.
+            resolvedLines.add(new ResolvedLine(product, seller, null, quoteRequest.getQuantity(),
+                    quoteRequest.getQuotedPrice()));
+        } else {
+            for (OrderLineRequestDTO line : request.getLines()) {
+                PricingDetails pricing = pricingDetailsRepository.findById(line.getPricingId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Batch/pricing not found: " + line.getPricingId()));
+
+                ProductDetails product = pricing.getProductDetails();
+                if (product == null || !product.getProductId().equals(line.getProductId())) {
+                    throw new BadRequestException(
+                            "pricingId " + line.getPricingId() + " does not belong to productId " + line.getProductId());
+                }
+
+                PackagingDetails packaging = pricing.getPackagingDetails();
+                if (packaging != null) {
+                    if (packaging.getMinimumOrderQuantity() != null
+                            && line.getQuantity() < packaging.getMinimumOrderQuantity()) {
+                        throw new BadRequestException(
+                                "Quantity for product " + product.getProductId()
+                                        + " is below the minimum order quantity of " + packaging.getMinimumOrderQuantity());
+                    }
+                    if (packaging.getMaximumOrderQuantity() != null
+                            && line.getQuantity() > packaging.getMaximumOrderQuantity()) {
+                        throw new BadRequestException(
+                                "Quantity for product " + product.getProductId()
+                                        + " exceeds the maximum order quantity of " + packaging.getMaximumOrderQuantity());
+                    }
+                }
+
+                Seller seller = product.getSeller();
+                String packagingId = packaging != null ? packaging.getPackagingId() : null;
+                resolvedLines.add(new ResolvedLine(product, seller, packagingId, line.getQuantity(), null));
+            }
         }
 
         // 2) Debit stock per line via the existing FIFO-locked StockService. A line
@@ -224,8 +264,12 @@ public class OrderPlacementServiceImpl implements OrderPlacementService {
                         .orElseThrow(() -> new ResourceNotFoundException(
                                 "Batch not found after debit: " + debited.getPricingId()));
 
-                BigDecimal unitPrice = debitedBatch.getSellingPrice() != null
-                        ? debitedBatch.getSellingPrice() : BigDecimal.ZERO;
+                // A quote-originated line charges the negotiated quotedPrice, not
+                // the batch's current live sellingPrice — the seller already
+                // committed to that price when they quoted it.
+                BigDecimal unitPrice = resolved.unitPriceOverride() != null
+                        ? resolved.unitPriceOverride()
+                        : (debitedBatch.getSellingPrice() != null ? debitedBatch.getSellingPrice() : BigDecimal.ZERO);
                 BigDecimal quantity = BigDecimal.valueOf(debited.getQuantity());
                 BigDecimal lineGross = unitPrice.multiply(quantity);
 
@@ -333,6 +377,7 @@ public class OrderPlacementServiceImpl implements OrderPlacementService {
         order.setDeliveryPinCode(deliveryPinCode);
         order.setStatus(OrderStatus.PLACED);
         order.setIdempotencyKey(StringUtils.hasText(request.getIdempotencyKey()) ? request.getIdempotencyKey() : null);
+        order.setQuoteRequestId(quoteRequest != null ? quoteRequest.getQuoteRequestId() : null);
         order.setItemCount(totalItemCount);
         order.setSellerOrderCount(sellerOrders.size());
         order.setSubtotal(orderSubtotal);
@@ -347,6 +392,12 @@ public class OrderPlacementServiceImpl implements OrderPlacementService {
         order.setSellerOrders(sellerOrders);
 
         order = orderRepository.save(order);
+
+        if (quoteRequest != null) {
+            quoteRequest.setStatus(QuoteRequestStatus.ORDER_PLACED);
+            quoteRequest.setOrderId(order.getOrderId());
+            quoteRequestRepository.save(quoteRequest);
+        }
 
         // 4) Create the Payment row now that the Order is persisted (Payment's
         // FK to Order is not-null, so Order must exist first). COD-only in this

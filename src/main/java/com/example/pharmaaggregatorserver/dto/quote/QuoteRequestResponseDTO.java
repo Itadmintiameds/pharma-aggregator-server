@@ -37,6 +37,9 @@ public class QuoteRequestResponseDTO {
     private LocalDate quoteValidUntil;
     private String sellerNotes;
 
+    // Set once this ACCEPTED quote has been converted into an order.
+    private String orderId;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

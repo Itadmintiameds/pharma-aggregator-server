@@ -15,4 +15,8 @@ public class BuyerProfileResponseDTO {
     private String buyerId;
     private String organizationName;
     private String status;
+    private String gstNumber;
+    private String contactName;
+    private String contactEmail;
+    private String contactMobile;
 }

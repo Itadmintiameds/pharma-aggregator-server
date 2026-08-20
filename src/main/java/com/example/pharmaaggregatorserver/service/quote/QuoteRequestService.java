@@ -275,6 +275,7 @@ public class QuoteRequestService {
                 .quotedPrice(q.getQuotedPrice())
                 .quoteValidUntil(q.getQuoteValidUntil())
                 .sellerNotes(q.getSellerNotes())
+                .orderId(q.getOrderId())
                 .createdAt(q.getCreatedAt())
                 .updatedAt(q.getUpdatedAt())
                 .build();
