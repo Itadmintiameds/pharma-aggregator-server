@@ -38,6 +38,12 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
 
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+
   mail:   # Email configuration
     host: ${SPRING_MAIL_HOST}
     port: ${SPRING_MAIL_PORT}
