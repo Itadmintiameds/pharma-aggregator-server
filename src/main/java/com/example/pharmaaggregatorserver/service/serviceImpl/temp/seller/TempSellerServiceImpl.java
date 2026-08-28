@@ -63,22 +63,6 @@ public class TempSellerServiceImpl implements TempSellerService {
 
         String generatedRequestId = requestIdGeneratorService.generateNextRequestId();
 
-        // ✅ VALIDATION: Phone and Email must be verified
-//        if (!requestDTO.getCoordinator().isPhoneVerified()) {
-//            throw new RuntimeException("Phone number must be verified before registration");
-//        }
-//        if (!requestDTO.getCoordinator().isEmailVerified()) {
-//            throw new RuntimeException("Email must be verified before registration");
-//        }
-
-        // Check if phone or email already exists
-//        if (tempSellerRepository.existsByPhone(requestDTO.getPhone())) {
-//            throw new RuntimeException("Phone number already exists");
-//        }
-//        if (tempSellerRepository.existsByEmail(requestDTO.getEmail())) {
-//            throw new RuntimeException("Email already exists");
-//        }
-
         // Fetch master entities
         List<ProductTypeMaster> productType = productTypeMasterRepository.findAllById(requestDTO.getProductTypeId());
 
@@ -119,15 +103,6 @@ public class TempSellerServiceImpl implements TempSellerService {
             TempSellerAddress address = createAddress(requestDTO.getAddress(), seller);
             seller.setAddress(address);
         }
-
-        // Create coordinator with verification status
-//        if (requestDTO.getCoordinator() != null) {
-//            TempSellerCoordinator coordinator = createCoordinator(requestDTO.getCoordinator(), seller);
-//            // ✅ Set coordinator verification from DTO
-//            coordinator.setPhoneVerified(requestDTO.getCoordinator().isPhoneVerified());
-//            coordinator.setEmailVerified(requestDTO.getCoordinator().isEmailVerified());
-//            seller.setCoordinator(coordinator);
-//        }
 
         if (requestDTO.getCoordinator() != null) {
             TempSellerCoordinator coordinator = createCoordinator(requestDTO.getCoordinator(), seller);
@@ -171,13 +146,13 @@ public class TempSellerServiceImpl implements TempSellerService {
                 requestDTO.getCoordinator().getEmail() == null ||
                 requestDTO.getCoordinator().getEmail().isEmpty()) {
 
-            log.warn("⚠️ No coordinator email found for TempSeller ID: {}. Email not sent.",
+            log.warn(" No coordinator email found for TempSeller ID: {}. Email not sent.",
                     savedSeller.getTempSellerId());
             return;
         }
 
         try {
-            log.info("📧 Preparing confirmation email for Request ID: {}", savedSeller.getTempSellerRequestId());
+            log.info("Preparing confirmation email for Request ID: {}", savedSeller.getTempSellerRequestId());
 
             // Create EmailRequestDTO from requestDTO and savedSeller data
             EmailRequestDTO emailRequest = new EmailRequestDTO();
@@ -226,10 +201,10 @@ public class TempSellerServiceImpl implements TempSellerService {
                         }
                     }
                 } catch (Exception e) {
-                    log.warn("⚠️ Error fetching location names: {}", e.getMessage());
+                    log.warn("Error fetching location names: {}", e.getMessage());
                 }
 
-                log.info("📍 Address mapped: {}, {}", addr.getCity(), addr.getPinCode());
+                log.info(" Address mapped: {}, {}", addr.getCity(), addr.getPinCode());
             }
 
             // ============================================================
@@ -243,7 +218,7 @@ public class TempSellerServiceImpl implements TempSellerService {
                 emailRequest.setBankAccountNumber(bank.getAccountNumber());
                 emailRequest.setBankAccountHolderName(bank.getAccountHolderName());
 
-                log.info("🏦 Bank details mapped for: {}", bank.getBankName());
+                log.info("Bank details mapped for: {}", bank.getBankName());
             }
 
             // ============================================================
@@ -254,14 +229,14 @@ public class TempSellerServiceImpl implements TempSellerService {
                 emailRequest.setGstNumber(savedSeller.getGstNumber());
                 emailRequest.setDocumentNumber(firstDoc.getDocumentNumber());
 
-                log.info("📄 Document details mapped");
+                log.info("Document details mapped");
             }
 
             // Log email details
-            log.info("📧 Sending email to: {}", emailRequest.getCoordinatorEmail());
-            log.info("📋 Application Request ID: {}", emailRequest.getApplicationRequestId());
-            log.info("🏢 Seller: {}", emailRequest.getSellerName());
-            log.info("📍 Address: {}, {}",
+            log.info(" Sending email to: {}", emailRequest.getCoordinatorEmail());
+            log.info(" Application Request ID: {}", emailRequest.getApplicationRequestId());
+            log.info(" Seller: {}", emailRequest.getSellerName());
+            log.info(" Address: {}, {}",
                     emailRequest.getAddressCity() != null ? emailRequest.getAddressCity() : "Not Provided",
                     emailRequest.getAddressPinCode() != null ? emailRequest.getAddressPinCode() : "Not Provided");
 
@@ -270,14 +245,14 @@ public class TempSellerServiceImpl implements TempSellerService {
 
             // Log the result
             if (emailResponse.isSuccess()) {
-                log.info("✅ Confirmation email sent successfully to: {}", emailRequest.getCoordinatorEmail());
+                log.info("Confirmation email sent successfully to: {}", emailRequest.getCoordinatorEmail());
             } else {
-                log.error("❌ Failed to send confirmation email: {}", emailResponse.getMessage());
+                log.error("Failed to send confirmation email: {}", emailResponse.getMessage());
             }
 
         } catch (Exception e) {
             // Log error but don't throw exception - email failure should not rollback seller creation
-            log.error("❌ Error sending confirmation email for TempSeller ID: {} - Error: {}",
+            log.error("Error sending confirmation email for TempSeller ID: {} - Error: {}",
                     savedSeller.getTempSellerId(), e.getMessage(), e);
         }
     }
@@ -501,8 +476,8 @@ public class TempSellerServiceImpl implements TempSellerService {
                 .orElseThrow(() -> new NotFoundException("TempSeller not found for id: " + tempSellerId));
 
         seller.setGstVerified(isGstVerified);
-        log.info("GST verified: " + seller.isGstVerified());
-        log.info("From API GST verified: " + isGstVerified);
+        log.info("GST verified: {}", seller.isGstVerified());
+        log.info("From API GST verified: {}", isGstVerified);
         tempSellerRepository.save(seller);
     }
 
@@ -513,8 +488,8 @@ public class TempSellerServiceImpl implements TempSellerService {
                 .orElseThrow(() -> new NotFoundException("TempSeller not found for id: " + tempSellerId));
 
         seller.setCompanyRegistrationCertificateVerified(isCompanyRegistrationCertificateVerified);
-        log.info("Company Registration Certificate verified: " + seller.isCompanyRegistrationCertificateVerified());
-        log.info("From API Company Registration Certificate verified: " + isCompanyRegistrationCertificateVerified);
+        log.info("Company Registration Certificate verified: {}", seller.isCompanyRegistrationCertificateVerified());
+        log.info("From API Company Registration Certificate verified: {}", isCompanyRegistrationCertificateVerified);
         tempSellerRepository.save(seller);
     }
 

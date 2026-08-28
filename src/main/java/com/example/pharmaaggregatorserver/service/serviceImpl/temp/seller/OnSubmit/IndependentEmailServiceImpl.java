@@ -96,10 +96,10 @@ public class IndependentEmailServiceImpl implements IndependentEmailService {
             message.setText(content);
 
             mailSender.send(message);
-            log.info("✅ Email sent successfully to: {}", to);
+            log.info("Email sent successfully to: {}", to);
             return true;
         } catch (Exception e) {
-            log.error("❌ Failed to send email to: {} - Error: {}", to, e.getMessage());
+            log.error("Failed to send email to: {} - Error: {}", to, e.getMessage());
             return false;
         }
     }

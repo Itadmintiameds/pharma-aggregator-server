@@ -10,6 +10,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -105,7 +106,8 @@ public class ProductDetails {
     private Long hsnCode;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(20) DEFAULT 'PUBLISHED'")
+    @ColumnDefault("'PUBLISHED'")
+    @Column(name = "status", nullable = false, length = 20)
     private ProductStatus status = ProductStatus.PUBLISHED;
 
 

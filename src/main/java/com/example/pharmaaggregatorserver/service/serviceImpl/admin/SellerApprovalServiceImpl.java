@@ -84,8 +84,6 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
 
             case "REJECT" -> handleRejection(tempSeller, request.getComments());
 
-//            case "ACCEPT" -> handleApprovalForTempSeller(tempSeller, request.getComments());
-
             case "ACCEPT" -> approvedSeller = handleApproval(tempSeller, request.getComments());
 
             default -> throw new ApplicationException("Invalid Status");
@@ -258,116 +256,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 "Seller Application Status: Rejected",
                 body
         );
-//        tempSellerService.deleteTempSeller(seller.getTempSellerId());
     }
-
-    /**
-     * Handles approval process for temporary seller.
-     * Generates agreement PDF, credentials, and sends approval email.
-     */
-//    private void handleApprovalForTempSeller(TempSeller tempSeller, String comments) {
-//
-//        // 1️⃣ Generate Seller Agreement PDF (for record, optional to attach later)
-////        String pdfPath = pdfService.generateTempSellerAgreementPdf(tempSeller);
-//
-//        List<SellerTerms> sellerTerms = sellerTermsRepository.findAll(Sort.by(Sort.Direction.ASC, "id"));
-//
-//        String pdfPath = pdfService.generateSellerAgreementPdf(sellerTerms);
-//
-//        // 2️⃣ Create Login Credentials (replace with secure generator in prod)
-//        String username = "test";
-//        String password = "test@123";
-//
-//        // HTML Email Body
-//        String body = """
-//                <html>
-//                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-//
-//                <p>Dear %s,</p>
-//
-//                <p>
-//                    We are pleased to inform you that your <b>%s</b> registration on the
-//                    <b>TiaMeds Marketplace platform</b> has been successfully reviewed and <b>approved</b> by our compliance team.
-//                </p>
-//
-//                <p>
-//                    Your %s profile has now been activated, and you may begin accessing the
-//                    TiaMeds Marketplace platform to onboard your products.
-//                </p>
-//
-//                <p><b>Below are your account details:</b></p>
-//
-//                <p>
-//                    Application ID: %s<br>
-//                    Registered Company Name: %s<br>
-//                    Registered Email ID: %s<br>
-//                    Platform Access Link:
-//                    <a href="%s" style="color:#1a73e8; text-decoration:none;">Login to Platform</a>
-//                </p>
-//
-//                <p>
-//                    <b>Admin Approval Comments:</b><br>
-//                    %s
-//                </p>
-//
-//                <p><b>Temporary Login Credentials:</b><br>
-//                    Username: %s<br>
-//                    Temporary Password: %s
-//                </p>
-//
-//                <p>
-//                    For security purposes, you will be required to reset your password upon first login.
-//                </p>
-//
-//                <p>
-//                    Your acceptance of the TiaMeds Marketplace Seller Policies has been recorded and is attached for your reference.
-//                </p>
-//
-//                <p>
-//                    If you have any questions or require assistance, please contact our support team at
-//                    <a href="mailto:%s">%s</a>.
-//                </p>
-//
-//                <p>
-//                    We welcome you to the TiaMeds Marketplace platform and look forward to a successful association.
-//                </p>
-//
-//                <p>
-//                    Warm regards,<br>
-//                    TiaMeds Marketplace<br>
-//                    Seller Onboarding & Compliance Team
-//                </p>
-//
-//                </body>
-//                </html>
-//                """.formatted(
-//                tempSeller.getSellerName(),
-//                tempSeller.getSellerName(),
-//                tempSeller.getSellerName(),
-//                tempSeller.getTempSellerRequestId(),
-//                tempSeller.getSellerName(),
-//                tempSeller.getEmail(),
-//                LOGIN_URL,
-//                comments,
-//                username,
-//                password,
-//                SUPPORT_TIAMEDS_COM,
-//                SUPPORT_TIAMEDS_COM
-//        );
-//
-//        // Send HTML Email
-//        emailService.sendHtmlMailWithAttachment(
-//                tempSeller.getEmail(),
-//                "Seller Application Approved – Welcome to TiaMeds Marketplace",
-//                body,
-//                pdfPath,
-//                "TiaMeds_Seller_Agreement.pdf"
-//        );
-//
-//        // Mark Temp Seller as Approved
-//        tempSeller.setStatus("APPROVED");
-//        tempSellerRepo.save(tempSeller);
-//    }
 
     /**
      * Handles the full approval flow:
@@ -514,7 +403,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 "TiaMeds_Seller_Agreement.pdf"
         );
         } catch (Exception e) {
-            log.error("⚠️ Seller {} (request {}) was approved successfully, but sending the " +
+            log.error("Seller {} (request {}) was approved successfully, but sending the " +
                             "agreement PDF/email failed: {}",
                     approvedSeller.getSellerId(), tempSeller.getTempSellerRequestId(), e.getMessage(), e);
         }
@@ -649,7 +538,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
 
         // Persist everything with temp URLs
         Seller fullyPersistedSeller = sellerRepo.save(savedSeller);
-        log.info("✅ Phase 1 complete — Seller persisted with id={}", fullyPersistedSeller.getSellerId());
+        log.info(" Phase 1 complete — Seller persisted with id={}", fullyPersistedSeller.getSellerId());
 
         // ═══════════════════════════════════════════════════════════════
         // PHASE 2 — Migrate all S3 images to sellers/{SELLER_ID}/...
@@ -716,7 +605,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
     private void migrateAllSellerImages(TempSeller temp, Seller seller) {
 
         String sellerId = seller.getSellerId();
-        log.info("🚀 Phase 2 — Starting S3 migration for sellerId={}", sellerId);
+        log.info(" Phase 2 — Starting S3 migration for sellerId={}", sellerId);
 
         // ── 1. Seller profile image ──────────────────────────────────────
         if (hasUrl(temp.getSellerImageUrl())) {
@@ -729,7 +618,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 seller.setSellerImageUrl(newUrl);
                 sellerRepo.save(seller);
                 deleteOldFile(temp.getSellerImageUrl());
-                log.info("✅ Seller image migrated for sellerId={}", sellerId);
+                log.info(" Seller image migrated for sellerId={}", sellerId);
             }
         }
 
@@ -744,7 +633,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 seller.getSellerGST().setGstFileUrl(newUrl);
                 sellerRepo.save(seller);
                 deleteOldFile(temp.getGstFileUrl());
-                log.info("✅ GST document migrated for sellerId={}", sellerId);
+                log.info(" GST document migrated for sellerId={}", sellerId);
             }
         }
 
@@ -759,7 +648,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 seller.getBankDetails().setBankDocumentFileUrl(newUrl);
                 sellerRepo.save(seller);
                 deleteOldFile(temp.getBankDetails().getBankDocumentFileUrl());
-                log.info("✅ Bank document migrated for sellerId={}", sellerId);
+                log.info(" Bank document migrated for sellerId={}", sellerId);
             }
         }
 
@@ -776,7 +665,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 if (newUrl != null) {
                     sellerDocs.get(i).setDocumentFileUrl(newUrl);
                     deleteOldFile(tempUrl);
-                    log.info("✅ License document [{}] migrated for sellerId={}", i, sellerId);
+                    log.info(" License document [{}] migrated for sellerId={}", i, sellerId);
                 }
             }
             sellerRepo.save(seller);
@@ -793,11 +682,11 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 seller.setCompanyRegistrationCertificateUrl(newUrl);
                 sellerRepo.save(seller);
                 deleteOldFile(temp.getCompanyRegistrationCertificateUrl());
-                log.info("✅ Company Registration Certificate migrated for sellerId={}", sellerId);
+                log.info(" Company Registration Certificate migrated for sellerId={}", sellerId);
             }
         }
 
-        log.info("✅ Phase 2 complete — All S3 images migrated for sellerId={}", sellerId);
+        log.info(" Phase 2 complete — All S3 images migrated for sellerId={}", sellerId);
     }
 
     /**
@@ -819,7 +708,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
             return s3Service.uploadFileFromResource(newKey, resource, contentType);
 
         } catch (Exception e) {
-            log.error("❌ Failed to copy S3 file from url={} to sellers/{}/{}: {}",
+            log.error(" Failed to copy S3 file from url={} to sellers/{}/{}: {}",
                     sourceUrl, sellerId, folder, e.getMessage(), e);
             return null;
         }
@@ -847,7 +736,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
         try {
             s3Service.deleteFile(s3Service.extractKeyFromUrl(url));
         } catch (Exception e) {
-            log.warn("⚠️ Could not delete old S3 file url={}: {}", url, e.getMessage());
+            log.warn(" Could not delete old S3 file url={}: {}", url, e.getMessage());
         }
     }
 

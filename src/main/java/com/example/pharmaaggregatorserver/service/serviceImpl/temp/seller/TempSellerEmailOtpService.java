@@ -78,33 +78,6 @@ public class TempSellerEmailOtpService {
     }
 
     // ================== VERIFY OTP ==================
-//    public OtpResponseDTO verifyOtp(EmailOtpVerifyRequestDTO request) {
-//
-//        TempSellerEmailOtp otp = otpRepository
-//                .findTopByEmailOrderByExpiryTimeDesc(request.getEmail())
-//                .orElseThrow(() ->
-//                        new RuntimeException("OTP not found"));
-//
-//        if (otp.isVerified()) {
-//            throw new RuntimeException("OTP already used");
-//        }
-//
-//        if (otp.getExpiryTime().isBefore(LocalDateTime.now())) {
-//            throw new RuntimeException("OTP expired");
-//        }
-//
-//        if (!otp.getOtp().equals(request.getOtp())) {
-//            throw new RuntimeException("Invalid OTP");
-//        }
-//
-//        otp.setVerified(true);
-//        otpRepository.save(otp);
-//
-//        return OtpResponseDTO.builder()
-//                .status("SUCCESS")
-//                .message("Email verified successfully")
-//                .build();
-//    }
     public OtpResponseDTO verifyOtp(EmailOtpVerifyRequestDTO request) {
 
         TempSellerEmailOtp otp = otpRepository

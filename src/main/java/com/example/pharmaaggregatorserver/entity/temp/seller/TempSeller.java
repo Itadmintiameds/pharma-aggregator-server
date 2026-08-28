@@ -47,9 +47,6 @@ public class TempSeller {
     @Column(name = "brand_owner_name", length = 100)
     private String brandOwnerName;
 
-//    @Column(name = "terms_accepted", nullable = false)
-//    private boolean termsAccepted;
-
     // ---------------- 1:1 ----------------
 
     @OneToOne(mappedBy = "seller", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
