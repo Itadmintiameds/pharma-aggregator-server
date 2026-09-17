@@ -1,0 +1,70 @@
+flowchart TB
+    subgraph Clients
+        FE["pharma-aggregator-client\n(Next.js, seller/buyer web app)"]
+        Admin["Admin frontend\n(tiameds-admin-dashboard)"]
+    end
+
+    subgraph Monolith["pharma-aggregator-server (single Spring Boot deployable, /api/v1)"]
+        direction TB
+        CORS["CrossConfig\n(global CorsFilter)"]
+        JWTFilter["AuthTokenFilter\n(JWT parse, STATELESS)"]
+        subgraph Controllers["controller/** (59 classes, ~286 endpoints)"]
+            AuthC["auth / seller/SellerLogIn / buyer\ncontrollers"]
+            SellerC["seller / temp/seller\ncontrollers"]
+            BuyerC["buyer / temp/buyer\ncontrollers"]
+            ProductC["product\ncontrollers"]
+            OrderC["order\ncontrollers"]
+            AdminC["admin\ncontrollers"]
+            MasterC["master\ncontrollers"]
+            MiscC["quote / content / ifsc\ncontrollers"]
+        end
+        subgraph Services["service/** (~140 classes)"]
+            AuthS["Identity services\n(SignupService, UserCreationService,\nseller AuthService, buyer BuyerAuthService)"]
+            SellerS["Seller/TempSeller services\n(TempSellerServiceImpl,\nSellerServiceImpl, SellerApprovalServiceImpl)"]
+            BuyerS["Buyer/TempBuyer services\n(BuyerProfileService,\nBuyerApprovalServiceImpl)"]
+            ProductS["Product services\n(ProductDetailsServiceImpl,\nExcelProductImportServiceImpl, StockServiceImpl)"]
+            OrderS["Order services\n(OrderPlacementServiceImpl,\nReturnRefundServiceImpl, InvoiceServiceImpl)"]
+            MasterS["Master services\n(one *MasterServiceImpl per table)"]
+        end
+        subgraph Repos["repository/** (~112 interfaces)"]
+            R1[(JPA repositories)]
+        end
+    end
+
+    DB[("Single PostgreSQL\ndev: RDS pharma_aggregator_test\nprod: postgres-prod")]
+
+    subgraph External["External integrations (all synchronous, no queue)"]
+        Twilio["Twilio\n(SMS/phone OTP)"]
+        SMTP["SMTP mail\n(seller/buyer notifications)"]
+        S3["AWS S3\n(documents, images)"]
+        PDF["iText\n(invoice/approval PDFs, in-process)"]
+    end
+
+    FE -->|HTTPS + Bearer JWT| CORS
+    Admin -->|HTTPS + Bearer JWT| CORS
+    CORS --> JWTFilter --> Controllers
+    AuthC --> AuthS
+    SellerC --> SellerS
+    BuyerC --> BuyerS
+    ProductC --> ProductS
+    OrderC --> OrderS
+    AdminC --> SellerS
+    AdminC --> BuyerS
+    MasterC --> MasterS
+    MiscC --> ProductS
+
+    SellerS -. "direct method call\n(reaches into Product for seller_id FK)" .-> ProductS
+    OrderS -. "direct method call\n(StockService, PricingDetailsRepository)" .-> ProductS
+    OrderS -. "direct method call\n(BuyerRepository)" .-> BuyerS
+    SellerS -. "direct method call\n(MasterService repos)" .-> MasterS
+    BuyerS -. "direct method call\n(MasterService repos)" .-> MasterS
+
+    Services --> Repos
+    Repos --> DB
+
+    OrderS --> Twilio
+    SellerS --> SMTP
+    BuyerS --> SMTP
+    SellerS --> S3
+    ProductS --> S3
+    OrderS --> PDF

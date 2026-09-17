@@ -1,0 +1,84 @@
+flowchart LR
+    subgraph Identity["Identity domain"]
+        SignupService
+        UserCreationService
+        AuthServiceSeller["AuthService (seller login)"]
+        BuyerAuthService
+    end
+
+    subgraph Seller["Seller & Temp-Seller domain"]
+        TempSellerServiceImpl["TempSellerServiceImpl\n(11 repos + 4 services)"]
+        SellerServiceImpl["SellerServiceImpl\n(7 repos)"]
+        SellerApprovalServiceImpl["SellerApprovalServiceImpl\n(7 repos + S3Service + PdfService\n+ EmailService + TempSellerService)"]
+        SellerHistoryService
+        TempSellerDocumentServiceImpl
+    end
+
+    subgraph Buyer["Buyer & Temp-Buyer domain"]
+        BuyerProfileService
+        BuyerSignupService
+        BuyerApprovalServiceImpl["BuyerApprovalServiceImpl\n(4 repos + EmailService + S3Service)"]
+        TempBuyerServiceImpl
+    end
+
+    subgraph Product["Product Catalog domain"]
+        ProductDetailsServiceImpl
+        ExcelProductImportServiceImpl
+        UniversalExcelImportService
+        StockServiceImpl
+        PricingDetailsServiceImpl
+        MasterLookupServices["~25 flat MasterServiceImpl\n(dosage form, molecule, GST%, etc.)"]
+    end
+
+    subgraph Order["Order, Payment & Fulfillment domain"]
+        OrderPlacementServiceImpl["OrderPlacementServiceImpl\n(BuyerRepo, BuyerDeliveryAddressRepo,\nPricingDetailsRepo, StockService, ...)"]
+        OrderCancellationServiceImpl
+        OrderQueryServiceImpl
+        ReturnRefundServiceImpl["ReturnRefundServiceImpl\n(BuyerRepo, StockService, ...)"]
+        SellerOrderFulfillmentServiceImpl["SellerOrderFulfillmentServiceImpl\n(InvoiceService, TwilioOTPService)"]
+        PaymentServiceImpl
+        InvoiceServiceImpl
+    end
+
+    subgraph MasterRef["Master/Reference domain"]
+        StateMasterServiceImpl
+        DistrictMasterServiceImpl
+        TalukaMasterServiceImpl
+        CompanyTypeMasterServiceImpl
+        SellerTypeMasterServiceImpl
+        BuyerTypeMasterServiceImpl
+        DocumentTypeMasterServiceImpl
+        ProductTypeMasterServiceImpl
+    end
+
+    subgraph SharedInfra["Shared infrastructure services"]
+        EmailService
+        S3Service
+        PdfService
+        TwilioOTPServiceShared["TwilioOTPService"]
+    end
+
+    TempSellerServiceImpl -->|"7 master repos"| MasterRef
+    TempSellerServiceImpl -->|SellerRepository| SellerServiceImpl
+    TempSellerServiceImpl -->|UserRepository| Identity
+    TempSellerServiceImpl --> S3Service
+    SellerServiceImpl -->|"7 master repos"| MasterRef
+    SellerApprovalServiceImpl -->|"calls service"| TempSellerServiceImpl
+    SellerApprovalServiceImpl --> EmailService
+    SellerApprovalServiceImpl --> PdfService
+    SellerApprovalServiceImpl --> S3Service
+
+    BuyerApprovalServiceImpl --> EmailService
+    BuyerApprovalServiceImpl --> S3Service
+    TempBuyerServiceImpl -->|"master repos"| MasterRef
+
+    OrderPlacementServiceImpl -->|BuyerRepository, BuyerDeliveryAddressRepository| Buyer
+    OrderPlacementServiceImpl -->|PricingDetailsRepository, StockService| Product
+    ReturnRefundServiceImpl -->|BuyerRepository| Buyer
+    ReturnRefundServiceImpl -->|StockService| Product
+    OrderCancellationServiceImpl -->|StockService| Product
+    SellerOrderFulfillmentServiceImpl -->|InvoiceService| InvoiceServiceImpl
+    SellerOrderFulfillmentServiceImpl -->|TwilioOTPService| TwilioOTPServiceShared
+
+    ExcelProductImportServiceImpl -->|"strategy per category"| MasterLookupServices
+    ProductDetailsServiceImpl --> S3Service
