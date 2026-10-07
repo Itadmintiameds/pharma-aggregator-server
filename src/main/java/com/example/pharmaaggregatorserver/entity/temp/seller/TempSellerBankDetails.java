@@ -1,5 +1,8 @@
 package com.example.pharmaaggregatorserver.entity.temp.seller;
 
+import com.example.pharmaaggregatorserver.entity.master.DistrictMaster;
+import com.example.pharmaaggregatorserver.entity.master.StateMaster;
+import com.example.pharmaaggregatorserver.entity.master.TalukaMaster;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -25,23 +28,38 @@ public class TempSellerBankDetails {
     @JsonIgnore
     private TempSeller seller;
 
-    @Column(name = "bank_name", nullable = false, length = 100)
+    @Column(name = "bank_name", length = 100)
     private String bankName;
 
-    @Column(name = "branch", nullable = false, length = 100)
+    @Column(name = "branch", length = 100)
     private String branch;
 
-    @Column(name = "ifsc_code", nullable = false, length = 100)
+    @Column(name = "ifsc_code", length = 100)
     private String ifscCode;
 
-    @Column(name = "account_number", nullable = false, length = 100)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "state_id")
+    private StateMaster state;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "district_id")
+    private DistrictMaster district;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "taluka_id")
+    private TalukaMaster taluka;
+
+    @Column(name = "account_number", length = 100)
     private String accountNumber;
 
-    @Column(name = "account_holder_name", nullable = false, length = 100)
+    @Column(name = "account_holder_name", length = 100)
     private String accountHolderName;
 
-    @Column(name = "bank_document_file_url", nullable = false)
+    @Column(name = "bank_document_file_url")
     private String bankDocumentFileUrl;
+
+    @Column(name = "bank_document_file_name")
+    private String bankDocumentFileName;
 
     @Column(name = "is_bank_document_verified", columnDefinition = "boolean default false")
     private boolean isBankDocumentVerified = false;

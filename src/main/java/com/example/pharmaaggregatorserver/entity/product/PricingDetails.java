@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -17,6 +18,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@SQLRestriction("deleted_at IS NULL")
 @Table(name = "tm_pricing_details")
 public class PricingDetails {
 
@@ -63,6 +65,9 @@ public class PricingDetails {
     @Column(name = "shelf_life_months")
     private Long shelfLifeMonths;
 
+    @Column(name = "shelf_life_days")
+    private Long shelfLifeDays;
+
     @Column(name = "created_by")
     private String createdBy;
 
@@ -80,6 +85,13 @@ public class PricingDetails {
     @JsonIgnore
     private ProductDetails productDetails;
 
+    // Nullable: existing batches predate variant tracking and have no known packaging.
+    // New batches should always set this once a packaging/variant is resolved.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "packaging_id", nullable = true)
+    @JsonIgnore
+    private PackagingDetails packagingDetails;
+
     @OneToMany(mappedBy = "pricingDetails", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private Set<AdditionalDiscount> additionalDiscounts;
@@ -88,4 +100,11 @@ public class PricingDetails {
     @JsonIgnore
     private Set<SpecialSchemes> specialSchemes;
 
+    // Seller ID (matches createdBy/modifiedBy convention) of whoever soft-deleted this batch.
+    @Column(name = "deleted_by")
+    private String deletedBy;
+
+    // Soft-delete marker: null means active, non-null means deleted (and holds when).
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }

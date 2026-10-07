@@ -155,20 +155,24 @@ public class AuthService {
         // 6. Update last login timestamp
         userRepository.updateLastLogin(user.getUserId(), LocalDateTime.now());
 
-        // 7. Build Authentication object for JWT generation
-        //    We re-load UserDetails so Spring Security has full authority list
+        // 7-9. Build Authentication, generate JWT + refresh token
+        return issueTokensForUser(user);
+    }
+
+    /**
+     * Builds a Spring Security Authentication for the given user and issues a
+     * fresh access token + persisted refresh token. Shared by the login-OTP
+     * flow above and by the standalone signup flow (SignupService), which both
+     * need to hand back a ready-to-use LoginResponse once a user is verified.
+     */
+    @Transactional
+    public LoginResponse issueTokensForUser(User user) {
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 UserDetailsImpl.build(user), null,
                 UserDetailsImpl.build(user).getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        // 8. Generate JWT
-        // String jwt = jwtUtils.generateJwtToken(authentication);
-
-        // Step 8 — Generate access token (same as before)
         String accessToken = jwtUtils.generateJwtToken(authentication);
-
-        // Step 9 — Generate and persist refresh token
         String rawRefreshToken = jwtUtils.generateRefreshToken();
 
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
@@ -184,7 +188,6 @@ public class AuthService {
                         refreshTokenExpirationMs / 1000))
                 .build();
         refreshTokenRepository.save(refreshToken);
-
 
         return LoginResponse.builder()
                 .accessToken(accessToken)

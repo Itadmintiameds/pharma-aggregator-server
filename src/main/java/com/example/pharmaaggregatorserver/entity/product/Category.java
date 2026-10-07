@@ -48,4 +48,8 @@ public class Category {
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private Set<ProductCategoryMaster> productCategoryMasters;
+
+    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private Set<StrengthUnit> strengthUnits;
 }

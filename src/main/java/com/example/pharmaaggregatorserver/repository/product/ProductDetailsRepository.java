@@ -3,10 +3,14 @@ package com.example.pharmaaggregatorserver.repository.product;
 import com.example.pharmaaggregatorserver.dto.product.TherapeuticSubcategoryDto;
 import com.example.pharmaaggregatorserver.entity.product.ProductDetails;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
+
+import static jakarta.persistence.LockModeType.PESSIMISTIC_WRITE;
 
 public interface ProductDetailsRepository extends JpaRepository<ProductDetails, String> {
 
@@ -18,6 +22,13 @@ public interface ProductDetailsRepository extends JpaRepository<ProductDetails, 
 
 
     List<ProductDetails> findBySellerSellerId(String sellerId);
+
+    // Dedup lookup used by createProduct: same seller + name + manufacturer + category means
+    // this is another variant of an existing product, not a brand-new one. Locked so two
+    // concurrent create calls for the same product can't both miss and insert duplicates.
+    @Lock(PESSIMISTIC_WRITE)
+    Optional<ProductDetails> findFirstBySeller_SellerIdAndProductNameIgnoreCaseAndManufacturerNameIgnoreCaseAndCategory_CategoryId(
+            String sellerId, String productName, String manufacturerName, Long categoryId);
 
     @Query(
             value = """

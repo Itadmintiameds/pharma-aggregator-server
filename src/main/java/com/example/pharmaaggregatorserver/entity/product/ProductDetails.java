@@ -1,6 +1,7 @@
 package com.example.pharmaaggregatorserver.entity.product;
 
 import com.example.pharmaaggregatorserver.entity.seller.Seller;
+import com.example.pharmaaggregatorserver.enums.ProductStatus;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
@@ -96,5 +97,16 @@ public class ProductDetails {
     @OneToMany(mappedBy = "productDetails", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private Set<ProductAttributeCosmeticandPersonalCare> productAttributeCosmeticandPersonalCare;
+
+    @Column(name = "gst_percentage")
+    private Long gstPercentage;
+
+    @Column(name = "hsn_code")
+    private Long hsnCode;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(20) DEFAULT 'PUBLISHED'")
+    private ProductStatus status = ProductStatus.PUBLISHED;
+
 
 }

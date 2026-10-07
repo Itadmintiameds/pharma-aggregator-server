@@ -38,6 +38,8 @@ public class ProductDetailsMapper {
         entity.setModifiedBy(dto.getModifiedBy());
         entity.setCreatedDate(dto.getCreatedDate());
         entity.setModifiedDate(dto.getModifiedDate());
+        entity.setGstPercentage(dto.getGstPercentage());
+        entity.setHsnCode(dto.getHsnCode());
 
         if (dto.getPackagingDetails() != null) {
             Set<PackagingDetails> packagingDetailsSet = dto.getPackagingDetails().stream()
@@ -141,6 +143,14 @@ public class ProductDetailsMapper {
         dto.setModifiedBy(entity.getModifiedBy());
         dto.setCreatedDate(entity.getCreatedDate());
         dto.setModifiedDate(entity.getModifiedDate());
+        dto.setGstPercentage(entity.getGstPercentage());
+        dto.setHsnCode(entity.getHsnCode());
+        dto.setStatus(entity.getStatus() != null ? entity.getStatus().name() : null);
+        if (entity.getSeller() != null) {
+            dto.setSellerId(entity.getSeller().getSellerId());
+            dto.setSellerName(entity.getSeller().getSellerName());
+            dto.setSellerEmail(entity.getSeller().getEmail());
+        }
 
         if (entity.getPackagingDetails() != null) {
             dto.setPackagingDetails(

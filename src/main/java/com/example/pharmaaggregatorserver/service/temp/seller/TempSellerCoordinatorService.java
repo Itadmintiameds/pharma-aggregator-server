@@ -29,12 +29,22 @@ public class TempSellerCoordinatorService {
     private TempSellerRepository tempSellerRepository;
 
     //Seller Registration
-    public boolean checkEmailExists(String email) {
-        return sellerCoordinatorRepository.existsByEmail(email) || coordinatorRepository.existsByEmail(email);
+    // excludeTempSellerId lets a seller re-visit the Coordinator step of
+    // their own in-progress draft without the email they already saved
+    // there on an earlier "Continue" (auto-save) being reported back to
+    // them as a duplicate.
+    public boolean checkEmailExists(String email, Long excludeTempSellerId) {
+        boolean existsInTempDrafts = excludeTempSellerId != null
+                ? coordinatorRepository.existsByEmailAndSeller_TempSellerIdNot(email, excludeTempSellerId)
+                : coordinatorRepository.existsByEmail(email);
+        return sellerCoordinatorRepository.existsByEmail(email) || existsInTempDrafts;
     }
     //Seller Registration
-    public boolean checkPhoneExists(String mobile) {
-        return sellerCoordinatorRepository.existsByMobile(mobile) || coordinatorRepository.existsByMobile(mobile);
+    public boolean checkPhoneExists(String mobile, Long excludeTempSellerId) {
+        boolean existsInTempDrafts = excludeTempSellerId != null
+                ? coordinatorRepository.existsByMobileAndSeller_TempSellerIdNot(mobile, excludeTempSellerId)
+                : coordinatorRepository.existsByMobile(mobile);
+        return sellerCoordinatorRepository.existsByMobile(mobile) || existsInTempDrafts;
     }
     //Seller Registration
     public boolean checkDocumentExists(String documentnumber) {

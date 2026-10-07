@@ -1,6 +1,7 @@
 package com.example.pharmaaggregatorserver.service.serviceImpl.admin;
 
 import com.example.pharmaaggregatorserver.dto.seller.SellerApprovalRequestDTO;
+import com.example.pharmaaggregatorserver.dto.seller.SellerApprovalResultDTO;
 import com.example.pharmaaggregatorserver.entity.auth.User;
 import com.example.pharmaaggregatorserver.entity.master.ProductTypeMaster;
 import com.example.pharmaaggregatorserver.entity.seller.*;
@@ -8,6 +9,7 @@ import com.example.pharmaaggregatorserver.entity.temp.seller.SellerTerms;
 import com.example.pharmaaggregatorserver.entity.temp.seller.TempSeller;
 import com.example.pharmaaggregatorserver.entity.temp.seller.TempSellerDocument;
 import com.example.pharmaaggregatorserver.entity.temp.seller.TempSellerReviewHistory;
+import com.example.pharmaaggregatorserver.entity.temp.seller.TempSellerStatus;
 import com.example.pharmaaggregatorserver.exception.ApplicationException;
 import com.example.pharmaaggregatorserver.exception.NotFoundException;
 import com.example.pharmaaggregatorserver.repository.master.ProductTypeMasterRepository;
@@ -19,7 +21,6 @@ import com.example.pharmaaggregatorserver.service.EmailService;
 import com.example.pharmaaggregatorserver.service.PdfService;
 import com.example.pharmaaggregatorserver.service.S3Service;
 import com.example.pharmaaggregatorserver.service.admin.SellerApprovalService;
-import com.example.pharmaaggregatorserver.service.auth.UserCreationService;
 import com.example.pharmaaggregatorserver.service.temp.seller.TempSellerService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -53,7 +54,6 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
     private final SellerRepository sellerRepo;
     private final EmailService emailService;
     private final PdfService pdfService;
-    private final UserCreationService userCreationService;
     private final SellerTermsRepository sellerTermsRepository;
     private final TempSellerReviewHistoryRepository reviewHistoryRepository;
     private final S3Service s3Service;
@@ -71,10 +71,12 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
      */
     @Override
     @Transactional
-    public void processReview(SellerApprovalRequestDTO request) {
+    public SellerApprovalResultDTO processReview(SellerApprovalRequestDTO request) {
 
         TempSeller tempSeller = tempSellerRepo.findById(request.getId())
                 .orElseThrow(() -> new NotFoundException("Seller not found"));
+
+        Seller approvedSeller = null;
 
         switch (request.getStatus().toUpperCase()) {
 
@@ -84,10 +86,21 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
 
 //            case "ACCEPT" -> handleApprovalForTempSeller(tempSeller, request.getComments());
 
-            case "ACCEPT" -> handleApproval(tempSeller, request.getComments());
+            case "ACCEPT" -> approvedSeller = handleApproval(tempSeller, request.getComments());
 
             default -> throw new ApplicationException("Invalid Status");
         }
+
+        // Always return the real sellerId (String) generated on approval alongside
+        // the tempSellerId (Long) used for this request — the two are unrelated
+        // values, so callers must not assume they can keep using tempSellerId to
+        // look up the seller after ACCEPT.
+        return SellerApprovalResultDTO.builder()
+                .tempSellerId(tempSeller.getTempSellerId())
+                .userId(tempSeller.getUser() != null ? tempSeller.getUser().getUserId() : null)
+                .sellerId(approvedSeller != null ? approvedSeller.getSellerId() : null)
+                .status(tempSeller.getStatus())
+                .build();
     }
 
     /**
@@ -97,10 +110,10 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
     private void handleCorrection(TempSeller seller, String comments) {
 
         // Update seller status
-        seller.setStatus("CORRECTION_REQUIRED");
+        seller.setStatus(TempSellerStatus.CORRECTION_REQUIRED);
         tempSellerRepo.save(seller);
 
-        saveReviewHistory(seller, "CORRECTION_REQUIRED", comments);
+        saveReviewHistory(seller, TempSellerStatus.CORRECTION_REQUIRED, comments);
 
         // Correction URL
         String correctionUrl = ADMIN_FRONTEND_URL + "/SellerCorrection/[requestId]?sellerId=" + seller.getTempSellerId();
@@ -180,9 +193,9 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
      */
     private void handleRejection(TempSeller seller, String comments) {
 
-        seller.setStatus("REJECTED");
+        seller.setStatus(TempSellerStatus.REJECTED);
         tempSellerRepo.save(seller);
-        saveReviewHistory(seller, "REJECTED", comments);
+        saveReviewHistory(seller, TempSellerStatus.REJECTED, comments);
 
         String body = """
                 <html>
@@ -364,19 +377,50 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
      * 4. Sends approval email with credentials and seller ID
      * 5. Marks TempSeller status as APPROVED
      */
-    private void handleApproval(TempSeller tempSeller, String comments) {
+    private Seller handleApproval(TempSeller tempSeller, String comments) {
 
-        // 1️⃣ Create User FIRST
-        String coordinatorEmail = tempSeller.getCoordinator().getEmail();
-        UserCreationService.UserCreationResult result =
-                userCreationService.createSellerUser(coordinatorEmail);
-        String username = coordinatorEmail;
-        String password = result.plainTempPassword();
+        // Registration requires logging in (signup-first) before a TempSeller
+        // can even be created, so every legitimate submission already has a
+        // linked User by the time it reaches approval. Approval never creates
+        // a new account or a temporary password — it just activates the
+        // Seller against the existing login. If user is null here, this is an
+        // orphaned/pre-migration TempSeller row with no login attached to it;
+        // that has to be resolved manually (e.g. delete the stale row) rather
+        // than papering over it with a freshly generated account.
+        User signupUser = tempSeller.getUser();
+        if (signupUser == null) {
+            throw new ApplicationException(
+                    "Cannot approve seller request " + tempSeller.getTempSellerRequestId()
+                            + ": this registration has no linked login account (predates the signup-first flow). "
+                            + "Remove this TempSeller record and have the seller register again."
+            );
+        }
 
-        // 2️⃣ Migrate data from temp → main seller table (pass user)
-        Seller approvedSeller = mapAndPersistSeller(tempSeller, result.user());
-        saveReviewHistory(tempSeller, "APPROVED", comments);
+        Seller approvedSeller = mapAndPersistSeller(tempSeller, signupUser);
 
+        saveReviewHistory(tempSeller, TempSellerStatus.APPROVED, comments);
+
+        // Mark TempSeller as APPROVED now, before the agreement PDF fetch and
+        // email send below — those two calls reach out over HTTP/SMTP and are
+        // not required for the approval itself to be valid. Doing this first
+        // means a slow PDF host or SMTP outage can never leave the seller
+        // half-approved (Seller row created but status/history not updated).
+        tempSeller.setStatus(TempSellerStatus.APPROVED);
+        tempSellerRepo.save(tempSeller);
+
+        sendApprovalAgreementEmail(tempSeller, approvedSeller, comments);
+
+        return approvedSeller;
+    }
+
+    /**
+     * Fetches the seller agreement PDF and emails it to the newly approved
+     * seller. Best-effort: the seller has already been approved and persisted
+     * by the time this runs, so a failure here (bad PDF URL, SMTP outage) is
+     * logged and swallowed rather than allowed to undo the approval.
+     */
+    private void sendApprovalAgreementEmail(TempSeller tempSeller, Seller approvedSeller, String comments) {
+        try {
         // 3️⃣ Generate Seller Agreement PDF
         SellerTerms terms = sellerTermsRepository.findByTermText("Seller-Terms")
                 .orElseThrow(() -> new ApplicationException("No seller terms PDF URL configured"));
@@ -420,15 +464,10 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 team.
                 </p>
                 
-                <p><b>Please find the below temporary login credentials:</b><br>
-                    Username: %s<br>
-                    Temporary Password: %s
-                </p>
-                
                 <p>
-                    For security purposes, you will be required to reset your password upon first login.
+                    You can log in using the email and password you created during signup.
                 </p>
-                
+
                 <p>
                     Your acceptance of the TiaMeds Marketplace Seller Policies has been recorded and is attached for your reference.
                 </p>
@@ -462,8 +501,6 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 comments,
                 approvedSeller.getSellerId(),
                 approvedSeller.getSellerName(),
-                username,
-                password,
                 SUPPORT_TIAMEDS_COM,
                 SUPPORT_TIAMEDS_COM
         );
@@ -476,10 +513,11 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 pdfBytes,                         // byte[]
                 "TiaMeds_Seller_Agreement.pdf"
         );
-
-        // 6️⃣ Mark TempSeller as APPROVED
-        tempSeller.setStatus("APPROVED");
-        tempSellerRepo.save(tempSeller);
+        } catch (Exception e) {
+            log.error("⚠️ Seller {} (request {}) was approved successfully, but sending the " +
+                            "agreement PDF/email failed: {}",
+                    approvedSeller.getSellerId(), tempSeller.getTempSellerRequestId(), e.getMessage(), e);
+        }
     }
 
     /**
@@ -502,6 +540,8 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
 
         Seller seller = new Seller();
         seller.setSellerId(sellerId);
+        seller.setTempSellerId(temp.getTempSellerId());
+        seller.setApprovedAt(LocalDateTime.now());
         seller.setUser(user);
         seller.setSellerName(temp.getSellerName());
         seller.setPhone(temp.getPhone());
@@ -509,6 +549,8 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
         seller.setEmail(temp.getEmail());
         seller.setEmailVerified(temp.isEmailVerified());
         seller.setWebsite(temp.getWebsite());
+        seller.setParentManufacturerName(temp.getParentManufacturerName());
+        seller.setBrandOwnerName(temp.getBrandOwnerName());
         seller.setTermsAccepted(temp.isTermsAccepted());
         seller.setCompanyRegistrationCertificateUrl(temp.getCompanyRegistrationCertificateUrl());
         seller.setCompanyRegistrationCertificateVerified(temp.isCompanyRegistrationCertificateVerified());
@@ -551,6 +593,8 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
             coordinator.setEmailVerified(temp.getCoordinator().isEmailVerified());
             coordinator.setMobile(temp.getCoordinator().getMobile());
             coordinator.setPhoneVerified(temp.getCoordinator().isPhoneVerified());
+            coordinator.setAuthorizationLetterUrl(temp.getCoordinator().getAuthorizationLetterUrl());
+            coordinator.setAuthorizationLetterVerified(temp.getCoordinator().isAuthorizationLetterVerified());
             coordinator.setCreatedBy("SYSTEM");
             coordinator.setUpdatedBy("SYSTEM");
             savedSeller.setCoordinator(coordinator);
@@ -563,6 +607,9 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
             bankDetails.setBankName(temp.getBankDetails().getBankName());
             bankDetails.setBranch(temp.getBankDetails().getBranch());
             bankDetails.setIfscCode(temp.getBankDetails().getIfscCode());
+            bankDetails.setState(temp.getBankDetails().getState());
+            bankDetails.setDistrict(temp.getBankDetails().getDistrict());
+            bankDetails.setTaluka(temp.getBankDetails().getTaluka());
             bankDetails.setAccountNumber(temp.getBankDetails().getAccountNumber());
             bankDetails.setAccountHolderName(temp.getBankDetails().getAccountHolderName());
             bankDetails.setBankDocumentFileUrl(temp.getBankDetails().getBankDocumentFileUrl()); // temp URL for now
@@ -586,6 +633,7 @@ public class SellerApprovalServiceImpl implements SellerApprovalService {
                 SellerDocument doc = new SellerDocument();
                 doc.setSeller(savedSeller);
                 doc.setProductTypes(tempDoc.getProductTypes());
+                doc.setDocumentType(tempDoc.getDocumentType());
                 doc.setDocumentNumber(tempDoc.getDocumentNumber());
                 doc.setDocumentFileUrl(tempDoc.getDocumentFileUrl()); // temp URL for now
                 doc.setDocumentVerified(tempDoc.isDocumentVerified());

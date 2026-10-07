@@ -27,8 +27,13 @@ public class ProductTypeMasterServiceImpl implements ProductTypeMasterService {
 
     @Override
     public List<ProductTypeResponseDTO> getAllProductTypes() {
+        // isActive filter excludes the reserved placeholder row used internally
+        // for seller-level documents (agreements/certificates) that have no
+        // real product category — it must never appear in the seller-facing
+        // product category picker.
         return productTypeMasterRepository.findAll()
                 .stream()
+                .filter(entity -> Boolean.TRUE.equals(entity.getIsActive()))
                 .map(this::convertToResponseDTO)
                 .collect(Collectors.toList());
     }

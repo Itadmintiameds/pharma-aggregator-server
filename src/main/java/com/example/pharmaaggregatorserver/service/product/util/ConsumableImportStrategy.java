@@ -198,7 +198,7 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
 
             AdditionalDiscountDto d = new AdditionalDiscountDto();
             d.setMinimumPurchaseQuantity(minQty);
-            d.setAdditionalDiscountPercentage(discount);
+            d.setAdditionalDiscountPercentage(discount == null ? null : java.math.BigDecimal.valueOf(discount));
             d.setEffectiveStartDate(getDate(row, base + 3));
             d.setEffectiveStartTime(getTime(row, base + 4));
             d.setEffectiveEndDate(getDate(row, base + 5));
@@ -282,7 +282,7 @@ public class ConsumableImportStrategy implements ProductImportStrategy {
 
             AdditionalDiscountDto d = new AdditionalDiscountDto();
             d.setMinimumPurchaseQuantity(minQty);
-            d.setAdditionalDiscountPercentage(discount);
+            d.setAdditionalDiscountPercentage(discount == null ? null : java.math.BigDecimal.valueOf(discount));
             d.setEffectiveStartDate(slabStartDate);
             d.setEffectiveStartTime(parseCsvTime(getCsvStringByIndex(r, CSV_SLAB_START_TIME_COLS[slab])));
             d.setEffectiveEndDate(slabEndDate);

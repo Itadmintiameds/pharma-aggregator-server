@@ -197,7 +197,7 @@ public class FoodInfantImportStrategy implements ProductImportStrategy {
 
             AdditionalDiscountDto ad = new AdditionalDiscountDto();
             ad.setMinimumPurchaseQuantity(minQty);
-            ad.setAdditionalDiscountPercentage(discount);
+            ad.setAdditionalDiscountPercentage(discount == null ? null : java.math.BigDecimal.valueOf(discount));
             ad.setEffectiveStartDate(getDate(row, base + 3));
             ad.setEffectiveStartTime(getTime(row, base + 4));
             ad.setEffectiveEndDate(getDate(row, base + 5));
@@ -282,7 +282,7 @@ public class FoodInfantImportStrategy implements ProductImportStrategy {
 
             AdditionalDiscountDto ad = new AdditionalDiscountDto();
             ad.setMinimumPurchaseQuantity(minQty);
-            ad.setAdditionalDiscountPercentage(discount);
+            ad.setAdditionalDiscountPercentage(discount == null ? null : java.math.BigDecimal.valueOf(discount));
             ad.setEffectiveStartDate(slabStartDate);
             ad.setEffectiveStartTime(parseCsvTime(getCsvStringByIndex(r, CSV_SLAB_START_TIME_COLS[slab])));
             ad.setEffectiveEndDate(slabEndDate);

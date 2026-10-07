@@ -2,6 +2,7 @@ package com.example.pharmaaggregatorserver.controller.temp.seller;
 
 
 import com.example.pharmaaggregatorserver.dto.admin.TempSellerAdminResponseDTO;
+import com.example.pharmaaggregatorserver.dto.seller.TempSellerDraftRequestDTO;
 import com.example.pharmaaggregatorserver.dto.seller.TempSellerRequestDTO;
 import com.example.pharmaaggregatorserver.dto.seller.TempSellerResponseDTO;
 import com.example.pharmaaggregatorserver.dto.temp.seller.*;
@@ -53,6 +54,20 @@ public class TempSellerController {
         return ResponseEntity.ok(new ApiResponse<>(
                 HttpStatus.OK.toString(),
                 "Temporary Sellers Fetched successfully",
+                seller
+        ));
+    }
+
+    // Find the (pending) TempSeller registration submitted by the logged-in user, if any.
+    // 404 means the user hasn't submitted a registration yet — signup only.
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<?> getTempSellerByUserId(@PathVariable Long userId) {
+        TempSeller seller = tempSellerService.findByUserId(userId)
+                .orElseThrow(() -> new com.example.pharmaaggregatorserver.exception.NotFoundException(
+                        "No temp seller registration found for user id: " + userId));
+        return ResponseEntity.ok(new ApiResponse<>(
+                HttpStatus.OK.toString(),
+                "Temporary Seller fetched successfully",
                 seller
         ));
     }
@@ -120,15 +135,17 @@ public class TempSellerController {
 
     //Seller registration
     @GetMapping("/coordinator/check-email")
-    public ResponseEntity<Boolean> checkEmailExists(@RequestParam String email) {
-        boolean exists = coordinatorService.checkEmailExists(email);
+    public ResponseEntity<Boolean> checkEmailExists(@RequestParam String email,
+                                                     @RequestParam(required = false) Long tempSellerId) {
+        boolean exists = coordinatorService.checkEmailExists(email, tempSellerId);
         return ResponseEntity.ok(exists);
     }
 
     //Seller registration
     @GetMapping("/coordinator/check-phone")
-    public ResponseEntity<Boolean> checkPhoneExists(@RequestParam String mobile) {
-        boolean exists = coordinatorService.checkPhoneExists(mobile);
+    public ResponseEntity<Boolean> checkPhoneExists(@RequestParam String mobile,
+                                                     @RequestParam(required = false) Long tempSellerId) {
+        boolean exists = coordinatorService.checkPhoneExists(mobile, tempSellerId);
         return ResponseEntity.ok(exists);
     }
 
@@ -207,6 +224,43 @@ public class TempSellerController {
         ));
     }
 
+    // ── Single-file delete endpoints (draft flow) ───────────────────────────
+    // Each deletes the underlying S3 object (if a real one exists — never for
+    // a "PENDING" placeholder) and resets the field, without touching any
+    // other part of the registration. Mirrors the per-field granularity of
+    // uploadDocuments above.
+
+    @DeleteMapping("/{tempSellerId}/files/company-registration-certificate")
+    public ResponseEntity<ApiResponse<Void>> deleteCompanyRegistrationCertificate(@PathVariable Long tempSellerId) {
+        tempSellerDocumentService.deleteCompanyRegistrationCertificate(tempSellerId);
+        return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Company registration certificate deleted successfully", null));
+    }
+
+    @DeleteMapping("/{tempSellerId}/files/gst")
+    public ResponseEntity<ApiResponse<Void>> deleteGstFile(@PathVariable Long tempSellerId) {
+        tempSellerDocumentService.deleteGstFile(tempSellerId);
+        return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "GST file deleted successfully", null));
+    }
+
+    @DeleteMapping("/{tempSellerId}/files/authorization-letter")
+    public ResponseEntity<ApiResponse<Void>> deleteAuthorizationLetter(@PathVariable Long tempSellerId) {
+        tempSellerDocumentService.deleteAuthorizationLetter(tempSellerId);
+        return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Authorization letter deleted successfully", null));
+    }
+
+    @DeleteMapping("/{tempSellerId}/files/bank-document")
+    public ResponseEntity<ApiResponse<Void>> deleteBankDocument(@PathVariable Long tempSellerId) {
+        tempSellerDocumentService.deleteBankDocument(tempSellerId);
+        return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Bank document deleted successfully", null));
+    }
+
+    @DeleteMapping("/{tempSellerId}/documents/{documentId}/file")
+    public ResponseEntity<ApiResponse<Void>> deleteDocumentFile(@PathVariable Long tempSellerId,
+                                                                @PathVariable Long documentId) {
+        tempSellerDocumentService.deleteDocumentFile(tempSellerId, documentId);
+        return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Document file deleted successfully", null));
+    }
+
     @PutMapping("/{tempSellerId}")
     public ResponseEntity<?> updateTempSeller(@PathVariable("tempSellerId") Long tempSellerId,
                                               @RequestBody TempSellerRequestDTO tempSellerRequestDTO) {
@@ -214,4 +268,29 @@ public class TempSellerController {
         return ResponseEntity.ok(responseDto);
     }
 
+    // ── Save-draft flow ──────────────────────────────────────────────────────
+    // Every field of TempSellerDraftRequestDTO is optional — no @Valid here,
+    // by design, so a registration can be saved mid-fill-out.
+
+    @PostMapping("/draft")
+    public ResponseEntity<TempSellerResponseDTO> createDraft(@RequestBody TempSellerDraftRequestDTO draftRequestDTO) {
+        TempSellerResponseDTO response = tempSellerService.saveDraft(null, draftRequestDTO);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+
+    @PutMapping("/draft/{tempSellerId}")
+    public ResponseEntity<TempSellerResponseDTO> updateDraft(@PathVariable Long tempSellerId,
+                                                              @RequestBody TempSellerDraftRequestDTO draftRequestDTO) {
+        TempSellerResponseDTO response = tempSellerService.saveDraft(tempSellerId, draftRequestDTO);
+        return ResponseEntity.ok(response);
+    }
+
+    // Promotes a DRAFT to a fully-submitted registration — full validation
+    // applies here, same as POST /temp-sellers.
+    @PostMapping("/draft/{tempSellerId}/finalize")
+    public ResponseEntity<TempSellerResponseDTO> finalizeDraft(@PathVariable Long tempSellerId,
+                                                                @Valid @RequestBody TempSellerRequestDTO requestDTO) {
+        TempSellerResponseDTO response = tempSellerService.finalizeDraft(tempSellerId, requestDTO);
+        return ResponseEntity.ok(response);
+    }
 }

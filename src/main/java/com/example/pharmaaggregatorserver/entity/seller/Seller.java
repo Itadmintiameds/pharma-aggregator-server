@@ -34,8 +34,28 @@ public class Seller {
     @Column(name = "seller_name")
     private String sellerName;
 
+    // The TempSeller row this seller was approved from. Kept purely as an
+    // audit trail back to the original registration draft — sellerId is a
+    // freshly generated, unrelated value, so this is the only link between
+    // the two records once approval is complete.
+    @Column(name = "temp_seller_id")
+    private Long tempSellerId;
+
+    // Set once, at approval time, inside the same transaction as the rest of
+    // the approval write. Distinct from createdAt (which merely reflects
+    // insert time) so it stays reliable even if unrelated PDF/email side
+    // effects are later reordered around it.
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
     @Column(name = "seller_image_url")
     private String sellerImageUrl;
+
+    @Column(name = "parent_manufacturer_name", length = 100)
+    private String parentManufacturerName;
+
+    @Column(name = "brand_owner_name", length = 100)
+    private String brandOwnerName;
 
     @OneToOne(mappedBy = "seller", cascade = CascadeType.ALL, orphanRemoval = true)
     private SellerAddress address;

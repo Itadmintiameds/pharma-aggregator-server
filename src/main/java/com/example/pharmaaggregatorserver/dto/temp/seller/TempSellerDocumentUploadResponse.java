@@ -29,15 +29,36 @@ public class TempSellerDocumentUploadResponse {
     private String gstFileUrl;
 
     /**
+     * Original filename of the uploaded GST certificate (null if not uploaded).
+     */
+    private String gstFileName;
+
+    /**
      * S3 URL of the uploaded bank document (null if not uploaded).
      */
     private String bankDocumentFileUrl;
 
     /**
+     * Original filename of the uploaded bank document (null if not uploaded).
+     */
+    private String bankDocumentFileName;
+
+    /**
      * S3 URL of the uploaded Company Registration Certificate (null if not uploaded).
      */
     private String companyRegistrationCertificateUrl;
+
+    /**
+     * Original filename of the uploaded Company Registration Certificate (null if not uploaded).
+     */
+    private String companyRegistrationCertificateFileName;
+
     private String authorizationLetterUrl;
+
+    /**
+     * Original filename of the uploaded Authorization Letter (null if not uploaded).
+     */
+    private String authorizationLetterFileName;
     /**
      * S3 URLs for each uploaded license document, in request order.
      */
@@ -50,5 +71,6 @@ public class TempSellerDocumentUploadResponse {
         private Long documentId;
         private String licenseName;
         private String documentFileUrl;
+        private String documentFileName;
     }
 }

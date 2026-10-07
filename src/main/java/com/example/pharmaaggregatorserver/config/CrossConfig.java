@@ -21,7 +21,8 @@ public class CrossConfig {
                 "http://localhost:3000",
                 "https://pharma-aggregator-test.tiameds.ai",
                 "https://tiameds-admin-dashboard.vercel.app",
-                "https://admin-test.tiameds.ai"
+                "https://admin-test.tiameds.ai",
+                "https://marketplace-frontend.loca.lt"
         ));
 
         // Allow HTTP methods

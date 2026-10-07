@@ -4,16 +4,19 @@ import com.example.pharmaaggregatorserver.dto.admin.TempSellerAdminResponseDTO;
 import com.example.pharmaaggregatorserver.dto.seller.OnSubmit.EmailRequestDTO;
 import com.example.pharmaaggregatorserver.dto.seller.OnSubmit.EmailResponseDTO;
 import com.example.pharmaaggregatorserver.dto.seller.*;
+import com.example.pharmaaggregatorserver.entity.auth.User;
 import com.example.pharmaaggregatorserver.entity.master.*;
 import com.example.pharmaaggregatorserver.entity.seller.Seller;
 import com.example.pharmaaggregatorserver.entity.temp.seller.*;
 import com.example.pharmaaggregatorserver.exception.ApplicationException;
 import com.example.pharmaaggregatorserver.exception.NotFoundException;
+import com.example.pharmaaggregatorserver.repository.auth.UserRepository;
 import com.example.pharmaaggregatorserver.repository.master.*;
 import com.example.pharmaaggregatorserver.repository.seller.SellerRepository;
 import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerBankDetailsRepository;
 import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerDocumentRepository;
 import com.example.pharmaaggregatorserver.repository.temp.seller.TempSellerRepository;
+import com.example.pharmaaggregatorserver.security.UserDetailsImpl;
 import com.example.pharmaaggregatorserver.service.S3Service;
 import com.example.pharmaaggregatorserver.service.temp.seller.OnSubmit.IndependentEmailService;
 import com.example.pharmaaggregatorserver.service.temp.seller.RequestIdGeneratorService;
@@ -21,6 +24,9 @@ import com.example.pharmaaggregatorserver.service.temp.seller.TempSellerService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -38,11 +44,14 @@ public class TempSellerServiceImpl implements TempSellerService {
     private final StateMasterRepository stateMasterRepository;
     private final DistrictMasterRepository districtMasterRepository;
     private final TalukaMasterRepository talukaMasterRepository;
+    private final DocumentTypeMasterRepository documentTypeMasterRepository;
     private final RequestIdGeneratorService requestIdGeneratorService;
     private final TempSellerDocumentRepository tempSellerDocumentRepository;
     private final TempSellerBankDetailsRepository tempSellerBankDetailsRepository;
     private final SellerRepository sellerRepository;
     private final S3Service s3Service;
+    private final SellerTypeFieldValidator sellerTypeFieldValidator;
+    private final UserRepository userRepository;
 
     // Email service for sending confirmations
     private final IndependentEmailService independentEmailService;
@@ -50,7 +59,17 @@ public class TempSellerServiceImpl implements TempSellerService {
     @Override
     @Transactional
     public TempSellerResponseDTO createTempSeller(TempSellerRequestDTO requestDTO) {
+        User currentUser = resolveAuthenticatedUser();
+
         String generatedRequestId = requestIdGeneratorService.generateNextRequestId();
+
+        // ✅ VALIDATION: Phone and Email must be verified
+//        if (!requestDTO.getCoordinator().isPhoneVerified()) {
+//            throw new RuntimeException("Phone number must be verified before registration");
+//        }
+//        if (!requestDTO.getCoordinator().isEmailVerified()) {
+//            throw new RuntimeException("Email must be verified before registration");
+//        }
 
         // Check if phone or email already exists
 //        if (tempSellerRepository.existsByPhone(requestDTO.getPhone())) {
@@ -69,8 +88,11 @@ public class TempSellerServiceImpl implements TempSellerService {
         SellerTypeMaster sellerType = sellerTypeMasterRepository.findById(requestDTO.getSellerTypeId())
                 .orElseThrow(() -> new RuntimeException("Seller type not found"));
 
+        sellerTypeFieldValidator.validate(requestDTO, sellerType);
+
         // Create main seller entity
         TempSeller seller = new TempSeller();
+        seller.setUser(currentUser);
         seller.setSellerName(requestDTO.getSellerName());
         seller.setTempSellerRequestId(generatedRequestId);
         seller.setProductTypes(productType);
@@ -79,7 +101,10 @@ public class TempSellerServiceImpl implements TempSellerService {
         seller.setPhone(requestDTO.getPhone());
         seller.setEmail(requestDTO.getEmail());
         seller.setWebsite(requestDTO.getWebsite());
-        seller.setStatus("open");
+        seller.setParentManufacturerName(requestDTO.getParentManufacturerName());
+        seller.setBrandOwnerName(requestDTO.getBrandOwnerName());
+        seller.setStatus(TempSellerStatus.OPEN);
+
         seller.setPhoneVerified(false);
         seller.setEmailVerified(false);
         seller.setGstNumber(requestDTO.getGstNumber());
@@ -95,7 +120,15 @@ public class TempSellerServiceImpl implements TempSellerService {
             seller.setAddress(address);
         }
 
-        // Create coordinator if provided
+        // Create coordinator with verification status
+//        if (requestDTO.getCoordinator() != null) {
+//            TempSellerCoordinator coordinator = createCoordinator(requestDTO.getCoordinator(), seller);
+//            // ✅ Set coordinator verification from DTO
+//            coordinator.setPhoneVerified(requestDTO.getCoordinator().isPhoneVerified());
+//            coordinator.setEmailVerified(requestDTO.getCoordinator().isEmailVerified());
+//            seller.setCoordinator(coordinator);
+//        }
+
         if (requestDTO.getCoordinator() != null) {
             TempSellerCoordinator coordinator = createCoordinator(requestDTO.getCoordinator(), seller);
             seller.setCoordinator(coordinator);
@@ -250,6 +283,23 @@ public class TempSellerServiceImpl implements TempSellerService {
     }
 
     /**
+     * Resolves the authenticated User (issued via the signup-first flow) that
+     * is starting this registration. Registration now requires a login —
+     * AuthTokenFilter already populates the SecurityContext for any request
+     * carrying a valid Bearer token, so we just require it be present here.
+     */
+    private User resolveAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || !(authentication.getPrincipal() instanceof UserDetailsImpl userDetails)) {
+            throw new ApplicationException(HttpStatus.UNAUTHORIZED,
+                    "You must sign up and log in before starting seller registration.");
+        }
+        return userRepository.findById(userDetails.getId())
+                .orElseThrow(() -> new ApplicationException(HttpStatus.UNAUTHORIZED, "Invalid session. Please log in again."));
+    }
+
+    /**
      * Create address entity from DTO
      */
     private TempSellerAddress createAddress(TempSellerAddressDTO addressDTO, TempSeller seller) {
@@ -286,6 +336,7 @@ public class TempSellerServiceImpl implements TempSellerService {
         coordinator.setDesignation(coordinatorDTO.getDesignation());
         coordinator.setEmail(coordinatorDTO.getEmail());
         coordinator.setMobile(coordinatorDTO.getMobile());
+        coordinator.setAuthorizationLetterUrl(coordinatorDTO.getAuthorizationLetterUrl());
         coordinator.setEmailVerified(false);
         coordinator.setPhoneVerified(false);
         coordinator.setCreatedBy("SYSTEM");
@@ -298,11 +349,21 @@ public class TempSellerServiceImpl implements TempSellerService {
      * Create bank details entity from DTO
      */
     private TempSellerBankDetails createBankDetails(TempSellerBankDetailsDTO bankDetailsDTO, TempSeller seller) {
+        StateMaster state = stateMasterRepository.findById(bankDetailsDTO.getStateId())
+                .orElseThrow(() -> new RuntimeException("State not found"));
+        DistrictMaster district = districtMasterRepository.findById(bankDetailsDTO.getDistrictId())
+                .orElseThrow(() -> new RuntimeException("District not found"));
+        TalukaMaster taluka = talukaMasterRepository.findById(bankDetailsDTO.getTalukaId())
+                .orElseThrow(() -> new RuntimeException("Taluka not found"));
+
         TempSellerBankDetails bankDetails = new TempSellerBankDetails();
         bankDetails.setSeller(seller);
         bankDetails.setBankName(bankDetailsDTO.getBankName());
         bankDetails.setBranch(bankDetailsDTO.getBranch());
         bankDetails.setIfscCode(bankDetailsDTO.getIfscCode());
+        bankDetails.setState(state);
+        bankDetails.setDistrict(district);
+        bankDetails.setTaluka(taluka);
         bankDetails.setAccountNumber(bankDetailsDTO.getAccountNumber());
         bankDetails.setAccountHolderName(bankDetailsDTO.getAccountHolderName());
         bankDetails.setBankDocumentFileUrl(bankDetailsDTO.getBankDocumentFileUrl());
@@ -313,15 +374,35 @@ public class TempSellerServiceImpl implements TempSellerService {
     }
 
     /**
-     * Create document entity from DTO
+     * Create document entity from DTO. productTypeId is set for product-tied
+     * licences; left null for seller-level agreements/certificates, which are
+     * identified via documentTypeId instead.
      */
     private TempSellerDocument createDocument(TempSellerDocumentDTO docDTO, TempSeller seller) {
-        ProductTypeMaster productType = productTypeMasterRepository.findById(docDTO.getProductTypeId())
-                .orElseThrow(() -> new RuntimeException("Product type not found for document"));
+        if (docDTO.getProductTypeId() == null && docDTO.getDocumentTypeId() == null) {
+            throw new ApplicationException("Each document must specify either productTypeId (for a product-tied licence) or documentTypeId (for a seller-level agreement/certificate)");
+        }
 
         TempSellerDocument document = new TempSellerDocument();
         document.setSeller(seller);
-        document.setProductTypes(productType);
+
+        if (docDTO.getProductTypeId() != null) {
+            ProductTypeMaster productType = productTypeMasterRepository.findById(docDTO.getProductTypeId())
+                    .orElseThrow(() -> new RuntimeException("Product type not found for document"));
+            document.setProductTypes(productType);
+        } else {
+            // Seller-level document (agreement/certificate) — product_type_id
+            // keeps its NOT NULL constraint, so point it at the reserved
+            // placeholder instead of leaving it null.
+            document.setProductTypes(resolvePlaceholderProductType());
+        }
+
+        if (docDTO.getDocumentTypeId() != null) {
+            DocumentTypeMaster documentType = documentTypeMasterRepository.findById(docDTO.getDocumentTypeId())
+                    .orElseThrow(() -> new RuntimeException("Document type not found for document"));
+            document.setDocumentType(documentType);
+        }
+
         document.setDocumentNumber(docDTO.getDocumentNumber());
         document.setDocumentFileUrl(docDTO.getDocumentFileUrl());
         document.setLicenseIssueDate(docDTO.getLicenseIssueDate());
@@ -352,7 +433,15 @@ public class TempSellerServiceImpl implements TempSellerService {
                     .map(doc -> {
                         TempSellerResponseDTO.DocumentInfo info = new TempSellerResponseDTO.DocumentInfo();
                         info.setDocumentId(doc.getDocumentsId());
-                        info.setLicenseName(doc.getProductTypes().getProductTypeName()); // adjust getter as per your entity
+                        // Seller-level agreement/compliance rows are named after their
+                        // document type; product-tied licence rows fall back to the
+                        // product type name. Check documentType FIRST — productTypes
+                        // is never null now (agreements point at the placeholder row),
+                        // so it can't be used to distinguish the two cases anymore.
+                        String licenseName = doc.getDocumentType() != null
+                                ? doc.getDocumentType().getDocumentTypeName()
+                                : (doc.getProductTypes() != null ? doc.getProductTypes().getProductTypeName() : null);
+                        info.setLicenseName(licenseName);
                         return info;
                     })
                     .toList();
@@ -394,6 +483,15 @@ public class TempSellerServiceImpl implements TempSellerService {
     public TempSeller findById(Long id) {
         return tempSellerRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("TempSeller not found for id: " + id));
+    }
+
+    /**
+     * Find the temp seller registration submitted by a given user, if any.
+     * Empty when the user hasn't submitted a registration yet (signup only).
+     */
+    @Override
+    public Optional<TempSeller> findByUserId(Long userId) {
+        return tempSellerRepository.findByUser_UserId(userId);
     }
 
     @Override
@@ -467,7 +565,7 @@ public class TempSellerServiceImpl implements TempSellerService {
                 .orElseThrow(() -> new NotFoundException("TempSeller not found for id: " + tempSellerId));
 
         // If the TempSeller was approved, also delete the corresponding Seller
-        if ("APPROVED".equals(tempSeller.getStatus())) {
+        if (TempSellerStatus.APPROVED.equals(tempSeller.getStatus())) {
             sellerRepository.findByEmail(tempSeller.getEmail())
                     .ifPresent(seller -> {
                         log.info("Deleting approved Seller with email: {}", tempSeller.getEmail());
@@ -487,15 +585,15 @@ public class TempSellerServiceImpl implements TempSellerService {
         TempSeller seller = tempSellerRepository.findById(tempSellerId)
                 .orElseThrow(() -> new NotFoundException("TempSeller not found for id: " + tempSellerId));
 
-        if (seller.getStatus().equalsIgnoreCase("APPROVED")) {
+        if (seller.getStatus().equalsIgnoreCase(TempSellerStatus.APPROVED)) {
             throw new ApplicationException("You are not allowed to update this application because it is already approved.");
         }
 
-        if (seller.getStatus().equalsIgnoreCase("REJECTED")) {
+        if (seller.getStatus().equalsIgnoreCase(TempSellerStatus.REJECTED)) {
             throw new ApplicationException("You are not allowed to update this application because it is already rejected.");
         }
 
-        if (seller.getStatus().equalsIgnoreCase("RESUBMITTED") || seller.getStatus().equalsIgnoreCase("OPEN")) {
+        if (seller.getStatus().equalsIgnoreCase(TempSellerStatus.RESUBMITTED) || seller.getStatus().equalsIgnoreCase(TempSellerStatus.OPEN)) {
             throw new ApplicationException("You are not allowed to update this application because it is currently under admin review.");
         }
 
@@ -507,6 +605,8 @@ public class TempSellerServiceImpl implements TempSellerService {
         SellerTypeMaster sellerType = sellerTypeMasterRepository.findById(requestDTO.getSellerTypeId())
                 .orElseThrow(() -> new RuntimeException("Seller type not found"));
 
+        sellerTypeFieldValidator.validate(requestDTO, sellerType);
+
         // ── Core fields ───────────────────────────────────────────────────────────
         seller.setSellerName(requestDTO.getSellerName());
         seller.setProductTypes(productType);
@@ -515,8 +615,10 @@ public class TempSellerServiceImpl implements TempSellerService {
         seller.setPhone(requestDTO.getPhone());
         seller.setEmail(requestDTO.getEmail());
         seller.setWebsite(requestDTO.getWebsite());
-        seller.setStatus("RESUBMITTED");
+        seller.setParentManufacturerName(requestDTO.getParentManufacturerName());
+        seller.setBrandOwnerName(requestDTO.getBrandOwnerName());
         seller.setGstNumber(requestDTO.getGstNumber());
+        seller.setStatus(TempSellerStatus.RESUBMITTED);
         seller.setUpdatedBy("SYSTEM");
 
         // ── Address ───────────────────────────────────────────────────────────────
@@ -564,6 +666,9 @@ public class TempSellerServiceImpl implements TempSellerService {
                 coordinator.setEmailVerified(coordinatorDTO.isEmailVerified());
                 coordinator.setMobile(coordinatorDTO.getMobile());
                 coordinator.setPhoneVerified(coordinatorDTO.isPhoneVerified());
+                if (!isBlank(coordinatorDTO.getAuthorizationLetterUrl())) {
+                    coordinator.setAuthorizationLetterUrl(coordinatorDTO.getAuthorizationLetterUrl());
+                }
                 coordinator.setUpdatedBy("SYSTEM");
             }
         }
@@ -581,28 +686,41 @@ public class TempSellerServiceImpl implements TempSellerService {
                 bank.setIfscCode(bankDTO.getIfscCode());
                 bank.setAccountNumber(bankDTO.getAccountNumber());
                 bank.setAccountHolderName(bankDTO.getAccountHolderName());
+
+                if (bank.getState() == null || !Objects.equals(bank.getState().getStateId(), bankDTO.getStateId())) {
+                    bank.setState(stateMasterRepository.findById(bankDTO.getStateId())
+                            .orElseThrow(() -> new RuntimeException("State not found")));
+                }
+                if (bank.getDistrict() == null || !Objects.equals(bank.getDistrict().getDistrictId(), bankDTO.getDistrictId())) {
+                    bank.setDistrict(districtMasterRepository.findById(bankDTO.getDistrictId())
+                            .orElseThrow(() -> new RuntimeException("District not found")));
+                }
+                if (bank.getTaluka() == null || !Objects.equals(bank.getTaluka().getTalukaId(), bankDTO.getTalukaId())) {
+                    bank.setTaluka(talukaMasterRepository.findById(bankDTO.getTalukaId())
+                            .orElseThrow(() -> new RuntimeException("Taluka not found")));
+                }
+
                 bank.setUpdatedBy("SYSTEM");
             }
         }
 
         // ── Documents ─────────────────────────────────────────────────────────────
+        // Keyed by "D:<documentTypeId>" for seller-level agreements/certificates
+        // or "P:<productTypeId>" for product-tied licences. documentTypeId is
+        // checked first since agreement rows now always carry a (placeholder)
+        // productTypeId too — documentTypeId is what actually distinguishes them.
         if (requestDTO.getDocuments() != null) {
 
-            // Build a map of existing documents by productTypeId for quick lookup
-            Map<Long, TempSellerDocument> existingDocMap = seller.getDocuments().stream()
-                    .collect(Collectors.toMap(
-                            doc -> doc.getProductTypes().getProductTypeId(),
-                            doc -> doc
-                    ));
+            Map<String, TempSellerDocument> existingDocMap = seller.getDocuments().stream()
+                    .collect(Collectors.toMap(this::documentKey, doc -> doc));
 
-            // Build a set of incoming productTypeIds
-            Set<Long> incomingProductTypeIds = requestDTO.getDocuments().stream()
-                    .map(TempSellerDocumentDTO::getProductTypeId)
+            Set<String> incomingKeys = requestDTO.getDocuments().stream()
+                    .map(this::documentDtoKey)
                     .collect(Collectors.toSet());
 
-            // 1. DELETE documents whose productTypeId is no longer in the request + delete S3 file
-            existingDocMap.forEach((productTypeId, existingDoc) -> {
-                if (!incomingProductTypeIds.contains(productTypeId)) {
+            // 1. DELETE documents no longer present in the request + delete S3 file
+            existingDocMap.forEach((key, existingDoc) -> {
+                if (!incomingKeys.contains(key)) {
                     deleteS3File(existingDoc.getDocumentFileUrl());
                     seller.getDocuments().remove(existingDoc); // orphanRemoval will delete from DB
                 }
@@ -610,7 +728,7 @@ public class TempSellerServiceImpl implements TempSellerService {
 
             // 2. UPDATE existing or ADD new documents
             for (TempSellerDocumentDTO docDTO : requestDTO.getDocuments()) {
-                TempSellerDocument existingDoc = existingDocMap.get(docDTO.getProductTypeId());
+                TempSellerDocument existingDoc = existingDocMap.get(documentDtoKey(docDTO));
 
                 if (existingDoc != null) {
                     // UPDATE existing document row
@@ -630,7 +748,403 @@ public class TempSellerServiceImpl implements TempSellerService {
         return mapToResponseDTO(savedSeller);
     }
 
+    // ─── Draft flow ───────────────────────────────────────────────────────────────
+
+    /**
+     * Creates (tempSellerId == null) or updates (tempSellerId != null) a
+     * DRAFT registration from a partial, fully-optional
+     * {@link TempSellerDraftRequestDTO}. Unlike {@link #createTempSeller} /
+     * {@link #updateTempSeller}, this deliberately skips
+     * {@link SellerTypeFieldValidator#validate} and never hard-throws on a
+     * master-reference id that fails to resolve — it just skips that field
+     * (logging a warning) so a partial save never fails outright.
+     */
+    @Override
+    @Transactional
+    public TempSellerResponseDTO saveDraft(Long tempSellerId, TempSellerDraftRequestDTO dto) {
+        TempSeller seller;
+
+        if (tempSellerId == null) {
+            User currentUser = resolveAuthenticatedUser();
+            seller = new TempSeller();
+            seller.setUser(currentUser);
+            seller.setTempSellerRequestId(requestIdGeneratorService.generateNextRequestId());
+            seller.setPhoneVerified(false);
+            seller.setEmailVerified(false);
+            seller.setCreatedBy("SYSTEM");
+        } else {
+            seller = tempSellerRepository.findById(tempSellerId)
+                    .orElseThrow(() -> new NotFoundException("TempSeller not found for id: " + tempSellerId));
+
+            if (!seller.getStatus().equalsIgnoreCase(TempSellerStatus.DRAFT)) {
+                throw new ApplicationException(
+                        "This registration is no longer a draft (status: " + seller.getStatus()
+                                + ") and can no longer be edited via the draft endpoint.");
+            }
+        }
+
+        // ── Top-level scalar fields — only overwrite what's present ────────────
+        if (dto.getSellerName() != null) seller.setSellerName(dto.getSellerName());
+        if (dto.getPhone() != null) seller.setPhone(dto.getPhone());
+        if (dto.getEmail() != null) seller.setEmail(dto.getEmail());
+        if (dto.getWebsite() != null) seller.setWebsite(dto.getWebsite());
+        if (dto.getParentManufacturerName() != null) seller.setParentManufacturerName(dto.getParentManufacturerName());
+        if (dto.getBrandOwnerName() != null) seller.setBrandOwnerName(dto.getBrandOwnerName());
+        if (dto.getGstNumber() != null) seller.setGstNumber(dto.getGstNumber());
+        if (dto.getGstFileUrl() != null) seller.setGstFileUrl(dto.getGstFileUrl());
+        if (dto.getCompanyRegistrationCertificateUrl() != null) {
+            seller.setCompanyRegistrationCertificateUrl(dto.getCompanyRegistrationCertificateUrl());
+        }
+        seller.setTermsAccepted(dto.isTermsAccepted());
+        seller.setStatus(TempSellerStatus.DRAFT);
+        seller.setUpdatedBy("SYSTEM");
+
+        // ── Product types ───────────────────────────────────────────────────────
+        if (dto.getProductTypeId() != null && !dto.getProductTypeId().isEmpty()) {
+            seller.setProductTypes(productTypeMasterRepository.findAllById(dto.getProductTypeId()));
+        }
+
+        // ── Company type / Seller type — tolerant of an unresolvable id ────────
+        if (dto.getCompanyTypeId() != null) {
+            companyTypeMasterRepository.findById(dto.getCompanyTypeId())
+                    .ifPresentOrElse(seller::setCompanyType,
+                            () -> log.warn("saveDraft: companyTypeId {} not found — leaving companyType unset", dto.getCompanyTypeId()));
+        }
+        if (dto.getSellerTypeId() != null) {
+            sellerTypeMasterRepository.findById(dto.getSellerTypeId())
+                    .ifPresentOrElse(seller::setSellerType,
+                            () -> log.warn("saveDraft: sellerTypeId {} not found — leaving sellerType unset", dto.getSellerTypeId()));
+        }
+
+        // ── Address ──────────────────────────────────────────────────────────────
+        if (draftAddressHasContent(dto.getAddress())) {
+            TempSellerAddress address = seller.getAddress();
+            if (address == null) {
+                address = new TempSellerAddress();
+                address.setSeller(seller);
+                address.setCreatedBy("SYSTEM");
+                seller.setAddress(address);
+            }
+            applyDraftAddress(dto.getAddress(), address);
+        }
+
+        // ── Coordinator ──────────────────────────────────────────────────────────
+        if (draftCoordinatorHasContent(dto.getCoordinator())) {
+            TempSellerCoordinator coordinator = seller.getCoordinator();
+            if (coordinator == null) {
+                coordinator = new TempSellerCoordinator();
+                coordinator.setSeller(seller);
+                coordinator.setEmailVerified(false);
+                coordinator.setPhoneVerified(false);
+                coordinator.setCreatedBy("SYSTEM");
+                seller.setCoordinator(coordinator);
+            }
+            applyDraftCoordinator(dto.getCoordinator(), coordinator);
+        }
+
+        // ── Bank details ─────────────────────────────────────────────────────────
+        if (draftBankDetailsHasContent(dto.getBankDetails())) {
+            TempSellerBankDetails bank = seller.getBankDetails();
+            if (bank == null) {
+                bank = new TempSellerBankDetails();
+                bank.setSeller(seller);
+                bank.setCreatedBy("SYSTEM");
+                seller.setBankDetails(bank);
+            }
+            applyDraftBankDetails(dto.getBankDetails(), bank);
+        }
+
+        // ── Documents — create a row (with a "PENDING" file-url placeholder
+        //    when no file has been uploaded yet) as soon as a document number
+        //    and a type are present, so the row's documentId exists in time
+        //    for the separate per-document file-upload endpoint to target it.
+        //    On a repeat saveDraft call for the same license/agreement, update
+        //    the existing row's fields instead of skipping it, so edits made
+        //    after the first save (e.g. dates filled in later) aren't lost.
+        //    Entries with neither a number nor a type are still skipped. ──────
+        if (dto.getDocuments() != null && !dto.getDocuments().isEmpty()) {
+            Map<String, TempSellerDocument> existingDocMap = seller.getDocuments().stream()
+                    .collect(Collectors.toMap(this::documentKey, doc -> doc));
+
+            for (TempSellerDocumentDTO docDTO : dto.getDocuments()) {
+                if (isBlank(docDTO.getDocumentNumber())
+                        || (docDTO.getProductTypeId() == null && docDTO.getDocumentTypeId() == null)) {
+                    log.warn("saveDraft: skipping incomplete document entry (missing documentNumber/type)");
+                    continue;
+                }
+                TempSellerDocument existingDoc = existingDocMap.get(documentDtoKey(docDTO));
+                if (existingDoc != null) {
+                    existingDoc.setDocumentNumber(docDTO.getDocumentNumber());
+                    existingDoc.setLicenseIssueDate(docDTO.getLicenseIssueDate());
+                    existingDoc.setLicenseExpiryDate(docDTO.getLicenseExpiryDate());
+                    existingDoc.setLicenseIssuingAuthority(docDTO.getLicenseIssuingAuthority());
+                    if (!isBlank(docDTO.getDocumentFileUrl())) {
+                        existingDoc.setDocumentFileUrl(docDTO.getDocumentFileUrl());
+                    }
+                    existingDoc.setUpdatedBy("SYSTEM");
+                    continue;
+                }
+                try {
+                    if (isBlank(docDTO.getDocumentFileUrl())) {
+                        docDTO.setDocumentFileUrl("PENDING");
+                    }
+                    seller.addDocument(createDocument(docDTO, seller));
+                } catch (RuntimeException ex) {
+                    log.warn("saveDraft: skipping document entry — {}", ex.getMessage());
+                }
+            }
+        }
+
+        TempSeller savedSeller = tempSellerRepository.save(seller);
+        return mapToResponseDTO(savedSeller);
+    }
+
+    /**
+     * Promotes a DRAFT registration to a fully-submitted one, running the
+     * exact same validation/entity-construction path {@link #createTempSeller}
+     * uses (full {@link SellerTypeFieldValidator#validate}, hard-throwing
+     * master-reference resolution), then flips status to
+     * {@link TempSellerStatus#OPEN} so the existing admin review flow picks
+     * it up unchanged.
+     */
+    @Override
+    @Transactional
+    public TempSellerResponseDTO finalizeDraft(Long tempSellerId, TempSellerRequestDTO requestDTO) {
+        TempSeller seller = tempSellerRepository.findById(tempSellerId)
+                .orElseThrow(() -> new NotFoundException("TempSeller not found for id: " + tempSellerId));
+
+        if (!seller.getStatus().equalsIgnoreCase(TempSellerStatus.DRAFT)) {
+            throw new ApplicationException(
+                    "Only a draft registration can be finalized (current status: " + seller.getStatus() + ").");
+        }
+
+        List<ProductTypeMaster> productType = productTypeMasterRepository.findAllById(requestDTO.getProductTypeId());
+
+        CompanyTypeMaster companyType = companyTypeMasterRepository.findById(requestDTO.getCompanyTypeId())
+                .orElseThrow(() -> new RuntimeException("Company type not found"));
+
+        SellerTypeMaster sellerType = sellerTypeMasterRepository.findById(requestDTO.getSellerTypeId())
+                .orElseThrow(() -> new RuntimeException("Seller type not found"));
+
+        sellerTypeFieldValidator.validate(requestDTO, sellerType);
+
+        // ── Core fields ──────────────────────────────────────────────────────────
+        seller.setSellerName(requestDTO.getSellerName());
+        seller.setProductTypes(productType);
+        seller.setCompanyType(companyType);
+        seller.setSellerType(sellerType);
+        seller.setPhone(requestDTO.getPhone());
+        seller.setEmail(requestDTO.getEmail());
+        seller.setWebsite(requestDTO.getWebsite());
+        seller.setParentManufacturerName(requestDTO.getParentManufacturerName());
+        seller.setBrandOwnerName(requestDTO.getBrandOwnerName());
+        seller.setGstNumber(requestDTO.getGstNumber());
+        seller.setGstFileUrl(requestDTO.getGstFileUrl());
+        seller.setTermsAccepted(requestDTO.isTermsAccepted());
+        seller.setCompanyRegistrationCertificateUrl(requestDTO.getCompanyRegistrationCertificateUrl());
+        seller.setUpdatedBy("SYSTEM");
+
+        // ── Address ──────────────────────────────────────────────────────────────
+        if (requestDTO.getAddress() != null) {
+            if (seller.getAddress() == null) {
+                seller.setAddress(createAddress(requestDTO.getAddress(), seller));
+            } else {
+                TempSellerAddress address = seller.getAddress();
+                StateMaster state = stateMasterRepository.findById(requestDTO.getAddress().getStateId())
+                        .orElseThrow(() -> new RuntimeException("State not found"));
+                DistrictMaster district = districtMasterRepository.findById(requestDTO.getAddress().getDistrictId())
+                        .orElseThrow(() -> new RuntimeException("District not found"));
+                TalukaMaster taluka = talukaMasterRepository.findById(requestDTO.getAddress().getTalukaId())
+                        .orElseThrow(() -> new RuntimeException("Taluka not found"));
+                address.setState(state);
+                address.setDistrict(district);
+                address.setTaluka(taluka);
+                address.setCity(requestDTO.getAddress().getCity());
+                address.setStreet(requestDTO.getAddress().getStreet());
+                address.setBuildingNo(requestDTO.getAddress().getBuildingNo());
+                address.setLandmark(requestDTO.getAddress().getLandmark());
+                address.setPinCode(requestDTO.getAddress().getPinCode());
+                address.setUpdatedBy("SYSTEM");
+            }
+        }
+
+        // ── Coordinator ──────────────────────────────────────────────────────────
+        if (requestDTO.getCoordinator() != null) {
+            if (seller.getCoordinator() == null) {
+                seller.setCoordinator(createCoordinator(requestDTO.getCoordinator(), seller));
+            } else {
+                TempSellerCoordinator coordinator = seller.getCoordinator();
+                TempSellerCoordinatorDTO coordinatorDTO = requestDTO.getCoordinator();
+                coordinator.setName(coordinatorDTO.getName());
+                coordinator.setDesignation(coordinatorDTO.getDesignation());
+                coordinator.setEmail(coordinatorDTO.getEmail());
+                coordinator.setMobile(coordinatorDTO.getMobile());
+                coordinator.setAuthorizationLetterUrl(coordinatorDTO.getAuthorizationLetterUrl());
+                coordinator.setUpdatedBy("SYSTEM");
+            }
+        }
+
+        // ── Bank details ─────────────────────────────────────────────────────────
+        if (requestDTO.getBankDetails() != null) {
+            if (seller.getBankDetails() == null) {
+                seller.setBankDetails(createBankDetails(requestDTO.getBankDetails(), seller));
+            } else {
+                TempSellerBankDetails bank = seller.getBankDetails();
+                TempSellerBankDetailsDTO bankDTO = requestDTO.getBankDetails();
+                bank.setBankName(bankDTO.getBankName());
+                bank.setBranch(bankDTO.getBranch());
+                bank.setIfscCode(bankDTO.getIfscCode());
+                bank.setState(stateMasterRepository.findById(bankDTO.getStateId())
+                        .orElseThrow(() -> new RuntimeException("State not found")));
+                bank.setDistrict(districtMasterRepository.findById(bankDTO.getDistrictId())
+                        .orElseThrow(() -> new RuntimeException("District not found")));
+                bank.setTaluka(talukaMasterRepository.findById(bankDTO.getTalukaId())
+                        .orElseThrow(() -> new RuntimeException("Taluka not found")));
+                bank.setAccountNumber(bankDTO.getAccountNumber());
+                bank.setAccountHolderName(bankDTO.getAccountHolderName());
+                bank.setBankDocumentFileUrl(bankDTO.getBankDocumentFileUrl());
+                bank.setUpdatedBy("SYSTEM");
+            }
+        }
+
+        // ── Documents — same diff-based add/update/delete as updateTempSeller ───
+        if (requestDTO.getDocuments() != null) {
+            Map<String, TempSellerDocument> existingDocMap = seller.getDocuments().stream()
+                    .collect(Collectors.toMap(this::documentKey, doc -> doc));
+
+            Set<String> incomingKeys = requestDTO.getDocuments().stream()
+                    .map(this::documentDtoKey)
+                    .collect(Collectors.toSet());
+
+            existingDocMap.forEach((key, existingDoc) -> {
+                if (!incomingKeys.contains(key)) {
+                    deleteS3File(existingDoc.getDocumentFileUrl());
+                    seller.getDocuments().remove(existingDoc);
+                }
+            });
+
+            for (TempSellerDocumentDTO docDTO : requestDTO.getDocuments()) {
+                TempSellerDocument existingDoc = existingDocMap.get(documentDtoKey(docDTO));
+
+                if (existingDoc != null) {
+                    existingDoc.setDocumentNumber(docDTO.getDocumentNumber());
+                    existingDoc.setLicenseIssueDate(docDTO.getLicenseIssueDate());
+                    existingDoc.setLicenseExpiryDate(docDTO.getLicenseExpiryDate());
+                    existingDoc.setLicenseIssuingAuthority(docDTO.getLicenseIssuingAuthority());
+                    existingDoc.setUpdatedBy("SYSTEM");
+                } else {
+                    seller.addDocument(createDocument(docDTO, seller));
+                }
+            }
+        }
+
+        seller.setStatus(TempSellerStatus.OPEN);
+        TempSeller savedSeller = tempSellerRepository.save(seller);
+        return mapToResponseDTO(savedSeller);
+    }
+
+    private boolean draftAddressHasContent(TempSellerAddressDTO a) {
+        return a != null && (a.getStateId() != null || a.getDistrictId() != null || a.getTalukaId() != null
+                || !isBlank(a.getCity()) || !isBlank(a.getStreet()) || !isBlank(a.getBuildingNo())
+                || !isBlank(a.getLandmark()) || !isBlank(a.getPinCode()));
+    }
+
+    private boolean draftCoordinatorHasContent(TempSellerCoordinatorDTO c) {
+        return c != null && (!isBlank(c.getName()) || !isBlank(c.getDesignation()) || !isBlank(c.getEmail())
+                || !isBlank(c.getMobile()) || !isBlank(c.getAuthorizationLetterUrl()));
+    }
+
+    private boolean draftBankDetailsHasContent(TempSellerBankDetailsDTO b) {
+        return b != null && (!isBlank(b.getBankName()) || !isBlank(b.getBranch()) || !isBlank(b.getIfscCode())
+                || b.getStateId() != null || b.getDistrictId() != null || b.getTalukaId() != null
+                || !isBlank(b.getAccountNumber()) || !isBlank(b.getAccountHolderName()) || !isBlank(b.getBankDocumentFileUrl()));
+    }
+
+    private void applyDraftAddress(TempSellerAddressDTO dto, TempSellerAddress address) {
+        if (dto.getStateId() != null) {
+            stateMasterRepository.findById(dto.getStateId()).ifPresentOrElse(address::setState,
+                    () -> log.warn("saveDraft: stateId {} not found for address — leaving unset", dto.getStateId()));
+        }
+        if (dto.getDistrictId() != null) {
+            districtMasterRepository.findById(dto.getDistrictId()).ifPresentOrElse(address::setDistrict,
+                    () -> log.warn("saveDraft: districtId {} not found for address — leaving unset", dto.getDistrictId()));
+        }
+        if (dto.getTalukaId() != null) {
+            talukaMasterRepository.findById(dto.getTalukaId()).ifPresentOrElse(address::setTaluka,
+                    () -> log.warn("saveDraft: talukaId {} not found for address — leaving unset", dto.getTalukaId()));
+        }
+        if (dto.getCity() != null) address.setCity(dto.getCity());
+        if (dto.getStreet() != null) address.setStreet(dto.getStreet());
+        if (dto.getBuildingNo() != null) address.setBuildingNo(dto.getBuildingNo());
+        if (dto.getLandmark() != null) address.setLandmark(dto.getLandmark());
+        if (dto.getPinCode() != null) address.setPinCode(dto.getPinCode());
+        address.setUpdatedBy("SYSTEM");
+    }
+
+    private void applyDraftCoordinator(TempSellerCoordinatorDTO dto, TempSellerCoordinator coordinator) {
+        if (dto.getName() != null) coordinator.setName(dto.getName());
+        if (dto.getDesignation() != null) coordinator.setDesignation(dto.getDesignation());
+        if (dto.getEmail() != null) coordinator.setEmail(dto.getEmail());
+        if (dto.getMobile() != null) coordinator.setMobile(dto.getMobile());
+        if (!isBlank(dto.getAuthorizationLetterUrl())) coordinator.setAuthorizationLetterUrl(dto.getAuthorizationLetterUrl());
+        coordinator.setUpdatedBy("SYSTEM");
+    }
+
+    private void applyDraftBankDetails(TempSellerBankDetailsDTO dto, TempSellerBankDetails bank) {
+        if (dto.getBankName() != null) bank.setBankName(dto.getBankName());
+        if (dto.getBranch() != null) bank.setBranch(dto.getBranch());
+        if (dto.getIfscCode() != null) bank.setIfscCode(dto.getIfscCode());
+        if (dto.getAccountNumber() != null) bank.setAccountNumber(dto.getAccountNumber());
+        if (dto.getAccountHolderName() != null) bank.setAccountHolderName(dto.getAccountHolderName());
+        if (dto.getBankDocumentFileUrl() != null) bank.setBankDocumentFileUrl(dto.getBankDocumentFileUrl());
+        if (dto.getStateId() != null) {
+            stateMasterRepository.findById(dto.getStateId()).ifPresentOrElse(bank::setState,
+                    () -> log.warn("saveDraft: stateId {} not found for bank details — leaving unset", dto.getStateId()));
+        }
+        if (dto.getDistrictId() != null) {
+            districtMasterRepository.findById(dto.getDistrictId()).ifPresentOrElse(bank::setDistrict,
+                    () -> log.warn("saveDraft: districtId {} not found for bank details — leaving unset", dto.getDistrictId()));
+        }
+        if (dto.getTalukaId() != null) {
+            talukaMasterRepository.findById(dto.getTalukaId()).ifPresentOrElse(bank::setTaluka,
+                    () -> log.warn("saveDraft: talukaId {} not found for bank details — leaving unset", dto.getTalukaId()));
+        }
+        bank.setUpdatedBy("SYSTEM");
+    }
+
     // ─── Private Helpers ──────────────────────────────────────────────────────────
+
+    private String documentKey(TempSellerDocument doc) {
+        return doc.getDocumentType() != null
+                ? "D:" + doc.getDocumentType().getDocumentTypeId()
+                : "P:" + doc.getProductTypes().getProductTypeId();
+    }
+
+    private String documentDtoKey(TempSellerDocumentDTO dto) {
+        return dto.getDocumentTypeId() != null
+                ? "D:" + dto.getDocumentTypeId()
+                : "P:" + dto.getProductTypeId();
+    }
+
+    private static final String PLACEHOLDER_PRODUCT_TYPE_NAME = "N/A - Seller Level Document";
+
+    /**
+     * Resolves the reserved, inactive placeholder ProductTypeMaster row used
+     * for seller-level documents (agreements/certificates) that have no real
+     * product category, so product_type_id's NOT NULL constraint never needs
+     * to be relaxed. Seeded once via seed_seller_types_and_document_types.sql;
+     * excluded from GET /product-types by ProductTypeMasterServiceImpl's
+     * isActive filter, so it never appears in the seller-facing category picker.
+     */
+    private ProductTypeMaster resolvePlaceholderProductType() {
+        return productTypeMasterRepository.findByProductTypeNameIgnoreCase(PLACEHOLDER_PRODUCT_TYPE_NAME)
+                .orElseThrow(() -> new ApplicationException(
+                        "Placeholder product type '" + PLACEHOLDER_PRODUCT_TYPE_NAME + "' is not seeded — run seed_seller_types_and_document_types.sql"));
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
 
     private void deleteTempSellerS3Files(TempSeller tempSeller) {
         deleteS3File(tempSeller.getSellerImageUrl());

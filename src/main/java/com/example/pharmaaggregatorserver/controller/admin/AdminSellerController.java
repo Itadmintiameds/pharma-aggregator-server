@@ -1,6 +1,7 @@
 package com.example.pharmaaggregatorserver.controller.admin;
 
 import com.example.pharmaaggregatorserver.dto.seller.SellerApprovalRequestDTO;
+import com.example.pharmaaggregatorserver.dto.seller.SellerApprovalResultDTO;
 import com.example.pharmaaggregatorserver.response.ApiResponse;
 import com.example.pharmaaggregatorserver.service.admin.SellerApprovalService;
 import jakarta.validation.Valid;
@@ -26,10 +27,10 @@ public class AdminSellerController {
     @PostMapping("/review")
     public ResponseEntity<?> reviewSeller(
             @Valid @RequestBody SellerApprovalRequestDTO request) {
-        approvalService.processReview(request);
-        return ResponseEntity.ok(new ApiResponse(
+        SellerApprovalResultDTO result = approvalService.processReview(request);
+        return ResponseEntity.ok(new ApiResponse<>(
                 HttpStatus.OK.toString(),
                 "Seller review processed successfully",
-                "Seller review processed successfully"));
+                result));
     }
 }

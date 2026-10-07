@@ -1,0 +1,56 @@
+%% PROPOSED / FUTURE — no messaging infrastructure exists in the codebase today.
+%% This diagram shows the event flows recommended in docs/architecture/event-architecture.md
+%% for the target 5-service architecture; none of it is implemented yet.
+flowchart TB
+    subgraph OrderSvc["Order, Payment & Fulfillment service"]
+        PlaceOrder["Place Order\n(orchestrator/saga)"]
+        CancelOrder["Cancel / Return Order"]
+    end
+
+    subgraph ProductSvc["Product Catalog service"]
+        ReserveStock["Reserve Stock API\n(sync, called by saga)"]
+        RestoreStock["Restore Stock\n(event consumer)"]
+    end
+
+    subgraph BuyerSvc["Buyer & Onboarding service"]
+        ResolveBuyer["Resolve Buyer + Delivery Address API\n(sync, called by saga)"]
+    end
+
+    subgraph SellerSvc["Seller & Onboarding service"]
+        ApproveSeller["Approve Seller\n(admin action)"]
+    end
+
+    subgraph BuyerOnboard["Buyer & Onboarding service (approval side)"]
+        ApproveBuyer["Approve Buyer\n(admin action)"]
+    end
+
+    subgraph Queue["Proposed async broker (SQS or similar)"]
+        OrderPlacedTopic{{"OrderPlaced /\nStockReservationFailed"}}
+        OrderCancelledTopic{{"OrderCancelled /\nReturnApproved"}}
+        SellerApprovedTopic{{"SellerApproved"}}
+        BuyerApprovedTopic{{"BuyerApproved"}}
+    end
+
+    subgraph NotifySvc["Identity & Access service\n(or a small Notification worker)"]
+        SendEmail["Send approval email"]
+        SendSMS["Send SMS via Twilio"]
+    end
+
+    PlaceOrder -->|"1. sync call: resolve buyer"| ResolveBuyer
+    PlaceOrder -->|"2. sync call: reserve stock"| ReserveStock
+    ReserveStock -.->|"3a. success"| PlaceOrder
+    ReserveStock -.->|"3b. failure"| OrderPlacedTopic
+    OrderPlacedTopic -.->|"consumed: compensate,\ncancel pending order"| PlaceOrder
+
+    CancelOrder -->|"4. publish event\n(async, no response needed)"| OrderCancelledTopic
+    OrderCancelledTopic -->|"5. consume: restore stock"| RestoreStock
+
+    ApproveSeller -->|"6. publish event"| SellerApprovedTopic
+    SellerApprovedTopic --> SendEmail
+    SellerApprovedTopic --> SendSMS
+
+    ApproveBuyer -->|"7. publish event"| BuyerApprovedTopic
+    BuyerApprovedTopic --> SendEmail
+
+    classDef proposed stroke-dasharray: 5 5
+    class Queue,OrderPlacedTopic,OrderCancelledTopic,SellerApprovedTopic,BuyerApprovedTopic,RestoreStock proposed

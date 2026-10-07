@@ -2,6 +2,7 @@ package com.example.pharmaaggregatorserver.dto.product;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Set;
@@ -11,7 +12,7 @@ public class AdditionalDiscountDto {
 
     private String additionalDiscountId;
     private Long minimumPurchaseQuantity;
-    private Long additionalDiscountPercentage;
+    private BigDecimal additionalDiscountPercentage;
     private LocalDate effectiveStartDate;
     private LocalTime effectiveStartTime;
     private LocalDate effectiveEndDate ;

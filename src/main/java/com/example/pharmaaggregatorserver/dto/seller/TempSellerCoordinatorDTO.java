@@ -24,6 +24,9 @@ public class TempSellerCoordinatorDTO {
     @Pattern(regexp = "^[0-9]{10}$", message = "Mobile must be 10 digits")
     private String mobile;
 
+    @NotBlank(message = "Authorization letter file URL is required")
+    private String authorizationLetterUrl;
+
     // Add these if you want to track coordinator verification status
     private boolean emailVerified = false;
     private boolean phoneVerified = false;

@@ -11,6 +11,9 @@ import java.util.Set;
 public class PricingDetailsDto {
 
     private String pricingId;
+    // Which packaging/pack-size variant this batch belongs to. Optional — null means
+    // "not linked to a specific variant" (matches pre-variant-tracking batches).
+    private String packagingId;
     private String batchLotNumber;
     private LocalDateTime manufacturingDate;
     private LocalDateTime expiryDate;
@@ -23,10 +26,13 @@ public class PricingDetailsDto {
     private Long finalPrice;
     private Long hsnCode;
     private Long shelfLifeMonths;
+    private Long shelfLifeDays;
     private String createdBy;
     private String modifiedBy;
     private LocalDateTime createdDate;
     private LocalDateTime modifiedDate;
+    private String deletedBy;
+    private LocalDateTime deletedAt;
     private Set<AdditionalDiscountDto> additionalDiscounts;
     private Set<SpecialSchemesDto> specialSchemes;
 }

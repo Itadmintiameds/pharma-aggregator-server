@@ -39,6 +39,8 @@ public class ConsumableProductAttributeDTO {
 
     private Long countryId;
     //private String countryOfOrigin;
+    @Pattern(regexp = "^[a-zA-Z0-9\\s!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]*$",
+            message = "Manufacturer Name can contain alphanumeric and special characters")
     private String manufacturerName;
     //private String storageCondition;
     private Long storageConditionId;

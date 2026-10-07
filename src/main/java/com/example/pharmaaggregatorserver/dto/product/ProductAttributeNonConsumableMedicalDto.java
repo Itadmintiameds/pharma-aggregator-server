@@ -1,5 +1,6 @@
 package com.example.pharmaaggregatorserver.dto.product;
 
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 import java.util.List;
@@ -38,6 +39,8 @@ public class ProductAttributeNonConsumableMedicalDto {
     //    private String countryOfOrigin;
     private Long countryId;
     private String countryName;
+    @Pattern(regexp = "^[a-zA-Z0-9\\s!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]*$",
+            message = "Manufacturer Name can contain alphanumeric and special characters")
     private String manufacturerName;
     //    private String storageCondition;
     private Long storageConditionId;
