@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Pharma Marketplace - AWS Architecture</title>
+<style>
+  body { background:#111; font-family: "Segoe UI", Arial, sans-serif; margin:0; padding:24px; }
+  .canvas {
+    background:#fff; border-radius:6px; padding:32px 28px; max-width:1200px; margin:0 auto;
+    box-shadow: 0 0 24px rgba(0,0,0,.4);
+  }
+  h1 { font-size:15px; color:#333; margin:0 0 20px 2px; }
+  .row { display:flex; align-items:flex-start; gap:14px; }
+  .col { display:flex; flex-direction:column; align-items:center; gap:6px; width:92px; }
+  .arrow-col { display:flex; flex-direction:column; justify-content:center; padding-top:34px; }
+  .arrow { color:#555; font-size:20px; }
+
+  .icon-box {
+    width:56px; height:56px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+    background:#fff; border:1px solid #eee;
+  }
+  .icon-box img { width:40px; height:40px; }
+  .label { font-size:11px; color:#232f3e; text-align:center; font-weight:600; line-height:1.2; }
+  .sublabel { font-size:9.5px; color:#888; text-align:center; }
+
+  .group {
+    border:2px dashed #999; border-radius:8px; padding:20px 16px 14px; position:relative;
+  }
+  .group-title {
+    position:absolute; top:-11px; left:14px; background:#fff; padding:0 6px;
+    font-size:11px; color:#666; font-weight:600;
+  }
+  .services-grid { display:grid; grid-template-columns:repeat(5, 92px); gap:14px 10px; justify-content:start; }
+  .db-grid { display:grid; grid-template-columns:repeat(6, 92px); gap:14px 10px; justify-content:start; }
+  .flex-groups { display:flex; gap:20px; align-items:flex-start; margin-top:22px; }
+  .side-col { display:flex; flex-direction:column; gap:18px; }
+  .cross-grid { display:grid; grid-template-columns:repeat(4, 100px); gap:14px 10px; }
+  .note { font-size:10px; color:#999; margin-top:18px; text-align:right; }
+  .note a { color:#999; }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <h1>Pharma Marketplace &mdash; Target AWS Architecture (Microservices)</h1>
+
+  <div class="row">
+    <div class="col" style="width:70px;">
+      <div class="icon-box" style="background:#f2f2f2;">&#128100;</div>
+      <div class="label">Users</div>
+    </div>
+    <div class="arrow-col"><span class="arrow">&#8594;</span></div>
+
+    <div class="col">
+      <div class="icon-box"><img src="https://api.iconify.design/logos:aws-route53.svg" alt="Route 53" onerror="this.replaceWith(document.createTextNode('Route 53'))"/></div>
+      <div class="label">Route 53</div>
+      <div class="sublabel">DNS</div>
+    </div>
+    <div class="arrow-col"><span class="arrow">&#8594;</span></div>
+
+    <div class="col">
+      <div class="icon-box"><img src="https://api.iconify.design/logos:aws-cloudfront.svg" alt="CloudFront" onerror="this.replaceWith(document.createTextNode('CloudFront'))"/></div>
+      <div class="label">CloudFront</div>
+      <div class="sublabel">CDN</div>
+    </div>
+    <div class="arrow-col"><span class="arrow">&#8594;</span></div>
+
+    <div class="col">
+      <div class="icon-box"><img src="https://api.iconify.design/logos:aws-elastic-load-balancing.svg" alt="ALB" onerror="this.replaceWith(document.createTextNode('ALB'))"/></div>
+      <div class="label">ALB</div>
+      <div class="sublabel">Load Balancer</div>
+    </div>
+    <div class="arrow-col"><span class="arrow">&#8594;</span></div>
+
+    <div class="col">
+      <div class="icon-box"><img src="https://api.iconify.design/logos:aws-api-gateway.svg" alt="API Gateway" onerror="this.replaceWith(document.createTextNode('API GW'))"/></div>
+      <div class="label">API Gateway Svc</div>
+      <div class="sublabel">single entry point</div>
+    </div>
+  </div>
+
+  <div class="flex-groups">
+    <div class="group" style="flex:1;">
+      <div class="group-title">Microservices &mdash; Amazon EKS / ECS Fargate</div>
+      <div class="services-grid">
+        <div class="col"><div class="icon-box"><img src="https://api.iconify.design/logos:aws-fargate.svg" onerror="this.replaceWith(document.createTextNode('Fargate'))"/></div><div class="label">Auth</div></div>
+        <div class="col"><div class="icon-box"><img src="https://api.iconify.design/logos:aws-fargate.svg" onerror="this.replaceWith(document.createTextNode('Fargate'))"/></div><div class="label">Seller</div></div>
+        <div class="col"><div class="icon-box"><img src="https://api.iconify.design/logos:aws-fargate.svg" onerror="this.replaceWith(document.createTextNode('Fargate'))"/></div><div class="label">Product</div></div>
+        <div class="col"><div class="icon-box"><img src="https://api.iconify.design/logos:aws-fargate.svg" onerror="this.replaceWith(document.createTextNode('Fargate'))"/></div><div class="label">Search</div></div>
+        <div class="col"><div class="icon-box"><img src="https://api.iconify.design/logos:aws-fargate.svg" onerror="this.replaceWith(document.createTextNode('Fargate'))"/></div><div class="label">Order</div></div>
+        <div class="col"><div class="icon-box"><img src="https://api.iconify.design/logos:aws-fargate.svg" onerror="this.replaceWith(document.createTextNode('Fargate'))"/></div><div class="label">Quotation</div></div>
+        <div class="col"><div class="icon-box"><img src="https://api.iconify.design/logos:aws-fargate.svg" onerror="this.replaceWith(document.createTextNode('Fargate'))"/></div><div class="label">Billing</div></div>
+        <div class="col"><div class="icon-box"><img src="https://api.iconify.design/logos:aws-fargate.svg" onerror="this.replaceWith(document.createTextNode('Fargate'))"/></div><div class="label">Notification</div></div>
+        <div class="col"><div class="icon-box"><img src="https://api.iconify.design/logos:aws-fargate.svg" onerror="this.replaceWith(document.createTextNode('Fargate'))"/></div><div class="label">Config Server</div></div>
+        <div class="col"><div class="icon-box"><img src="https://api.iconify.design/logos:aws-fargate.svg" onerror="this.replaceWith(document.createTextNode('Fargate'))"/></div><div class="label">Service Registry</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center; margin:10px 0; color:#555; font-size:18px;">&#8595;&nbsp;&nbsp;&#8595;&nbsp;&nbsp;&#8595;</div>
+
+  <div class="flex-groups">
+    <div class="group" style="flex:2;">
+      <div class="group-title">Data layer &mdash; Amazon RDS (PostgreSQL, one DB per service)</div>
+      <div class="db-grid">
+        <div class="col"><div class="icon-box"><img src="https://api.iconify.design/logos:aws-rds.svg" onerror="this.replaceWith(document.createTextNode('RDS'))"/></div><div class="label">Auth DB</div></div>
+        <div class="col"><div class="icon-box"><img src="https://api.iconify.design/logos:aws-rds.svg" onerror="this.replaceWith(document.createTextNode('RDS'))"/></div><div class="label">Seller DB</div></div>
+        <div class="col"><div class="icon-box"><img src="https://api.iconify.design/logos:aws-rds.svg" onerror="this.replaceWith(document.createTextNode('RDS'))"/></div><div class="label">Product DB</div></div>
+        <div class="col"><div class="icon-box"><img src="https://api.iconify.design/logos:aws-rds.svg" onerror="this.replaceWith(document.createTextNode('RDS'))"/></div><div class="label">Order DB</div></div>
+        <div class="col"><div class="icon-box"><img src="https://api.iconify.design/logos:aws-rds.svg" onerror="this.replaceWith(document.createTextNode('RDS'))"/></div><div class="label">Billing DB</div></div>
+        <div class="col"><div class="icon-box"><img src="https://api.iconify.design/logos:aws-rds.svg" onerror="this.replaceWith(document.createTextNode('RDS'))"/></div><div class="label">Quote DB</div></div>
+      </div>
+    </div>
+
+    <div class="side-col">
+      <div class="group">
+        <div class="group-title">Async events</div>
+        <div class="col" style="width:100px;">
+          <div class="icon-box"><img src="https://api.iconify.design/logos:aws-simple-queue-service.svg" onerror="this.replaceWith(document.createTextNode('SQS/SNS'))"/></div>
+          <div class="label">SQS / SNS</div>
+          <div class="sublabel">order &rarr; billing &rarr; notify</div>
+        </div>
+      </div>
+      <div class="group">
+        <div class="group-title">Storage</div>
+        <div class="col" style="width:100px;">
+          <div class="icon-box"><img src="https://api.iconify.design/logos:aws-s3.svg" onerror="this.replaceWith(document.createTextNode('S3'))"/></div>
+          <div class="label">S3</div>
+          <div class="sublabel">docs, invoices, images</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex-groups">
+    <div class="group" style="flex:1;">
+      <div class="group-title">Cross-cutting (used by every service)</div>
+      <div class="cross-grid">
+        <div class="col" style="width:100px;"><div class="icon-box"><img src="https://api.iconify.design/logos:aws-secrets-manager.svg" onerror="this.replaceWith(document.createTextNode('Secrets Mgr'))"/></div><div class="label">Secrets Manager</div><div class="sublabel">DB creds, JWT secret</div></div>
+        <div class="col" style="width:100px;"><div class="icon-box"><img src="https://api.iconify.design/logos:aws-cloudwatch.svg" onerror="this.replaceWith(document.createTextNode('CloudWatch'))"/></div><div class="label">CloudWatch</div><div class="sublabel">logs & metrics</div></div>
+        <div class="col" style="width:100px;"><div class="icon-box"><img src="https://api.iconify.design/logos:aws-ses.svg" onerror="this.replaceWith(document.createTextNode('SES'))"/></div><div class="label">SES</div><div class="sublabel">email / OTP</div></div>
+        <div class="col" style="width:100px;"><div class="icon-box"><img src="https://api.iconify.design/logos:aws-iam.svg" onerror="this.replaceWith(document.createTextNode('IAM'))"/></div><div class="label">IAM</div><div class="sublabel">service roles</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">Icons loaded live from Iconify (api.iconify.design) — open with an internet connection; falls back to text labels offline.</div>
+</div>
+</body>
+</html>

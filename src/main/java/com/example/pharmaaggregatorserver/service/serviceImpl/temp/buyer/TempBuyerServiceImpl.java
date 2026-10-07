@@ -164,8 +164,8 @@ public class TempBuyerServiceImpl implements TempBuyerService {
         contact.setDesignation(dto.getDesignation());
         contact.setEmail(dto.getEmail());
         contact.setMobile(dto.getMobile());
-        contact.setEmailVerified(false);
-        contact.setPhoneVerified(false);
+        contact.setEmailVerified(dto.isEmailVerified());
+        contact.setPhoneVerified(dto.isPhoneVerified());
         contact.setCreatedBy("SYSTEM");
         contact.setUpdatedBy("SYSTEM");
         return contact;
@@ -342,6 +342,8 @@ public class TempBuyerServiceImpl implements TempBuyerService {
         contact.setDesignation(dto.getDesignation());
         contact.setEmail(dto.getEmail());
         contact.setMobile(dto.getMobile());
+        contact.setEmailVerified(dto.isEmailVerified());
+        contact.setPhoneVerified(dto.isPhoneVerified());
         contact.setUpdatedBy("SYSTEM");
     }
 
@@ -407,8 +409,6 @@ public class TempBuyerServiceImpl implements TempBuyerService {
             if (contact == null) {
                 contact = new TempBuyerContact();
                 contact.setBuyer(buyer);
-                contact.setEmailVerified(false);
-                contact.setPhoneVerified(false);
                 contact.setCreatedBy("SYSTEM");
                 buyer.setContact(contact);
             }
@@ -502,6 +502,8 @@ public class TempBuyerServiceImpl implements TempBuyerService {
         if (dto.getDesignation() != null) contact.setDesignation(dto.getDesignation());
         if (dto.getEmail() != null) contact.setEmail(dto.getEmail());
         if (dto.getMobile() != null) contact.setMobile(dto.getMobile());
+        contact.setEmailVerified(dto.isEmailVerified());
+        contact.setPhoneVerified(dto.isPhoneVerified());
         contact.setUpdatedBy("SYSTEM");
     }
 
