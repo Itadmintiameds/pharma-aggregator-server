@@ -1,0 +1,108 @@
+<mxfile host="app.diagrams.net" modified="2026-09-18T00:00:00.000Z" agent="claude-code" version="24.0.0">
+  <diagram name="Data-Storage-View" id="storage-view-1">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1650" pageHeight="1300" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="Data Storage View — who owns what data, where" style="text;html=1;fontSize=18;fontStyle=1;fontColor=#ffffff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="10" width="600" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Buyer Service storage -->
+        <mxCell id="buyersvc" value="Buyer Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="buyerdb" value="RDS PostgreSQL: buyerservice_db&#10;&#10;tbl_buyer&#10;tbl_buyer_user&#10;tbl_buyer_address&#10;tbl_buyer_contact&#10;tbl_buyer_delivery_address&#10;tbl_buyer_login_otp&#10;tbl_buyer_signup_otp&#10;tbl_buyer_refresh_tokens&#10;tbl_temp_buyer&#10;tbl_temp_buyer_address&#10;tbl_temp_buyer_contact&#10;tbl_temp_buyer_document&#10;tbl_temp_buyer_review_history&#10;tbl_state_master (own copy)&#10;tbl_district_master (own copy)&#10;tbl_taluka_master (own copy)&#10;tbl_buyer_type_master (own copy)&#10;tbl_document_type_master (own copy)&#10;tbl_terms_master (own copy)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;spacingLeft=8;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="240" height="330" as="geometry" />
+        </mxCell>
+        <mxCell id="buyers3" value="S3 Bucket: buyer-documents/&#10;&#10;KYC docs, uploaded files&#10;referenced by tbl_buyer_document&#10;/ tbl_temp_buyer_document via S3 key" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="440" width="240" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Seller Service storage -->
+        <mxCell id="sellersvc" value="Seller Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="60" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="sellerdb" value="RDS PostgreSQL: sellerservice_db&#10;&#10;tbl_seller&#10;tbl_seller_address&#10;tbl_seller_bank_details&#10;tbl_seller_coordinator&#10;tbl_seller_gst&#10;tbl_seller_document&#10;tbl_seller_history&#10;tbl_temp_seller (+5 staging tables)&#10;tbl_pending_seller (+document)&#10;tbl_user / tbl_signup_otp&#10;tbl_login_otp / tbl_refresh_tokens&#10;tbl_role_master&#10;tbl_state/district/taluka_master&#10;tbl_company_type_master&#10;tbl_seller_type_master&#10;tbl_ifsc_overrides&#10;(tbl_buyer_type_master, tbl_product_type_master&#10; — stray copies, should move out)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;spacingLeft=8;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="320" y="100" width="240" height="330" as="geometry" />
+        </mxCell>
+        <mxCell id="sellers3" value="S3 Bucket: seller-documents/&#10;&#10;GST/PAN/bank proof uploads&#10;referenced by tbl_seller_document" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="320" y="440" width="240" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Product Service storage -->
+        <mxCell id="productsvc" value="Product Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="60" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="productdb" value="RDS PostgreSQL: productservice_db&#10;&#10;tm_product_details&#10;+6 category attribute tables&#10;(drug, consumable, cosmetic,&#10;food/infant, supplements, device)&#10;tm_category / subcategory masters&#10;tm_pricing_details&#10;tm_additional_discount&#10;tm_special_schemes&#10;tbl_stock_ledger&#10;tm_pack_type (+unit/packaging)&#10;~25 flat attribute masters&#10;(dosage form, molecule, GST%, etc.)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;spacingLeft=8;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="600" y="100" width="240" height="330" as="geometry" />
+        </mxCell>
+        <mxCell id="products3" value="S3 Bucket: product-images/&#10;&#10;product photos, certification PDFs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="600" y="440" width="240" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Order/Billing/Quotation storage -->
+        <mxCell id="ordersvc" value="Order Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="880" y="60" width="220" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="orderdb" value="RDS PostgreSQL: orderservice_db&#10;&#10;tbl_order&#10;tbl_order_item&#10;tbl_seller_order&#10;tbl_order_status_history&#10;tbl_return_request" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;spacingLeft=8;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="880" y="100" width="220" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="billingsvc" value="Billing Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="880" y="260" width="220" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="billingdb" value="RDS PostgreSQL: billingservice_db&#10;&#10;tbl_payment&#10;tbl_refund&#10;tbl_invoice" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;spacingLeft=8;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="880" y="300" width="220" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="quotationsvc" value="Quotation Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="60" width="220" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="quotationdb" value="RDS PostgreSQL: quotationservice_db&#10;&#10;tbl_quote_request" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;spacingLeft=8;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="100" width="220" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Search Service storage -->
+        <mxCell id="searchsvc" value="Search Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="200" width="220" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="searchidx" value="Amazon OpenSearch&#10;&#10;denormalized product index&#10;(read replica, rebuilt from&#10;ProductUpdated events —&#10;not source of truth)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;spacingLeft=8;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="240" width="220" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Notification service - no persistent store -->
+        <mxCell id="notifsvc" value="Notification Service&#10;&#10;stateless — no DB of its own&#10;(reads message payload from&#10;event, sends via SES/SNS/Twilio,&#10;optionally logs delivery status&#10;to CloudWatch)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;spacingLeft=8;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="360" width="220" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Identity Index -->
+        <mxCell id="identityindex" value="Identity Index Service&#10;&#10;Amazon DynamoDB&#10;table: identity_email_index&#10;PK: email  |  attr: owning_service&#10;(NOT source of truth — a fast&#10;projection fed by events;&#10;buyer_db/seller_db remain&#10;the actual source of truth&#10;for their own users)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;spacingLeft=8;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="560" width="280" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- Event bus (durable log) -->
+        <mxCell id="eventbus" value="Async Event Bus — Amazon SNS + SQS&#10;&#10;events carry a payload, not a query result:&#10;BuyerRegistered{email, buyerId}&#10;SellerRegistered{email, sellerId}&#10;OrderPlaced{orderId, buyerId, items}&#10;PaymentCompleted{orderId, amount}&#10;ProductUpdated{productId, ...}&#10;&#10;durability: SQS at-least-once delivery,&#10;dead-letter queue per consumer for poison messages" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="360" y="560" width="420" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- Config/secrets -->
+        <mxCell id="configstore" value="AWS Systems Manager Parameter Store&#10;+ Secrets Manager&#10;&#10;per-service config (non-secret)&#10;+ DB creds / API keys (secret)&#10;— not stored in any service DB" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;spacingLeft=8;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="820" y="560" width="280" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend" value="Legend&#10;Purple cylinder = system-of-record relational store (RDS Postgres) — one per service, never shared&#10;Orange box = fast lookup/projection store, NOT source of truth (DynamoDB index)&#10;Yellow box = durable async transport (SNS/SQS) — events are the source of truth for cross-service facts&#10;Red box = infra config/secrets store, outside any service DB" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;align=left;spacingLeft=8;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="740" width="1060" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- connectors: services publish to event bus -->
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;strokeColor=#d6b656;" edge="1" parent="1" source="buyerdb" target="eventbus"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;strokeColor=#d6b656;" edge="1" parent="1" source="sellerdb" target="eventbus"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;strokeColor=#d6b656;" edge="1" parent="1" source="eventbus" target="identityindex"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

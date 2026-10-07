@@ -1,0 +1,112 @@
+package com.example.pharmaaggregatorserver.entity.product;
+
+import com.example.pharmaaggregatorserver.entity.seller.Seller;
+import com.example.pharmaaggregatorserver.enums.ProductStatus;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.LocalDateTime;
+import java.util.Set;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tm_product_details")
+public class ProductDetails {
+
+    @Id
+    @Column(name = "product_id")
+    private String productId;
+
+    @Column(name = "product_name")
+    private String productName;
+
+    @Column(name = "warnings_precautions", columnDefinition = "TEXT")
+    private String warningsPrecautions;
+
+    @Column(name = "product_description", columnDefinition = "TEXT")
+    private String productDescription;
+
+    @Column(name = "manufacturer_name")
+    private String manufacturerName;
+
+    @Column(name = "created_by")
+    private String createdBy;
+
+    @Column(name = "modified_by")
+    private String modifiedBy;
+
+    @Column(name = "created_date", updatable = false)
+    private LocalDateTime createdDate;
+
+    @Column(name = "modified_date")
+    private LocalDateTime modifiedDate;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = false)
+    @JsonIgnore
+    private Category category;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "seller_id", nullable = false)
+    @JsonIgnore
+    private Seller seller;
+
+    @OneToMany(mappedBy = "productDetails", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private Set<PackagingDetails> packagingDetails;
+
+    @OneToMany(mappedBy = "productDetails", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private Set<PricingDetails> pricingDetails;
+
+    @OneToMany(mappedBy = "productDetails", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private Set<ProductImage> productImages;
+
+    @OneToMany(mappedBy = "productDetails", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private Set<ProductAttributeDrug> productAttributeDrugs;
+
+    @OneToMany(mappedBy = "productDetails", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private Set<ProductAttributeNonConsumableMedical> productAttributeNonConsumableMedicals;
+
+    @OneToMany(mappedBy = "productDetails", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private Set<ProductAttributeConsumableMedical> productAttributeConsumables;
+
+    @OneToMany(mappedBy = "productDetails", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private Set<ProductAttributeSupplementsOrNutraceuticals> productAttributeSupplementsOrNutraceuticals;
+
+    @OneToMany(mappedBy = "productDetails", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private Set<ProductAttributeFoodInfant> productAttributeFoodInfants;
+
+    @OneToMany(mappedBy = "productDetails", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private Set<ProductAttributeCosmeticandPersonalCare> productAttributeCosmeticandPersonalCare;
+
+    @Column(name = "gst_percentage")
+    private Long gstPercentage;
+
+    @Column(name = "hsn_code")
+    private Long hsnCode;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(20) DEFAULT 'PUBLISHED'")
+    private ProductStatus status = ProductStatus.PUBLISHED;
+
+
+}

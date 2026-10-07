@@ -17,25 +17,40 @@ public class TempSellerCoordinator {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "temp_seller_coordinator_id")
+    @Column(name = "coordinator_id")
     private Long tempSellerCoordinatorId;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "temp_seller_id", unique = true, nullable = false)
+    @JoinColumn(name = "seller_id", unique = true, nullable = false)
     @JsonIgnore
     private TempSeller seller;
 
-    @Column(name = "name", nullable = false, length = 100)
+    @Column(name = "name", length = 100)
     private String name;
 
-    @Column(name = "designation", nullable = false, length = 100)
+    @Column(name = "designation", length = 100)
     private String designation;
 
-    @Column(name = "email", nullable = false, length = 100)
+    @Column(name = "email", unique = true, length = 100)
     private String email;
 
-    @Column(name = "mobile", nullable = false, length = 100)
+    @Column(name = "isEmailVerified")
+    private boolean isEmailVerified;
+
+    @Column(name = "mobile", unique = true, length = 100)
     private String mobile;
+
+    @Column(name = "isPhoneVerified")
+    private boolean isPhoneVerified;
+
+    @Column(name = "authorization_letter_url", columnDefinition = "VARCHAR(255) DEFAULT 'PENDING'")
+    private String authorizationLetterUrl = "PENDING";
+
+    @Column(name = "authorization_letter_file_name")
+    private String authorizationLetterFileName;
+
+    @Column(name = "is_authorization_letter_verified", columnDefinition = "boolean default false", nullable = false)
+    private boolean isAuthorizationLetterVerified = false;
 
     @Column(name = "created_by", length = 100)
     private String createdBy;
@@ -50,4 +65,7 @@ public class TempSellerCoordinator {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "is_active")
+    private Boolean isActive = true;
 }

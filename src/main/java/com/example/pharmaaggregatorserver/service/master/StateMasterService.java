@@ -1,11 +1,8 @@
 package com.example.pharmaaggregatorserver.service.master;
 
-import com.example.pharmaaggregatorserver.entity.master.StateMaster;
-
+import com.example.pharmaaggregatorserver.dto.master.ResponseDTO.StateResponseDTO;
 import java.util.List;
 
 public interface StateMasterService {
-
-    // Get all states
-    public List<StateMaster> getAllStates();
+    List<StateResponseDTO> getAllStates();
 }

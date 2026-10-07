@@ -17,7 +17,7 @@ public class DistrictMaster {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "district_id")
-    private Integer districtId;
+    private Long districtId;
 
     // Add the ManyToOne relationship
     @ManyToOne(fetch = FetchType.LAZY)

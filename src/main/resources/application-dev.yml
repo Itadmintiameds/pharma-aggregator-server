@@ -1,21 +1,116 @@
+server:
+  servlet:
+    context-path: /api/v1
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-exception: true
+    include-stacktrace: always
+  tomcat:
+    max-part-count: 50
+
+app:
+  login-url: https://pharma-aggregator-test.tiameds.ai/reset-password
+  frontend-url: https://pharma-aggregator-test.tiameds.ai
+  admin-frontend-url: https://tiameds-admin-dashboard.vercel.app
+  reset-token-expiration-hours: 1
+  jwt:
+    secret: mySecretKeyForJWTTokenGenerationAndValidation2024!@#$%^&*
+    expiration: 86400000        # 30 minutes (access token) // Temporarily set to 24 hours for testing, change back to 30 minutes in production
+    refresh-expiration: 604800000  # 7 days (refresh token)
+
 spring:
+
+  main:
+    allow-bean-definition-overriding: true
+
   datasource:
-    url: jdbc:postgresql://host.docker.internal:5432/pharma-aggregator?charSet=UTF8
+    url: jdbc:postgresql://pharma-aggregator-test.cfsi2w0iou42.ap-south-1.rds.amazonaws.com:5432/pharma_aggregator_test
     username: postgres
-    password: root
+    password: pharma_aggregator_test
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
 
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+
+  mail:   # Email configuration
+    host: ${SPRING_MAIL_HOST}
+    port: ${SPRING_MAIL_PORT}
+    username: ${SPRING_MAIL_USERNAME}
+    password: ${SPRING_MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 25MB
+
+
+#  # Twilio sms
+#twilio:
+#  account-sid: ${ACCOUNT_SID}
+#  auth-token: ${AUTH_TOKEN}
+#  verify:
+#    service-sid: ${SERVICE_SID}
+
+twilio:
+  account-sid: ${ACCOUNT_SID}
+  auth-token: ${AUTH_TOKEN}
+  verify:
+    service-sid: ${SERVICE_SID}
+
+#server:
+#  error:
+#    include-message: always
+#    include-binding-errors: always
+#    include-exception: true
+#    include-stacktrace: always
+
+
 springdoc:
   swagger-ui:
     enabled: true
     try-it-out-enabled: true
+
+
+logging:
+  level:
+    org.springframework.mail: DEBUG
+    jakarta.mail: DEBUG
+
+    org.springframework.web: DEBUG
+
+    org.springframework.security: DEBUG
+
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql: TRACE
+    org.hibernate.engine.transaction.internal.TransactionImpl: DEBUG
+
+    com.fasterxml.jackson.databind: DEBUG
+
+aws:
+  s3:
+    access-key: ${AWS_ACCESS_KEY}
+    secret-key: ${AWS_SECRET_KEY}
+    region: ${AWS_REGION}
+    bucket-name: ${AWS_BUCKET_NAME}
 
 

@@ -1,0 +1,140 @@
+{
+  "info": {
+    "name": "Legal Content API",
+    "_postman_id": "b7e2a6f0-2b3a-4e4a-9d3e-legalcontent01",
+    "description": "Endpoints for tbl_legal_content (Terms & Conditions / declarations served to the buyer and seller registration flows). Base path already includes /api/v1 via {{baseUrl}}.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api/v1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Get Buyer Terms",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/content/BUYER_TERMS",
+          "host": ["{{baseUrl}}"],
+          "path": ["content", "BUYER_TERMS"]
+        },
+        "description": "Fetches the active Buyer Company Pre-Registration Terms & Conditions content, consumed by TermsStep.tsx in the buyer registration wizard."
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "originalRequest": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/content/BUYER_TERMS",
+              "host": ["{{baseUrl}}"],
+              "path": ["content", "BUYER_TERMS"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"contentKey\": \"BUYER_TERMS\",\n  \"title\": \"Buyer Company Pre-Registration Mandatory Declarations & Acceptance\",\n  \"content\": \"<h2>Authorized Representation & Legal Binding</h2><ul><li>...</li></ul>\",\n  \"version\": 1,\n  \"updatedAt\": \"2026-08-24T10:00:00\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Get Seller Terms",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/content/SELLER_TERMS",
+          "host": ["{{baseUrl}}"],
+          "path": ["content", "SELLER_TERMS"]
+        },
+        "description": "Fetches the active Seller Company Pre-Registration Declarations content, consumed by SellerDeclaration.tsx in the seller registration wizard."
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "originalRequest": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/content/SELLER_TERMS",
+              "host": ["{{baseUrl}}"],
+              "path": ["content", "SELLER_TERMS"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"contentKey\": \"SELLER_TERMS\",\n  \"title\": \"Seller Company Pre-Registration Mandatory Declarations & Acceptance\",\n  \"content\": \"<h2>1. Authorized Representation & Legal Binding</h2><ul><li>...</li></ul>\",\n  \"version\": 1,\n  \"updatedAt\": \"2026-08-24T10:00:00\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Get Content By Key - Not Found",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/content/PRIVACY_POLICY",
+          "host": ["{{baseUrl}}"],
+          "path": ["content", "PRIVACY_POLICY"]
+        },
+        "description": "Example of a key with no active row yet — returns 404 via ResourceNotFoundException / GlobalExceptionHandler until a PRIVACY_POLICY row is seeded."
+      },
+      "response": [
+        {
+          "name": "404 Not Found",
+          "originalRequest": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/content/PRIVACY_POLICY",
+              "host": ["{{baseUrl}}"],
+              "path": ["content", "PRIVACY_POLICY"]
+            }
+          },
+          "status": "Not Found",
+          "code": 404,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"status\": \"ERROR\",\n  \"message\": \"No active legal content found for key: PRIVACY_POLICY\",\n  \"data\": null\n}"
+        }
+      ]
+    }
+  ]
+}

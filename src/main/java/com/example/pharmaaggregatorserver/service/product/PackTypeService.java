@@ -1,0 +1,8 @@
+package com.example.pharmaaggregatorserver.service.product;
+
+import com.example.pharmaaggregatorserver.dto.product.PackTypeDto;
+
+public interface PackTypeService {
+
+    PackTypeDto getPackTypeById(Long packId);
+}

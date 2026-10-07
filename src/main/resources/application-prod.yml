@@ -1,6 +1,10 @@
+server:
+  servlet:
+    context-path: /api/v1
+
 spring:
   datasource:
-    url: jdbc:postgresql://postgres-prod:5432/pharma-aggregator_prod?charSet=UTF8
+    url: jdbc:postgresql://postgres-prod:5432/pharma-aggregator
     username: postgres
     password: root
     driver-class-name: org.postgresql.Driver

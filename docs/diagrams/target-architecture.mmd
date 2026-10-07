@@ -1,0 +1,65 @@
+flowchart TB
+    subgraph Clients
+        FE["pharma-aggregator-client"]
+        Admin["Admin frontend"]
+    end
+
+    GW["API Gateway / BFF\n(proposed - routes to services below)"]
+
+    subgraph IdentitySvc["1. Identity & Access service"]
+        IdentityDB[("Identity DB\ntbl_user, tbl_role_master,\nbuyer_user + otp/refresh tables")]
+    end
+
+    subgraph SellerSvc["2. Seller & Onboarding service"]
+        SellerDB[("Seller DB\ntbl_seller*, tbl_temp_seller*,\ntbl_pending_seller*, tbl_ifsc_overrides")]
+    end
+
+    subgraph BuyerSvc["3. Buyer & Onboarding service"]
+        BuyerDB[("Buyer DB\ntbl_buyer*, tbl_temp_buyer*")]
+    end
+
+    subgraph ProductSvc["4. Product Catalog service"]
+        ProductDB[("Product DB\ntm_product_details + attribute\ntables + ~25 master tables,\npricing, stock, packaging")]
+    end
+
+    subgraph OrderSvc["5. Order, Payment & Fulfillment service"]
+        OrderDB[("Order DB\ntbl_order*, tbl_payment,\ntbl_refund, tbl_return_request,\ntbl_invoice, tbl_quote_request")]
+    end
+
+    subgraph MasterMod["Shared Master/Reference module\n(cached client-side, not called per-request)"]
+        MasterDB[("Master DB\nstate/district/taluka/\ncompany_type/seller_type/\nbuyer_type/document_type/\nproduct_type_master")]
+    end
+
+    subgraph AsyncInfra["Proposed async infra (none exists today)"]
+        Queue["SQS / event bus\n(order saga, stock restore,\napproval notifications)"]
+    end
+
+    FE --> GW
+    Admin --> GW
+    GW --> IdentitySvc
+    GW --> SellerSvc
+    GW --> BuyerSvc
+    GW --> ProductSvc
+    GW --> OrderSvc
+
+    SellerSvc -->|"validate user_id\n(sync API)"| IdentitySvc
+    BuyerSvc -->|"validate buyer_user_id\n(sync API)"| IdentitySvc
+    SellerSvc -->|"cached read"| MasterMod
+    BuyerSvc -->|"cached read"| MasterMod
+    ProductSvc -->|"validate seller_id\n(sync API)"| SellerSvc
+    OrderSvc -->|"reserve/confirm stock,\nfetch pricing (sync API + saga)"| ProductSvc
+    OrderSvc -->|"resolve buyer + delivery address\n(sync API)"| BuyerSvc
+    OrderSvc -->|"validate seller_id\n(sync API)"| SellerSvc
+
+    OrderSvc -. "OrderCancelled/ReturnApproved event" .-> Queue
+    Queue -. "stock restore" .-> ProductSvc
+    SellerSvc -. "SellerApproved event" .-> Queue
+    BuyerSvc -. "BuyerApproved event" .-> Queue
+    Queue -. "email/SMS notification" .-> IdentitySvc
+
+    IdentitySvc --> IdentityDB
+    SellerSvc --> SellerDB
+    BuyerSvc --> BuyerDB
+    ProductSvc --> ProductDB
+    OrderSvc --> OrderDB
+    MasterMod --> MasterDB

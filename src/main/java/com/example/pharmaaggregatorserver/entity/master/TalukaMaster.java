@@ -17,7 +17,7 @@ public class TalukaMaster {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "taluka_id")
-    private Integer talukaId;
+    private Long talukaId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "state_id", nullable = false, insertable = false, updatable = false)

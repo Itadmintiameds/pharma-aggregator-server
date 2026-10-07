@@ -23,7 +23,7 @@ public class HomeController {
     @GetMapping("/health")
     public ResponseEntity<Map<String, String>> health() {
         Map<String, String> response = new HashMap<>();
-        response.put("status", "Hi Bassu");
+        response.put("status", "UP");
         return ResponseEntity.ok(response);
     }
 
@@ -32,5 +32,17 @@ public class HomeController {
         Map<String, String> response = new HashMap<>();
         response.put("status", "UP");
         return ResponseEntity.ok(response);
+    }
+
+//    @GetMapping("/public/health-check")
+//    public ResponseEntity<Map<String, String>> healthCheck() {
+//        Map<String, String> response = new HashMap<>();
+//        response.put("status", "UP");
+//        return ResponseEntity.ok(response);
+//    }
+
+    @GetMapping("/public/health-check")
+    public ResponseEntity<Map<String, String>> healthCheck() {
+        return ResponseEntity.ok(Map.of("status", "UP"));
     }
 }

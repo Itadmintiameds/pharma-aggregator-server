@@ -20,39 +20,39 @@ public class TempSellerAddress {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "temp_seller_address_id")
+    @Column(name = "seller_address_id")
     private Long tempSellerAddressId;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "temp_seller_id", unique = true, nullable = false)
+    @JoinColumn(name = "seller_id", unique = true, nullable = false)
     @JsonIgnore
     private TempSeller seller;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "state_id", nullable = false)
+    @JoinColumn(name = "state_id")
     private StateMaster state;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "district_id", nullable = false)
+    @JoinColumn(name = "district_id")
     private DistrictMaster district;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "taluka_id", nullable = false)
+    @JoinColumn(name = "taluka_id")
     private TalukaMaster taluka;
 
-    @Column(name = "city", nullable = false)
+    @Column(name = "city")
     private String city;
 
-    @Column(name = "street", nullable = false)
+    @Column(name = "street")
     private String street;
 
-    @Column(name = "building_no", nullable = false)
+    @Column(name = "building_no")
     private String buildingNo;
 
     @Column(name = "landmark")
     private String landmark;
 
-    @Column(name = "pinCode", nullable = false)
+    @Column(name = "pinCode")
     private String pinCode;
 
     //    TODO: does createdBy, updatedBy, createdAt, updatedAt required in all tables?
@@ -69,4 +69,7 @@ public class TempSellerAddress {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "is_active")
+    private Boolean isActive = true;
 }
